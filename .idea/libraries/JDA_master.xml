@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="JDA-master">
+    <CLASSES />
+    <JAVADOC>
+      <root url="https://ci.dv8tion.net/job/JDA/javadoc/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/JDA-master.zip!/" />
+      <root url="jar://$PROJECT_DIR$/lib/JDA-master.zip!/JDA-master/src/examples/java" />
+      <root url="jar://$PROJECT_DIR$/lib/JDA-master.zip!/JDA-master/src/main/java" />
+      <root url="jar://$PROJECT_DIR$/lib/JDA-master.zip!/JDA-master/src/test/java" />
+    </SOURCES>
+  </library>
+</component>
