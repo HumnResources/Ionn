@@ -10,4 +10,10 @@ public interface ICommand {
     default List<String> getAliases() {
         return List.of(); // return immutable list of 0 elements
     }
+
+
+    default String getHelp() {
+        return "No description provided.";
+    };
+
 }

@@ -34,15 +34,19 @@ public class CommandManager {
         addCommand(new Previous());
         addCommand(new NowPlaying());
         addCommand(new Youtube());
+        addCommand(new Prefix());
+        addCommand(new Playlist());
+        addCommand(new Lyrics());
         addCommand(new Clear());
         addCommand(new Spam());
-        addCommand(new Prefix());
+        addCommand(new Queue());
+        addCommand(new Join());
         LOGGER.info("Command Manager Initialized");
     }
 
-    public CommandManager() {}
+//    public CommandManager() {}
 
-    public void handle(GuildMessageReceivedEvent event) {
+    public void execute(GuildMessageReceivedEvent event) {
 
         String prefix = new Prefix().getPrefix(event.getGuild());
 
@@ -57,7 +61,7 @@ public class CommandManager {
         {
             List<String> args = Arrays.asList(split).subList(1, split.length);
             CommandContext ctx = new CommandContext(event, args);
-            cmd.handle(ctx);
+            cmd.execute(ctx);
         }
     }
 
@@ -70,7 +74,7 @@ public class CommandManager {
                     .map(String::toLowerCase)
                     .collect(Collectors.toList());
 
-            if (cmd.getName().equalsIgnoreCase(search) || aliases.contains(search))
+            if (cmd.getClass().getSimpleName().equalsIgnoreCase(search) || aliases.contains(search))
                 return cmd;
         }
 

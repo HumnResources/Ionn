@@ -23,10 +23,10 @@ public class NowPlaying extends Command {
     }
 
     @Override
-    public void handle(CommandContext ctx) {
+    public void execute(CommandContext ctx) {
 
         GuildManager.getContext(ctx.getGuild())
-                .getMusicManager()
+                .getAudioManager()
                 .getScheduler()
                 .sendEmbed(ctx.getChannel());
     }

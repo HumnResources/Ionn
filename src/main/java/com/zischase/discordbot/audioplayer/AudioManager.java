@@ -16,7 +16,7 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import net.dv8tion.jda.api.entities.Guild;
 
 
-public class MusicManager {
+public class AudioManager {
     private final static AudioPlayerManager AUDIO_PLAYER_MANAGER = new DefaultAudioPlayerManager();
     private final AudioPlayer player;
     private final TrackScheduler scheduler;
@@ -35,7 +35,7 @@ public class MusicManager {
         AudioSourceManagers.registerLocalSource(AUDIO_PLAYER_MANAGER);
     }
 
-    public MusicManager(Guild guild) {
+    public AudioManager(Guild guild) {
         this.player = AUDIO_PLAYER_MANAGER.createPlayer();
         this.scheduler = new TrackScheduler(this);
         this.player.addListener(scheduler);

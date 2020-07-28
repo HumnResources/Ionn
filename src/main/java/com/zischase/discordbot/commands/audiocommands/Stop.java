@@ -1,9 +1,11 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.zischase.discordbot.commands.CommandContext;
+import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.commands.Command;
+import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
-import com.zischase.discordbot.audioplayer.MusicManager;
+
+import java.util.ArrayList;
 
 public class Stop extends Command {
 
@@ -17,10 +19,12 @@ public class Stop extends Command {
     }
 
     @Override
-    public void handle(CommandContext ctx) {
-        MusicManager musicManager = GuildManager.getContext(ctx.getGuild()).getMusicManager();
+    public void execute(CommandContext ctx) {
+        AudioManager audioManager = GuildManager.getContext(ctx.getGuild()).getAudioManager();
 
-        musicManager.getPlayer().stopTrack();
+        audioManager.getPlayer().stopTrack();
+
+        audioManager.getScheduler().queueList(new ArrayList<>(), null);
 
         ctx.getJDA().getDirectAudioController().disconnect(ctx.getGuild());
     }

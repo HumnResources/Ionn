@@ -8,8 +8,6 @@ public abstract class Command implements ICommand {
         this.premiumCommand = premiumCommand;
     }
 
-    public abstract void handle(CommandContext ctx);
-
-    public abstract String getHelp();
+    public abstract void execute(CommandContext ctx);
 
 }

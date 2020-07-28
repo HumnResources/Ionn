@@ -1,8 +1,6 @@
-package com.zischase.discordbot.commands;
+package com.zischase.discordbot.audioplayer;
 
 import com.zischase.discordbot.Listener;
-import com.zischase.discordbot.audioplayer.Audio;
-import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
@@ -12,12 +10,12 @@ import javax.annotation.Nonnull;
 import java.awt.*;
 import java.util.List;
 
-public class ResultSelector {
+public class AudioResultSelector {
 
     GuildMessageReceivedEvent event;
-    private final List<Audio> searchList;
+    private final List<AudioInfo> searchList;
 
-    public ResultSelector(GuildMessageReceivedEvent event, @NotNull List<Audio> list) {
+    public AudioResultSelector(GuildMessageReceivedEvent event, @NotNull List<AudioInfo> list) {
         this.event = event;
         this.searchList = list;
     }
@@ -39,10 +37,8 @@ public class ResultSelector {
 
                         int num = Integer.parseInt(choice);
                         if (num > 0 && num <= searchList.size()) {
-                            GuildManager.getContext(event.getGuild())
-                                    .getMusicManager()
-                                    .getScheduler()
-                                    .load(event.getChannel(), event.getMember(), searchList.get(num-1));
+
+                            new TrackLoader().load(event.getChannel(), event.getMember(), searchList.get(num - 1).getUrl());
                         }
                     }
                     event.getJDA().removeEventListener(this);
@@ -58,9 +54,20 @@ public class ResultSelector {
         if (searchList.isEmpty())
             embed.appendDescription("No results found !");
         else {
-            for (Audio result : searchList) {
+
+            String length = "";
+            for (AudioInfo result : searchList) {
                 embed.appendDescription((searchList.indexOf(result)+1) + ". `" + result.getName()+"`");
                 embed.appendDescription(System.lineSeparator());
+
+                length = length.concat((searchList.indexOf(result)+1) + ". `" + result.getName()+"`" + System.lineSeparator());
+
+                if (length.length() >= 2000) {
+                    length = "";
+                    event.getChannel().sendMessage(embed.build()).queue();
+                    embed = new EmbedBuilder();
+                    embed.setColor(Color.DARK_GRAY);
+                }
             }
         }
         event.getChannel().sendMessage(embed.build()).queue();

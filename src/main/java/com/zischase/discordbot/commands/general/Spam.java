@@ -16,7 +16,7 @@ public class Spam extends Command {
     }
 
     @Override
-    public void handle(CommandContext ctx) {
+    public void execute(CommandContext ctx) {
         TextChannel textChannel = ctx.getChannel();
 
         if (ctx.getArgs().isEmpty())

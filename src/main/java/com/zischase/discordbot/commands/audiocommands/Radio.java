@@ -1,10 +1,10 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.zischase.discordbot.audioplayer.Audio;
+import com.zischase.discordbot.audioplayer.AudioInfo;
+import com.zischase.discordbot.audioplayer.AudioResultSelector;
+import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.commands.ResultSelector;
-import com.zischase.discordbot.guildcontrol.GuildManager;
 import de.sfuhrm.radiobrowser4j.Paging;
 import de.sfuhrm.radiobrowser4j.RadioBrowser;
 import de.sfuhrm.radiobrowser4j.Station;
@@ -38,20 +38,18 @@ public class Radio extends Command {
 
     @Override
     public List<String> getAliases() {
-        return Collections.singletonList("R");
+        return List.of("R");
     }
 
     @Override
     public String getHelp() {
-        return """
-                Radio [genre]
-                Radio s [search term]
-                Aliases: 
-                """ + getAliases();
+        return String.format(" Radio [genre] \n" +
+                "Radio s [search term] \n" +
+                "Aliases: %s", getAliases());
     }
 
     @Override
-    public void handle(CommandContext ctx) {
+    public void execute(CommandContext ctx) {
         GuildMessageReceivedEvent event = ctx.getEvent();
         List<String> args = ctx.getArgs();
 
@@ -61,17 +59,11 @@ public class Radio extends Command {
             if (args.get(0).matches("(i?)(search|s)")) {
 
                 query = query.replaceFirst("(i?)(search|s)", "").trim();
-                boolean hasSearchNum = args.get(1).matches("(\\d+)");
-                int maxSearch = hasSearchNum ? Integer.parseInt(args.get(1)) : 10;
 
-                if (maxSearch > 50 || maxSearch <= 0) {
-                    event.getChannel().sendMessage("Must provide a valid search range number ! (1-50)").queue();
-                    return;
-                }
                 searchByString(event, query);
             }
             else if (RADIO_BROWSER.listTags().containsKey(query))
-                    searchByTag(event, query);
+                searchByTag(event, query);
         }
     }
 
@@ -85,10 +77,7 @@ public class Radio extends Command {
         if (stations.isEmpty())
             return;
 
-        GuildManager.getContext(event.getGuild())
-                .getMusicManager()
-                .getScheduler()
-                .load(event.getChannel(), event.getMember(), new Audio(stations.get(0)));
+        new TrackLoader().load(event.getChannel(), event.getMember(), stations.get(0).getUrl());
     }
 
     private void searchByString(GuildMessageReceivedEvent event, String query) {
@@ -100,12 +89,12 @@ public class Radio extends Command {
                 .limit(20)
                 .collect(Collectors.toList());
 
-        List<Audio> results = new ArrayList<>();
+        List<AudioInfo> results = new ArrayList<>();
         for (Station s : stations) {
-            results.add(new Audio(s));
+            results.add(new AudioInfo(s));
         }
 
-        new ResultSelector(event, results).setListener();
+        new AudioResultSelector(event, results).setListener();
     }
 
 }

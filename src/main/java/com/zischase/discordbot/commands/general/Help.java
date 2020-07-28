@@ -19,15 +19,21 @@ public class Help extends Command {
         this.manager = manager;
     }
 
+    @Override
+    public String getName() {
+        return "Help [command]";
+    }
+
     private MessageEmbed printCommandList(Guild guild) {
         EmbedBuilder cmdList = new EmbedBuilder();
-        cmdList.setColor(Color.CYAN);
-        cmdList.setTitle("Command List");
-
+        cmdList.setColor(Color.ORANGE);
+        cmdList.setTitle("Commands");
         String prefix = new Prefix().getPrefix(guild);
+
+        cmdList.appendDescription(String.format("The current prefix is set to: `%s`\n", prefix));
+
         manager.getCommandList()
-                .forEach(command -> cmdList.appendDescription("`" + prefix + command.getHelp() + "`")
-                        .appendDescription(System.lineSeparator())
+                .forEach(command -> cmdList.appendDescription(String.format("`%s%s`\n", prefix, command.getName()))
                 );
 
         return cmdList.build();
@@ -39,7 +45,7 @@ public class Help extends Command {
     }
 
     @Override
-    public void handle(CommandContext ctx) {
+    public void execute(CommandContext ctx) {
         TextChannel channel = ctx.getChannel();
         List<String> args = ctx.getArgs();
 

@@ -1,13 +1,12 @@
 package com.zischase.discordbot.commands.general;
 
-import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.commands.Command;
+import com.zischase.discordbot.commands.CommandContext;
 import net.dv8tion.jda.api.entities.Message;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /*
  *  Recursively delete 100 messages at a time until none available.
@@ -36,21 +35,30 @@ public class Clear extends Command {
     }
 
     @Override
-    public void handle(CommandContext ctx) {
-        deleteMessage(ctx, ctx.getArgs());
+    public void execute(CommandContext ctx) {
 
-        if (ctx.getArgs().isEmpty())
-            ctx.getChannel()
-                    .sendMessage("All available messages purged!")
-                    .complete()
-                    .delete()
-                    .queueAfter(2, TimeUnit.SECONDS);
-        else
-            ctx.getChannel()
-                    .sendMessage(ctx.getArgs().get(0) + " deleted!")
-                    .complete()
-                    .delete()
-                    .queueAfter(2, TimeUnit.SECONDS);
+
+
+        if (ctx.getArgs().isEmpty()) {
+
+
+//            List<Message> messages = ctx.getChannel().getHistory().retrievePast(500).complete();
+
+//            messages.removeIf(message ->
+//                    message.getTimeCreated()
+//                            .isBefore(OffsetDateTime.now().minusDays(14))
+//            );
+
+
+            ctx.getChannel().purgeMessages(ctx.getChannel().getHistory().retrievePast(500).complete());
+
+        }
+//        else
+//            ctx.getChannel()
+//                    .sendMessage(ctx.getArgs().get(0) + " deleted!")
+//                    .complete()
+//                    .delete()
+//                    .queueAfter(2, TimeUnit.SECONDS);
     }
 
 

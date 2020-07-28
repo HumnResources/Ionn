@@ -1,13 +1,12 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.zischase.discordbot.audioplayer.Audio;
+import com.zischase.discordbot.audioplayer.AudioInfo;
+import com.zischase.discordbot.audioplayer.AudioResultSelector;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.commands.ResultSelector;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,7 +15,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Youtube extends Command {
-
     public Youtube() {
         super(false);
     }
@@ -32,11 +30,8 @@ public class Youtube extends Command {
     }
 
     @Override
-    public void handle(CommandContext ctx) {
-        String query = String.join("", ctx.getArgs())
-                .trim()
-                .replaceAll( "(\\s)", "+");
-
+    public void execute(CommandContext ctx) {
+        String query = String.join("+", ctx.getArgs());
         String url = "http://youtube.com/results?search_query="+query;
 
         Document doc = null;
@@ -47,33 +42,41 @@ public class Youtube extends Command {
         }
 
         if (doc != null) {
-            Elements scripts = doc.select("script");
+            Element element = new Element("script");
+            doc.select("script").forEach(e -> element.append(e.html()));
 
-            Element aio = scripts.first();
-            for (int i = 1; i < scripts.size(); i++)
-                aio.append(scripts.get(i).html());
+            List<AudioInfo> songList = new ArrayList<>();
 
-            // RegEx:
-            // (?<="title":{"runs":\[{"text":") - Negative lookbehind prefix for finding title
-            // (\w.+?)?                         - Title string
-            // (?=".+?(\/watch\?v=\w+)")        - Negative lookahead until url found
-            // (\/watch\?v=\w+)                 - youtube url extension
-            Pattern p = Pattern.compile("(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(\\w.+?)?(?=\".+?(/watch\\?v=\\w+)\")");
-            Matcher m = p.matcher(aio.html());
+            // RegEx - caseInsensitive, Multiline
+            // (?<="videoId":") - Negative lookbehind for finding video ID key
+            // .+?              - Any character up to ?.
+            // (?=")            - ? = ".
+            Pattern videoId = Pattern.compile("(?im)(?<=\"videoId\":\").+?(?=\")");
+            Matcher videoMatcher = videoId.matcher(element.html());
 
-            List<Audio> songList = new ArrayList<>();
-            int i = 0;
-            while (m.find()) {
-                ++i;
+            String uri = "";
+            while (videoMatcher.find()) {
+                if (uri.matches(videoMatcher.group(0)))
+                    continue;
+                uri =  videoMatcher.group(0);
 
-                String uri = "www.youtube.com" + m.group(2);
-                songList.add(new Audio(m.group(1), uri));
+                // RegEx - caseInsensitive, Multiline
+                // (?=i.ytimg.com/vi/"+uri+").{1,300}   - Positive lookahead to contain video ID near title. Arbitrarily up to 300 chars
+                // (?<="title":\{"runs":\[\{"text":")   - Positive lookbehind to contain text prior to title.
+                // (.+?(?=\"))                          - Extract song name. Any character up to the next ".
+                Pattern songName = Pattern.compile("(?im)(?=i.ytimg.com/vi/"+uri+").{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?(?=\"))");
+                Matcher nameMatcher = songName.matcher(element.html());
 
-                if (i == 10)
+                if (nameMatcher.find()) {
+                    String name = nameMatcher.group(1);
+                    songList.add(new AudioInfo(name, "https://www.youtube.com/watch?v=" + uri));
+                }
+
+                if (songList.size() >= 12)
                     break;
             }
 
-            new ResultSelector(ctx.getEvent(), songList).setListener();
+            new AudioResultSelector(ctx.getEvent(), songList).setListener();
         }
     }
 

@@ -21,13 +21,12 @@ public class PostgreSQL {
 
         Jdbi.create(PostgreSQL::connect).useHandle(handle -> handle.execute(
                 /* language=PostgreSQL */
-                """ 
-                CREATE TABLE IF NOT EXISTS guild_settings(
-                id SERIAL PRIMARY KEY,
-                guild_id VARCHAR(20) NOT NULL,
-                prefix VARCHAR(255) NOT NULL DEFAULT '!!',
-                volume VARCHAR(100) NOT NULL DEFAULT '10')
-                """));
+                " CREATE TABLE IF NOT EXISTS guild_settings( " +
+                "id SERIAL PRIMARY KEY," +
+                "guild_id VARCHAR(20) NOT NULL," +
+                "prefix VARCHAR(255) NOT NULL DEFAULT '!!'," +
+                "volume VARCHAR(100) NOT NULL DEFAULT '10')"
+                ));
 
         LOGGER.info("Connection established!");
     }

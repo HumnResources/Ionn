@@ -14,7 +14,7 @@
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="DiscordBot.v2" options="--enable-preview" />
-      <module name="DiscordBot.v3" options="--enable-preview" />
+      <module name="DiscordBot.v3" options="" />
     </option>
   </component>
 </project>

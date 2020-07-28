@@ -3,7 +3,7 @@ package com.zischase.discordbot.commands.audiocommands;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.guildcontrol.GuildManager;
-import com.zischase.discordbot.audioplayer.MusicManager;
+import com.zischase.discordbot.audioplayer.AudioManager;
 
 public class Skip extends Command {
 
@@ -17,10 +17,10 @@ public class Skip extends Command {
     }
 
     @Override
-    public void handle(CommandContext ctx) {
-        MusicManager musicManager = GuildManager.getContext(ctx.getGuild()).getMusicManager();
+    public void execute(CommandContext ctx) {
+        AudioManager audioManager = GuildManager.getContext(ctx.getGuild()).getAudioManager();
 
-        musicManager.getScheduler().nextTrack();
+        audioManager.getScheduler().nextTrack();
 
     }
 }
