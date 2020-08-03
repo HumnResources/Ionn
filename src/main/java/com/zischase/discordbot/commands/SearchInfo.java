@@ -1,7 +1,6 @@
-package com.zischase.discordbot.audioplayer;
+package com.zischase.discordbot.commands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.zischase.discordbot.commands.ISearchable;
 import de.sfuhrm.radiobrowser4j.Station;
 
 public class SearchInfo implements ISearchable {

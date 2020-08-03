@@ -2,7 +2,7 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.zischase.discordbot.audioplayer.SearchInfo;
+import com.zischase.discordbot.commands.SearchInfo;
 import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.guildcontrol.GuildManager;

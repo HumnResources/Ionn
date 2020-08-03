@@ -1,6 +1,6 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.zischase.discordbot.audioplayer.SearchInfo;
+import com.zischase.discordbot.commands.SearchInfo;
 import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
