@@ -1,10 +1,11 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.zischase.discordbot.audioplayer.AudioInfo;
-import com.zischase.discordbot.audioplayer.AudioResultSelector;
+import com.zischase.discordbot.audioplayer.SearchInfo;
 import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
+import com.zischase.discordbot.commands.ISearchable;
+import com.zischase.discordbot.commands.ResultSelector;
 import de.sfuhrm.radiobrowser4j.Paging;
 import de.sfuhrm.radiobrowser4j.RadioBrowser;
 import de.sfuhrm.radiobrowser4j.Station;
@@ -49,7 +50,7 @@ public class Radio extends Command {
     }
 
     @Override
-    public void execute(CommandContext ctx) {
+    public void handle(CommandContext ctx) {
         GuildMessageReceivedEvent event = ctx.getEvent();
         List<String> args = ctx.getArgs();
 
@@ -89,12 +90,17 @@ public class Radio extends Command {
                 .limit(20)
                 .collect(Collectors.toList());
 
-        List<AudioInfo> results = new ArrayList<>();
+        List<ISearchable> results = new ArrayList<>();
         for (Station s : stations) {
-            results.add(new AudioInfo(s));
+            results.add(new SearchInfo(s));
         }
 
-        new AudioResultSelector(event, results).setListener();
+        new ResultSelector(results)
+                .getChoice(event)
+                .thenApplyAsync(result -> {
+                    new TrackLoader().load(event.getChannel(), event.getMember(), result.getUrl());
+                    return null;
+                });
     }
 
 }

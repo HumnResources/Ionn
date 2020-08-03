@@ -24,7 +24,7 @@ public class Previous extends Command {
     }
 
     @Override
-    public void execute(CommandContext ctx) {
+    public void handle(CommandContext ctx) {
 
         GuildManager.getContext(ctx.getGuild()).getAudioManager().getScheduler().prevTrack();
 

@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 public class CommandManager {
     private static final List<Command> commands = new ArrayList<>();
-    private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(CommandManager.class);
 
     public List<Command> getCommandList() {
         return commands;
@@ -41,12 +41,11 @@ public class CommandManager {
         addCommand(new Spam());
         addCommand(new Queue());
         addCommand(new Join());
-        LOGGER.info("Command Manager Initialized");
     }
 
-//    public CommandManager() {}
+    public CommandManager() {}
 
-    public void execute(GuildMessageReceivedEvent event) {
+    public void invoke(GuildMessageReceivedEvent event) {
 
         String prefix = new Prefix().getPrefix(event.getGuild());
 
@@ -57,17 +56,19 @@ public class CommandManager {
         String invoke = split[0].toLowerCase();
         Command cmd = this.getCommand(invoke);
 
-        if (cmd != null)
-        {
+        if (cmd != null) {
             List<String> args = Arrays.asList(split).subList(1, split.length);
             CommandContext ctx = new CommandContext(event, args);
-            cmd.execute(ctx);
+            cmd.handle(ctx);
         }
+    }
+
+    public static int getCommandCount() {
+        return commands.size();
     }
 
     @Nullable
     public Command getCommand(String search) {
-
         for (Command cmd : commands) {
 
             List<String> aliases = cmd.getAliases().stream()
@@ -77,7 +78,6 @@ public class CommandManager {
             if (cmd.getClass().getSimpleName().equalsIgnoreCase(search) || aliases.contains(search))
                 return cmd;
         }
-
         return null;
     }
 
@@ -92,6 +92,6 @@ public class CommandManager {
         }
 
         commands.add(command);
-        LOGGER.info("New command {} added!", command.getName());
     }
+
 }

@@ -11,7 +11,6 @@ public interface ICommand {
         return List.of(); // return immutable list of 0 elements
     }
 
-
     default String getHelp() {
         return "No description provided.";
     };

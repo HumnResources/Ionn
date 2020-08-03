@@ -41,7 +41,7 @@ public class Prefix extends Command {
     }
 
     @Override
-    public void execute(CommandContext ctx) {
+    public void handle(CommandContext ctx) {
         Guild guild =ctx.getGuild();
         List<String> args = ctx.getArgs();
 

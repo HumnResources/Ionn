@@ -6,8 +6,6 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.EmbedBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -17,14 +15,24 @@ import java.util.Objects;
 
 public class Queue extends Command {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Queue.class);
-
     public Queue() {
         super(false);
     }
 
     @Override
-    public void execute(CommandContext ctx) {
+    public List<String> getAliases() {
+        return List.of("Q", "Qu");
+    }
+
+    @Override
+    public String getHelp() {
+        return "`Queue : Show current songs in the queue.`\n" +
+                "`Queue -[clear|c] : Clears the current queue.`\n" +
+                "`Aliases : " + String.join(" ", getAliases()) + "`";
+    }
+
+    @Override
+    public void handle(CommandContext ctx) {
         List<String> args = ctx.getArgs();
 
         AudioManager audioManager = GuildManager.getContext(ctx.getGuild()).getAudioManager();
@@ -39,23 +47,21 @@ public class Queue extends Command {
             else {
                 Collections.reverse(queue);
 
-                String length = "";
                 for (int i = 0; i < queue.size(); i++) {
                     AudioTrack track = queue.get(i);
                     int index = queue.size() - i;
 
-                    embed.appendDescription(index + ". `" + track.getInfo().title + "`" + System.lineSeparator());
+                    embed.appendDescription(index + ". `" + track.getInfo().title + "`\n");
 
-                    length = length.concat(index +". `" + track.getInfo().title + "`" + System.lineSeparator());
+                    // Limit is 2048 characters per embed description. This allows some buffer. Had issues at 2000 characters.
+                    if (embed.getDescriptionBuilder().toString().length() >= 1800) {
+                        ctx.getChannel()
+                                .sendMessage(embed.build())
+                                .queue();
 
-                    // Limit is 2048 characters per embed. This allows some buffer.
-                    if (length.length() >= 2000) {
-                        length = "";
-                        ctx.getChannel().sendMessage(embed.build()).queue();
                         embed = new EmbedBuilder();
                         embed.setColor(Color.BLUE);
                     }
-
                 }
             }
         }
@@ -72,14 +78,10 @@ public class Queue extends Command {
                 .sendMessage(embed.build())
                 .queue();
 
+
         Objects.requireNonNull(GuildManager.getContext(ctx.getGuild())
                 .getCommandManager()
                 .getCommand("NowPlaying"))
-                .execute(ctx);
-    }
-
-    @Override
-    public List<String> getAliases() {
-        return List.of("Q", "Qu");
+                .handle(ctx);
     }
 }

@@ -12,6 +12,8 @@ public class Main {
     }
 
     public static void main(String[] args) throws LoginException {
+
+
         JDABuilder.createDefault(Config.get("TOKEN"))
                 .setActivity(Activity.watching("The server. . ."))
                 .addEventListeners(new Listener())

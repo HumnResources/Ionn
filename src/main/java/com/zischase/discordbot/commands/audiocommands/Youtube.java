@@ -1,12 +1,16 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.zischase.discordbot.audioplayer.AudioInfo;
-import com.zischase.discordbot.audioplayer.AudioResultSelector;
-import com.zischase.discordbot.commands.Command;
-import com.zischase.discordbot.commands.CommandContext;
+import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.zischase.discordbot.audioplayer.SearchInfo;
+import com.zischase.discordbot.commands.*;
+import com.zischase.discordbot.audioplayer.TrackLoader;
+import com.zischase.discordbot.guildcontrol.GuildManager;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,6 +19,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Youtube extends Command {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Youtube.class);
+
     public Youtube() {
         super(false);
     }
@@ -26,17 +32,25 @@ public class Youtube extends Command {
 
     @Override
     public String getHelp() {
-        return null;
+        return "`Youtube [Search Query] : Search youtube for a song. Then adds it to the queue`\n" +
+                "`Youtube -[search|s] : Provides a list of songs. Reply with a number to choose.`\n" +
+                "`Aliases: " + String.join(" ", getAliases()) + "`";
     }
 
     @Override
-    public void execute(CommandContext ctx) {
+    public void handle(CommandContext ctx) {
+        if (ctx.getArgs().isEmpty())
+            return;
+
+        boolean doSearch = ctx.getArgs().get(0).matches("(?i)(-s|-search)");
         String query = String.join("+", ctx.getArgs());
         String url = "http://youtube.com/results?search_query="+query;
 
         Document doc = null;
         try {
             doc = Jsoup.connect(url).get();
+
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -45,39 +59,60 @@ public class Youtube extends Command {
             Element element = new Element("script");
             doc.select("script").forEach(e -> element.append(e.html()));
 
-            List<AudioInfo> songList = new ArrayList<>();
+            List<ISearchable> songList = new ArrayList<>();
 
-            // RegEx - caseInsensitive, Multiline
+            // RegEx
+            // (?im)            - caseInsensitive, Multiline
             // (?<="videoId":") - Negative lookbehind for finding video ID key
             // .+?              - Any character up to ?.
             // (?=")            - ? = ".
-            Pattern videoId = Pattern.compile("(?im)(?<=\"videoId\":\").+?(?=\")");
-            Matcher videoMatcher = videoId.matcher(element.html());
+            Pattern videoIDPattern = Pattern.compile("(?im)(?<=\"videoId\":\").+?(?=\")");
+            Matcher videoMatcher = videoIDPattern.matcher(element.html());
 
-            String uri = "";
+            String videoID = "";
             while (videoMatcher.find()) {
-                if (uri.matches(videoMatcher.group(0)))
+                if (videoID.matches(videoMatcher.group(0)))
                     continue;
-                uri =  videoMatcher.group(0);
+                videoID =  videoMatcher.group(0);
 
-                // RegEx - caseInsensitive, Multiline
+                // RegEx . . . again . . . it's fast though
+                // (?im)                                - caseInsensitive, Multiline
                 // (?=i.ytimg.com/vi/"+uri+").{1,300}   - Positive lookahead to contain video ID near title. Arbitrarily up to 300 chars
                 // (?<="title":\{"runs":\[\{"text":")   - Positive lookbehind to contain text prior to title.
-                // (.+?(?=\"))                          - Extract song name. Any character up to the next ".
-                Pattern songName = Pattern.compile("(?im)(?=i.ytimg.com/vi/"+uri+").{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?(?=\"))");
+                // (.+?(?=\"}]))                        - Extract song name. Any character up to the next "}]. - This closes the js object on YT end.
+                Pattern songName = Pattern.compile("(?im)(?=vi/"+videoID+").{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?(?=\"}]))");
                 Matcher nameMatcher = songName.matcher(element.html());
 
                 if (nameMatcher.find()) {
-                    String name = nameMatcher.group(1);
-                    songList.add(new AudioInfo(name, "https://www.youtube.com/watch?v=" + uri));
+
+                    if (doSearch) {
+                        songList.add(new SearchInfo(nameMatcher.group(1), "https://www.youtube.com/watch?v=" + videoID));
+
+                        if (songList.size() >= 12) {
+//                            new AudioResultSelector(ctx.getEvent(), songList).setListener();
+                            new ResultSelector(songList)
+                                    .getChoice(ctx.getEvent())
+                                    .thenApplyAsync(result -> {
+                                                new TrackLoader().load(ctx.getChannel(), ctx.getMember(), result.getUrl());
+                                                return null;
+                                            });
+                            break;
+                        }
+                    }
+                    else {
+                        AudioTrack track = (AudioTrack) GuildManager.getContext(ctx.getGuild())
+                                .getAudioManager()
+                                .getPlayerManager()
+                                .source(YoutubeAudioSourceManager.class)
+                                .loadTrackWithVideoId(videoID, true);
+
+                        new TrackLoader().load(ctx.getChannel(), ctx.getMember(), track);
+                        break;
+                    }
                 }
-
-                if (songList.size() >= 12)
-                    break;
             }
-
-            new AudioResultSelector(ctx.getEvent(), songList).setListener();
         }
     }
+
 
 }

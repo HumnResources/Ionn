@@ -15,7 +15,7 @@ public class Join extends Command {
     }
 
     @Override
-    public void execute(CommandContext ctx) {
+    public void handle(CommandContext ctx) {
         connectToVoice(ctx.getChannel(), ctx.getMember());
     }
 

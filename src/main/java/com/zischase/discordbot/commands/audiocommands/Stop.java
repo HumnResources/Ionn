@@ -19,7 +19,7 @@ public class Stop extends Command {
     }
 
     @Override
-    public void execute(CommandContext ctx) {
+    public void handle(CommandContext ctx) {
         AudioManager audioManager = GuildManager.getContext(ctx.getGuild()).getAudioManager();
 
         audioManager.getPlayer().stopTrack();

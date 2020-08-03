@@ -19,6 +19,10 @@ public final class GuildManager {
         ).set(guild);
     }
 
+    public static int getGuildCount() {
+        return GUILDS.size();
+    }
+
     public static GuildContext getContext(Guild guild) {
         return GUILDS.get(guild.getIdLong());
     }

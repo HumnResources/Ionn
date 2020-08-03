@@ -1,11 +1,13 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.zischase.discordbot.PostgreSQL;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.TextChannel;
+import org.jdbi.v3.core.Jdbi;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -16,6 +18,20 @@ import java.util.Map;
 public class Playlist extends Command {
 
     private final Map<String, ArrayList<AudioTrack>> playlists;
+
+
+//    static {
+//
+//        Jdbi.create(PostgreSQL::getConnection).useHandle(handle -> handle.execute(
+//                /* language=PostgreSQL */
+//                " CREATE TABLE IF NOT EXISTS guild_playlists( " +
+//                        "id SERIAL PRIMARY KEY," +
+//                        "guild_id VARCHAR(20) NOT NULL," +
+//                        "prefix VARCHAR(255) NOT NULL"
+//        ));
+//
+//    }
+
 
     public Playlist() {
         super(true);
@@ -33,7 +49,7 @@ public class Playlist extends Command {
     }
 
     @Override
-    public void execute(CommandContext ctx) {
+    public void handle(CommandContext ctx) {
         List<String> args = ctx.getArgs();
 
         if (args.isEmpty()) {
@@ -95,6 +111,13 @@ public class Playlist extends Command {
 
     private void addPlaylist(String name, ArrayList<AudioTrack> tracks) {
         playlists.putIfAbsent(name.toLowerCase(), tracks);
+
+        Jdbi.create(PostgreSQL::getConnection).useHandle(handle -> {
+
+            handle.execute("");
+
+        });
+
     }
 
     private ArrayList<AudioTrack> getPlaylist(String name) {

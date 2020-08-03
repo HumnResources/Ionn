@@ -45,7 +45,7 @@ public class Help extends Command {
     }
 
     @Override
-    public void execute(CommandContext ctx) {
+    public void handle(CommandContext ctx) {
         TextChannel channel = ctx.getChannel();
         List<String> args = ctx.getArgs();
 

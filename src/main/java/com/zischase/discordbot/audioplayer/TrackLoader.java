@@ -8,39 +8,54 @@ import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
 public class TrackLoader implements AudioLoadResultHandler {
     private Member member;
     private TextChannel textChannel;
-    private String url;
-    private boolean loaded = false;
+    private String lastURL = "";
 
     public TrackLoader() {
         this.member = null;
         this.textChannel = null;
-        this.url = "";
     }
 
     public void load(TextChannel channel, Member member, String url) {
         this.textChannel = channel;
-        this.member = member;
-        this.url = url;
+        this.lastURL = url;
+        if (member != null)
+            this.member = member;
 
         if (connectVoice())
-            GuildManager.getContext(member.getGuild())
+            GuildManager.getContext(textChannel.getGuild())
                     .getAudioManager()
-                    .getAudioPlayerManager()
+                    .getPlayerManager()
                     .loadItem(url, this);
         else
             textChannel.sendMessage("You must be in a voice channel to listen to music silly.").queue();
     }
 
+    public void load(TextChannel channel, Member member, AudioTrack track) {
+        this.textChannel = channel;
+        this.lastURL = track.getIdentifier();
+        if (member != null)
+            this.member = member;
+
+        if (connectVoice())
+            GuildManager.getContext(channel.getGuild())
+                .getAudioManager()
+                .getScheduler()
+                .queue(track, channel);
+        else
+            textChannel.sendMessage("You must be in a voice channel to listen to music silly.").queue();
+    }
+
     private boolean connectVoice() {
-        for (VoiceChannel channel : member.getGuild().getVoiceChannels()) {
-            if (channel.getMembers().contains(member)) {
-                member.getJDA()
+        for (VoiceChannel channel : this.member.getGuild().getVoiceChannels()) {
+            if (channel.getMembers().contains(this.member)) {
+                this.member.getJDA()
                         .getDirectAudioController()
                         .connect(channel);
                 return true;
@@ -55,7 +70,6 @@ public class TrackLoader implements AudioLoadResultHandler {
                 .getAudioManager()
                 .getScheduler()
                 .queue(audioTrack, textChannel);
-        loaded = true;
     }
 
     @Override
@@ -64,28 +78,23 @@ public class TrackLoader implements AudioLoadResultHandler {
                 .getAudioManager()
                 .getScheduler()
                 .queueList((ArrayList<AudioTrack>) audioPlaylist.getTracks(), textChannel);
-        loaded = true;
     }
 
     @Override
     public void noMatches() {
         textChannel.sendMessage("Darn, no matches found !").queue();
-        loaded = false;
     }
 
     @Override
     public void loadFailed(FriendlyException e) {
-        int retry = 0;
+        LoggerFactory.getLogger(TrackLoader.class).warn("Error loading '" + lastURL + "' Retrying...");
 
-        for (; retry < 3; retry++) {
+        if (connectVoice()) {
             GuildManager.getContext(textChannel.getGuild())
                     .getAudioManager()
-                    .getAudioPlayerManager()
-                    .loadItem(url, this);
-            if (loaded)
-                return;
+                    .getPlayerManager()
+                    .loadItem(lastURL, this);
         }
 
-        loaded = false;
     }
 }

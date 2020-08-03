@@ -7,8 +7,6 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.IOException;
@@ -17,14 +15,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Lyrics extends Command {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Lyrics.class);
 
     public Lyrics() {
         super(false);
     }
 
     @Override
-    public void execute(CommandContext ctx) {
+    public void handle(CommandContext ctx) {
+
         List<String> args = ctx.getArgs();
         String songTitle = null;
         String artist = null;
@@ -111,5 +109,6 @@ public class Lyrics extends Command {
             else
                 ctx.getChannel().sendMessage(embed.setDescription(str).build()).queue();
         }
+
     }
 }
