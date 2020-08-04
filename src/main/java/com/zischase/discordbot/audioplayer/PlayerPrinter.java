@@ -6,14 +6,19 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.zischase.discordbot.Config;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class PlayerPrinter {
     private static final Logger LOGGER = LoggerFactory.getLogger(PlayerPrinter.class);
@@ -30,8 +35,6 @@ public class PlayerPrinter {
 
         EmbedBuilder embed = new EmbedBuilder();
         embed.setColor(Color.CYAN);
-
-
 
         if (player.getPlayingTrack() == null) {
             embed.setTitle("Nothing Playing");
@@ -57,10 +60,37 @@ public class PlayerPrinter {
         if (player.getPlayingTrack() != null)
             delayMS = player.getPlayingTrack().getDuration() - player.getPlayingTrack().getPosition();
 
-        channel.sendMessage(embed.build())
+        Message message = new MessageBuilder()
+                .setEmbed(embed.build())
+                .build();
+
+        List<Message> past =  channel.getHistory()
+                .retrievePast(100)
+                .complete();
+
+        List<Message> delete = new ArrayList<>();
+        if (!past.isEmpty())
+            delete = past.stream()
+                    .filter(msg -> !msg.getEmbeds().isEmpty())
+                    .filter(msg -> msg.getEmbeds().get(0).getTitle() != null)
+                    .filter(msg -> Objects.requireNonNull(msg.getEmbeds()
+                            .get(0)
+                            .getTitle())
+                            .equalsIgnoreCase(message.getEmbeds().get(0).getTitle()))
+                            .collect(Collectors.toList());
+
+        if (!delete.isEmpty()) {
+            if (delete.size() == 1)
+                channel.deleteMessageById(delete.get(0).getId()).queue();
+            else
+                channel.deleteMessages(delete).queue();
+        }
+
+        channel.sendMessage(message)
                 .complete()
                 .delete()
                 .queueAfter(delayMS, TimeUnit.MILLISECONDS);
+
     }
 
 
