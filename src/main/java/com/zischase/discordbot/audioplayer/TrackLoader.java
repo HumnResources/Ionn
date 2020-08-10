@@ -47,7 +47,7 @@ public class TrackLoader implements AudioLoadResultHandler {
             GuildManager.getContext(channel.getGuild())
                 .getAudioManager()
                 .getScheduler()
-                .queue(track, channel);
+                .queueAudio(track, channel);
         else
             textChannel.sendMessage("You must be in a voice channel to listen to music silly.").queue();
     }
@@ -69,7 +69,7 @@ public class TrackLoader implements AudioLoadResultHandler {
         GuildManager.getContext(textChannel.getGuild())
                 .getAudioManager()
                 .getScheduler()
-                .queue(audioTrack, textChannel);
+                .queueAudio(audioTrack, textChannel);
     }
 
     @Override
@@ -87,14 +87,18 @@ public class TrackLoader implements AudioLoadResultHandler {
 
     @Override
     public void loadFailed(FriendlyException e) {
-        LoggerFactory.getLogger(TrackLoader.class).warn("Error loading '" + lastURL + "' Retrying...");
 
-        if (connectVoice()) {
-            GuildManager.getContext(textChannel.getGuild())
-                    .getAudioManager()
-                    .getPlayerManager()
-                    .loadItem(lastURL, this);
-        }
+
+
+        LoggerFactory.getLogger(TrackLoader.class).error(e.getCause().getLocalizedMessage());
+//        LoggerFactory.getLogger(TrackLoader.class).warn("Error loading '" + lastURL + "' Retrying...");
+//
+//        if (connectVoice()) {
+//            GuildManager.getContext(textChannel.getGuild())
+//                    .getAudioManager()
+//                    .getPlayerManager()
+//                    .loadItem(lastURL, this);
+//        }
 
     }
 }
