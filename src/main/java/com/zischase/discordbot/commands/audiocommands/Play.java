@@ -49,16 +49,19 @@ public class Play extends Command {
             player.setPaused(!isPaused);
         }
         else if (args.get(0).matches("(?i)(-next|-n)")) {
-            AudioManager manager = GuildManager.getContext(ctx.getGuild()).getAudioManager();
-            ArrayList<AudioTrack> queueCopy = manager.getScheduler().getQueue();
+            AudioManager manager = GuildManager.getContext(ctx.getGuild())
+                    .getAudioManager();
+            ArrayList<AudioTrack> queueCopy = manager.getScheduler()
+                    .getQueue();
 
-            manager.getScheduler().clearQueue();
+            manager.getScheduler()
+                    .clearQueue();
 
 
             new TrackLoader().load(ctx.getChannel(), ctx.getMember(), args.get(1));
 
             /*
-                Wait 2s to allow for the new entry to load.
+                Wait 2s to allow for the new entry to load. Event's are handled asynchronously.
              */
             try {
                 Thread.sleep(2000);
@@ -66,7 +69,8 @@ public class Play extends Command {
                 e.printStackTrace();
             }
 
-            manager.getScheduler().queueList(queueCopy, ctx.getChannel());
+            manager.getScheduler()
+                    .queueList(queueCopy, ctx.getChannel());
         }
         else
             new TrackLoader().load(ctx.getChannel(), ctx.getMember(), args.get(0));
