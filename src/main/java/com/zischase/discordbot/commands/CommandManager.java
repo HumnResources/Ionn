@@ -41,13 +41,16 @@ public class CommandManager {
         addCommand(new Spam());
         addCommand(new Queue());
         addCommand(new Join());
+        addCommand(new Shuffle());
+        addCommand(new Repeat());
     }
 
     public CommandManager() {}
 
     public void invoke(GuildMessageReceivedEvent event) {
 
-        String prefix = new Prefix().getPrefix(event.getGuild());
+        new Prefix();
+        String prefix = Prefix.getPrefix(event.getGuild());
 
         String[] split = event.getMessage().getContentRaw()
                 .replaceFirst("(?i)" + Pattern.quote(prefix), "")
