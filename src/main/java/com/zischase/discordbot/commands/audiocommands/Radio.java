@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 
@@ -45,7 +46,7 @@ public class Radio extends Command {
     @Override
     public String getHelp() {
         return String.format(" Radio [genre] \n" +
-                "Radio s [search term] \n" +
+                "Radio -[search|s] [search term] \n" +
                 "Aliases: %s", getAliases());
     }
 
@@ -57,7 +58,7 @@ public class Radio extends Command {
         if (!args.isEmpty()) {
             String query = String.join(" ", args).toLowerCase();
 
-            if (args.get(0).matches("(i?)(search|s)")) {
+            if (args.get(0).matches("(i?)(-search|-s)")) {
 
                 query = query.replaceFirst("(i?)(search|s)", "").trim();
 
@@ -87,7 +88,7 @@ public class Radio extends Command {
 
         List<Station> stations = STATION_LIST.stream()
                 .filter(stn -> stn.getName().toLowerCase().contains(finalQuery))
-                .limit(20)
+                .limit(50)
                 .collect(Collectors.toList());
 
         List<ISearchable> results = new ArrayList<>();
@@ -95,12 +96,15 @@ public class Radio extends Command {
             results.add(new SearchInfo(s));
         }
 
-        new ResultSelector(results)
-                .getChoice(event)
-                .thenApplyAsync(result -> {
-                    new TrackLoader().load(event.getChannel(), event.getMember(), result.getUrl());
-                    return null;
-                });
+        try {
+            ISearchable result = new ResultSelector(results)
+                    .getChoice(event)
+                    .get();
+
+            new TrackLoader().load(event.getChannel(), event.getMember(), result.getUrl());
+        } catch (InterruptedException | ExecutionException e) {
+            LOGGER.warn("Radio result exception: \n" + e.getCause().getLocalizedMessage());
+        }
     }
 
 }
