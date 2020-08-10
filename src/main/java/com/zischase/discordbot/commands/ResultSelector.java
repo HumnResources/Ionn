@@ -2,16 +2,19 @@ package com.zischase.discordbot.commands;
 
 import com.zischase.discordbot.Listener;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class ResultSelector {
@@ -24,8 +27,9 @@ public class ResultSelector {
         this.searches = searches;
     }
 
-    public CompletableFuture<ISearchable> getChoice(GuildMessageReceivedEvent event) {
-        printList(event.getChannel());
+    public Future<ISearchable> getChoice(GuildMessageReceivedEvent event) {
+
+        CompletableFuture<ISearchable> cf = new CompletableFuture<>();
 
         Listener listener = new Listener() {
             @Override
@@ -47,22 +51,19 @@ public class ResultSelector {
         };
 
         event.getJDA().addEventListener(listener);
+        printList(event.getChannel());
+        JDA jda = event.getJDA();
 
-            return new CompletableFuture<ISearchable>().completeAsync(() -> {
-
-            while (LocalDateTime.now().isAfter(LocalDateTime.now().plusSeconds(delayMS/1000))) {
-                if (result != null) {
-                    event.getJDA().removeEventListener(listener);
-                    return result;
-                }
+        while (LocalDateTime.now().isBefore(LocalDateTime.now().plusSeconds(delayMS/1000))) {
+            if (result != null) {
+                cf.complete(result);
+                LoggerFactory.getLogger(ResultSelector.class).info(result.getName());
+                break;
             }
+        }
 
-            if (event.getJDA().getEventManager().getRegisteredListeners().contains(listener))
-                event.getJDA().removeEventListener(listener);
-
-            return null;
-
-        }, Listener.getExecutor());
+        jda.removeEventListener(listener);
+        return cf;
     }
 
     private void printList(TextChannel textChannel) {
