@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -90,12 +91,15 @@ public class Youtube extends Command {
                         songList.add(new SearchInfo(nameMatcher.group(1), "https://www.youtube.com/watch?v=" + videoID));
 
                         if (songList.size() >= 12) {
-                            new ResultSelector(songList)
-                                    .getChoice(ctx.getEvent())
-                                    .thenApplyAsync(result -> {
-                                                new TrackLoader().load(ctx.getChannel(), ctx.getMember(), result.getUrl());
-                                                return null;
-                                            });
+                            try {
+                                ISearchable result = new ResultSelector(songList)
+                                        .getChoice(ctx.getEvent())
+                                        .get();
+
+                                new TrackLoader().load(ctx.getChannel(), ctx.getMember(), result.getUrl());
+                            } catch (InterruptedException | ExecutionException e) {
+                                LOGGER.warn("Youtube result exception: \n" + e.getCause().getLocalizedMessage());
+                            }
                             break;
                         }
                     }
