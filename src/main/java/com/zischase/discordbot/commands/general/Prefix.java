@@ -10,21 +10,20 @@ import org.jdbi.v3.core.Jdbi;
 import java.util.List;
 
 public class Prefix extends Command {
-    private String prefix;
 
     public Prefix() {
         super(false);
-        prefix = Config.get("PREFIX");
     }
 
-    public String getPrefix(Guild guild) {
+    public static String getPrefix(Guild guild) {
+        String prefix = Config.get("PREFIX");
 
         String result = Jdbi.create(PostgreSQL::getConnection).withHandle(handle -> {
-            String r = handle.createQuery("SELECT prefix FROM guild_settings where guild_id = ?")
-                    .bind(0, guild.getId())
-                    .mapTo(String.class)
-                    .findFirst()
-                    .orElse(null);
+                    String r = handle.createQuery("SELECT prefix FROM guild_settings where guild_id = ?")
+                            .bind(0, guild.getId())
+                            .mapTo(String.class)
+                            .findFirst()
+                            .orElse(null);
             handle.close();
             return r;
         });
@@ -46,17 +45,19 @@ public class Prefix extends Command {
         List<String> args = ctx.getArgs();
 
         if (args.isEmpty()) {
-            prefix = getPrefix(guild);
-            ctx.getEvent().getChannel()
-                    .sendMessage("The current prefix is `" + prefix + "`")
+            ctx.getEvent()
+                    .getChannel()
+                    .sendMessage("The current prefix is `" + getPrefix(ctx.getGuild()) + "`")
                     .queue();
             return;
         }
 
-        Jdbi.create(PostgreSQL::getConnection).useHandle(handle ->
-                handle.execute("UPDATE guild_settings SET prefix = ? WHERE guild_id = ?", args.get(0), guild.getId()));
+        Jdbi.create(PostgreSQL::getConnection)
+                .useHandle(handle ->
+                    handle.execute("UPDATE guild_settings SET prefix = ? WHERE guild_id = ?", args.get(0), guild.getId()));
 
-        ctx.getEvent().getChannel()
+        ctx.getEvent()
+                .getChannel()
                 .sendMessage("The new prefix has been set to `" + args.get(0) + "`")
                 .queue();
     }
