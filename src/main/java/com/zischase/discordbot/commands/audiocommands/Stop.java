@@ -5,8 +5,6 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 
-import java.util.ArrayList;
-
 public class Stop extends Command {
 
     public Stop() {
@@ -20,12 +18,17 @@ public class Stop extends Command {
 
     @Override
     public void handle(CommandContext ctx) {
-        AudioManager audioManager = GuildManager.getContext(ctx.getGuild()).getAudioManager();
+        AudioManager audioManager = GuildManager.getContext(ctx.getGuild())
+                .getAudioManager();
 
-        audioManager.getPlayer().stopTrack();
+        audioManager.getPlayer()
+                .stopTrack();
 
-        audioManager.getScheduler().queueList(new ArrayList<>(), null);
+        audioManager.getScheduler()
+                .clearQueue();
 
-        ctx.getJDA().getDirectAudioController().disconnect(ctx.getGuild());
+        ctx.getJDA()
+                .getDirectAudioController()
+                .disconnect(ctx.getGuild());
     }
 }
