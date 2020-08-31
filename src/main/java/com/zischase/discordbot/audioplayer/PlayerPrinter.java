@@ -142,10 +142,10 @@ public class PlayerPrinter
 		
 		Collections.reverse(queue);
 		
-		embed.appendDescription("```\n");
 		
 		if (queue.size() > 1)
 		{
+			embed.appendDescription("```\n");
 			// Subtract 1 to remove next song, display separate..
 			for (AudioTrack track : queue)
 			{
@@ -170,10 +170,11 @@ public class PlayerPrinter
 					embed.appendDescription("```\n");
 				}
 			}
+			embed.appendDescription("```\n");
 		}
 		AudioTrack track = queue.get(queue.size() - 1);
 		
-		embed.appendDescription("``` ```fix\n" + track.getInfo().title + "```");
+		embed.appendDescription("```fix\n" + track.getInfo().title + "```");
 		
 		channel.sendMessage(embed.build())
 			   .queue();
