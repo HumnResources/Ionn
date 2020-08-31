@@ -16,12 +16,22 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class PlayerPrinter
 {
-	private final Guild guild;
+	private static final ThreadPoolExecutor EXECUTOR;
+
+	static
+	{
+		EXECUTOR = (ThreadPoolExecutor) Executors.newFixedThreadPool(GuildManager.getGuildCount());
+	}
+	
+	private final        Guild              guild;
 	
 	public PlayerPrinter(Guild guild)
 	{
@@ -30,7 +40,6 @@ public class PlayerPrinter
 	
 	public void printNowPlaying(TextChannel channel)
 	{
-		
 		AudioPlayer player = GuildManager.getContext(guild)
 										 .getAudioManager()
 										 .getPlayer();
@@ -60,6 +69,7 @@ public class PlayerPrinter
 			
 		}
 		
+		
 		long delayMS = 2000;
 		if (player.getPlayingTrack() != null)
 		{
@@ -71,48 +81,54 @@ public class PlayerPrinter
 		Message message = new MessageBuilder().setEmbed(embed.build())
 											  .build();
 		
-		List<Message> past = channel.getHistory()
-									.retrievePast(100)
-									.complete();
-		
-		List<Message> delete = new ArrayList<>();
-		if (! past.isEmpty())
+		long finalDelayMS = delayMS;
+		new CompletableFuture<Void>().completeAsync(() ->
 		{
-			delete = past.stream()
-						 .filter(msg -> ! msg.getEmbeds()
-											 .isEmpty())
-						 .filter(msg -> msg.getEmbeds()
-										   .get(0)
-										   .getTitle() != null)
-						 .filter(msg -> Objects.requireNonNull(msg.getEmbeds()
-																  .get(0)
-																  .getTitle())
-											   .equalsIgnoreCase(message.getEmbeds()
-																		.get(0)
-																		.getTitle()))
-						 .collect(Collectors.toList());
-		}
-		
-		if (! delete.isEmpty())
-		{
-			if (delete.size() == 1)
+			List<Message> past = channel.getHistory()
+										.retrievePast(100)
+										.complete();
+			
+			List<Message> delete = new ArrayList<>();
+			if (! past.isEmpty())
 			{
-				channel.deleteMessageById(delete.get(0)
-												.getId())
-					   .queue(null, Throwable::getSuppressed);
+				delete = past.stream()
+							 .filter(msg -> ! msg.getEmbeds()
+												 .isEmpty())
+							 .filter(msg -> msg.getEmbeds()
+											   .get(0)
+											   .getTitle() != null)
+							 .filter(msg -> Objects.requireNonNull(msg.getEmbeds()
+																	  .get(0)
+																	  .getTitle())
+												   .equalsIgnoreCase(message.getEmbeds()
+																			.get(0)
+																			.getTitle()))
+							 .collect(Collectors.toList());
 			}
-			else
+			
+			if (! delete.isEmpty())
 			{
-				channel.deleteMessages(delete)
-					   .queue(null, Throwable::getSuppressed);
+				if (delete.size() == 1)
+				{
+					channel.deleteMessageById(delete.get(0)
+													.getId())
+						   .queue(null, Throwable::getSuppressed);
+				}
+				else
+				{
+					channel.deleteMessages(delete)
+						   .queue(null, Throwable::getSuppressed);
+				}
 			}
-		}
+			
+			channel.sendMessage(message)
+				   .complete()
+				   .delete()
+				   .queueAfter(finalDelayMS, TimeUnit.MILLISECONDS, null, Throwable::getSuppressed);
+			
+			return null;
+		}, EXECUTOR);
 		
-		
-		channel.sendMessage(message)
-			   .complete()
-			   .delete()
-			   .queueAfter(delayMS, TimeUnit.MILLISECONDS, null, Throwable::getSuppressed);
 		
 	}
 	

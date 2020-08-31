@@ -64,7 +64,8 @@ public class Queue extends Command
 			else if (args.get(0)
 						 .matches("(?i)(-jump|-j)"))
 			{
-				if (args.get(1).matches("(?i)(\\d+)"))
+				if (args.get(1)
+						.matches("(?i)(\\d+)"))
 				{
 					jumpTo(Integer.parseInt(args.get(1)), scheduler, ctx.getChannel());
 				}
@@ -92,10 +93,10 @@ public class Queue extends Command
 		
 		queue.addAll(queue.subList(0, index - 1));
 		
-		queue.retainAll(queue.subList(index, queue.size()));
+		ArrayList<AudioTrack> newQueue = (ArrayList<AudioTrack>) queue.subList(index, queue.size());
 		
 		scheduler.clearQueue();
-		scheduler.queueList(queue, textChannel);
+		scheduler.queueList(newQueue, textChannel);
 	}
 	
 	private void bringToFront(int index, TrackScheduler scheduler, TextChannel textChannel)
