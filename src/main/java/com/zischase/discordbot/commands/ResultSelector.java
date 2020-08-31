@@ -32,6 +32,7 @@ public class ResultSelector
 	public Future<ISearchable> getChoice(GuildMessageReceivedEvent event)
 	{
 		
+		JDA jda = event.getJDA();
 		CompletableFuture<ISearchable> cf = new CompletableFuture<>();
 		
 		Listener listener = new Listener()
@@ -52,14 +53,13 @@ public class ResultSelector
 							result = searches.get(num - 1);
 						}
 					}
+					jda.removeEventListener(this);
 				}
 			}
 		};
 		
-		event.getJDA()
-			 .addEventListener(listener);
+		jda.addEventListener(listener);
 		printList(event.getChannel());
-		JDA jda = event.getJDA();
 		
 		while (LocalDateTime.now()
 							.isBefore(LocalDateTime.now()

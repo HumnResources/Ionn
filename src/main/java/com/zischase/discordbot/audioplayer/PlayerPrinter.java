@@ -99,12 +99,12 @@ public class PlayerPrinter
 			{
 				channel.deleteMessageById(delete.get(0)
 												.getId())
-					   .queue();
+					   .queue(null, Throwable::getSuppressed);
 			}
 			else
 			{
 				channel.deleteMessages(delete)
-					   .queue();
+					   .queue(null, Throwable::getSuppressed);
 			}
 		}
 		
@@ -194,7 +194,7 @@ public class PlayerPrinter
 											.isEmpty())
 			{
 				textChannel.deleteMessageById(message.getId())
-						   .complete();
+						   .queue(null, Throwable::getSuppressed);
 			}
 		}
 		

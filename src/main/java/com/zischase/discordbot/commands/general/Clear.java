@@ -3,8 +3,6 @@ package com.zischase.discordbot.commands.general;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import net.dv8tion.jda.api.entities.Message;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -12,9 +10,6 @@ import java.util.concurrent.TimeUnit;
 
 public class Clear extends Command
 {
-	
-	private static final Logger LOGGER = LoggerFactory.getLogger(Clear.class);
-	
 	public Clear()
 	{
 		super(false);

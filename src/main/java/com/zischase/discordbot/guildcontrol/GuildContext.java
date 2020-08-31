@@ -4,9 +4,6 @@ import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.audioplayer.PlayerPrinter;
 import net.dv8tion.jda.api.entities.Guild;
 
-import javax.annotation.Nullable;
-
-@Nullable
 public class GuildContext implements IGuildContext
 {
 	private final Guild         guild;

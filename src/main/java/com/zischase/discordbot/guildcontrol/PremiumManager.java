@@ -17,7 +17,6 @@ public final class PremiumManager
 										 .mapTo(boolean.class)
 										 .findFirst()
 										 .orElse(false);
-			
 					   handle.close();
 					   return b;
 				   });
