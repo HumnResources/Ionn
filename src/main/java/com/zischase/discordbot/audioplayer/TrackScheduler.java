@@ -126,7 +126,7 @@ public class TrackScheduler extends AudioEventAdapter
 	
 	public void prevTrack()
 	{
-		this.player.startTrack(lastTrack, false);
+		this.player.startTrack(lastTrack.makeClone(), false);
 	}
 	
 	@Override
@@ -160,7 +160,6 @@ public class TrackScheduler extends AudioEventAdapter
 					.printNowPlaying(textChannel);
 		
 		cache.add(track.makeClone());
-		lastTrack = track.makeClone();
 		
 		if (cache.size() >= 200)
 		{
@@ -185,30 +184,29 @@ public class TrackScheduler extends AudioEventAdapter
 			
 			if (tooManyAttempts)
 			{
-				textChannel.sendMessage("Sorry, too many errors. \nGotta move on.")
+				nextTrack();
+			}
+			else
+			{
+				textChannel.sendMessage("Loading failed. . . \nTrying again!")
 						   .complete()
 						   .delete()
 						   .queueAfter(5000, TimeUnit.MILLISECONDS);
-				nextTrack();
-				return;
+				
+				Member member = textChannel.getGuild()
+										   .getMember(textChannel.getJDA()
+																 .getSelfUser());
+				
+				new TrackLoader().load(textChannel, member, track.getInfo().identifier);
 			}
-			
-			textChannel.sendMessage("Loading failed. . . \nTrying again!")
-					   .complete()
-					   .delete()
-					   .queueAfter(5000, TimeUnit.MILLISECONDS);
-			
-			Member member = textChannel.getGuild()
-									   .getMember(textChannel.getJDA()
-															 .getSelfUser());
-			
-			new TrackLoader().load(textChannel, member, track.getInfo().identifier);
 		}
+		lastTrack = track;
 		
-		else if (endReason.mayStartNext)
+		if (endReason.mayStartNext)
 		{
 			nextTrack();
 		}
+		
 	}
 	
 	@Override
@@ -224,9 +222,9 @@ public class TrackScheduler extends AudioEventAdapter
 		}
 		else
 		{
+			lastTrack = track;
 			player.playTrack(track.makeClone());
 		}
-		lastTrack = track.makeClone();
 	}
 	
 	@Override
