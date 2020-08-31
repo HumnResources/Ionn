@@ -116,18 +116,9 @@ public class TrackLoader implements AudioLoadResultHandler
 	public void loadFailed(FriendlyException e)
 	{
 		
-		
 		LoggerFactory.getLogger(TrackLoader.class)
 					 .error(e.getCause()
 							 .getLocalizedMessage());
-		//        LoggerFactory.getLogger(TrackLoader.class).warn("Error loading '" + lastURL + "' Retrying...");
-		//
-		//        if (connectVoice()) {
-		//            GuildManager.getContext(textChannel.getGuild())
-		//                    .getAudioManager()
-		//                    .getPlayerManager()
-		//                    .loadItem(lastURL, this);
-		//        }
-		
+
 	}
 }
