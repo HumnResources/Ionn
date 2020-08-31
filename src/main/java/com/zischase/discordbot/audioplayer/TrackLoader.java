@@ -16,7 +16,6 @@ public class TrackLoader implements AudioLoadResultHandler
 {
 	private Member      member;
 	private TextChannel textChannel;
-	private String      lastURL = "";
 	
 	public TrackLoader()
 	{
@@ -27,7 +26,6 @@ public class TrackLoader implements AudioLoadResultHandler
 	public void load(TextChannel channel, Member member, String url)
 	{
 		this.textChannel = channel;
-		this.lastURL = url;
 		if (member != null)
 		{
 			this.member = member;
@@ -50,7 +48,6 @@ public class TrackLoader implements AudioLoadResultHandler
 	public void load(TextChannel channel, Member member, AudioTrack track)
 	{
 		this.textChannel = channel;
-		this.lastURL = track.getIdentifier();
 		if (member != null)
 		{
 			this.member = member;
