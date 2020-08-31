@@ -19,8 +19,10 @@ public class AudioManager
 	
 	static
 	{
-		PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
-		PLAYER_MANAGER.getConfiguration().setOpusEncodingQuality(128);
+		PLAYER_MANAGER.getConfiguration()
+					  .setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
+		PLAYER_MANAGER.getConfiguration()
+					  .setOpusEncodingQuality(128);
 		PLAYER_MANAGER.registerSourceManager(new YoutubeAudioSourceManager());
 		PLAYER_MANAGER.registerSourceManager(new HttpAudioSourceManager());
 		PLAYER_MANAGER.registerSourceManager(new LocalAudioSourceManager());
@@ -36,7 +38,8 @@ public class AudioManager
 		this.scheduler = new TrackScheduler(this);
 		this.player.addListener(scheduler);
 		
-		guild.getAudioManager().setSendingHandler(this.getSendHandler());
+		guild.getAudioManager()
+			 .setSendingHandler(this.getSendHandler());
 	}
 	
 	public AudioPlayerManager getPlayerManager()

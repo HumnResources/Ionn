@@ -31,15 +31,25 @@ public class Clear extends Command
 	{
 		int numOfMsgs = 0;
 		
-		if (ctx.getArgs().isEmpty())
+		if (ctx.getArgs()
+			   .isEmpty())
+		{
 			numOfMsgs = Integer.MAX_VALUE;
-		else if (ctx.getArgs().get(0).matches("\\d+"))
-			numOfMsgs = Integer.parseInt(ctx.getArgs().get(0));
+		}
+		else if (ctx.getArgs()
+					.get(0)
+					.matches("\\d+"))
+		{
+			numOfMsgs = Integer.parseInt(ctx.getArgs()
+											.get(0));
+		}
 		
 		
 		ctx.getChannel()
-				.deleteMessageById(ctx.getEvent().getMessage().getId())
-				.complete();
+		   .deleteMessageById(ctx.getEvent()
+								 .getMessage()
+								 .getId())
+		   .complete();
 		
 		
 		int delete = numOfMsgs;
@@ -53,34 +63,38 @@ public class Clear extends Command
 			}
 			
 			List<Message> messages = ctx.getChannel()
-					.getHistory()
-					.retrievePast(delete)
-					.complete();
+										.getHistory()
+										.retrievePast(delete)
+										.complete();
 			
-			messages.removeIf(message ->
-					message.getTimeCreated()
-							.isBefore(OffsetDateTime.now().minusDays(14)));
+			messages.removeIf(message -> message.getTimeCreated()
+												.isBefore(OffsetDateTime.now()
+																		.minusDays(14)));
 			
 			if (messages.size() == 1)
 			{
 				ctx.getChannel()
-						.deleteMessageById(messages.get(0).getId())
-						.complete();
+				   .deleteMessageById(messages.get(0)
+											  .getId())
+				   .complete();
 				break;
-			} else if (messages.isEmpty())
+			}
+			else if (messages.isEmpty())
+			{
 				break;
+			}
 			
 			ctx.getChannel()
-					.deleteMessages(messages)
-					.complete();
+			   .deleteMessages(messages)
+			   .complete();
 			numOfMsgs = numOfMsgs - delete;
 		}
 		
 		ctx.getChannel()
-				.sendMessage("Messages cleared !")
-				.complete()
-				.delete()
-				.queueAfter(2000, TimeUnit.MILLISECONDS);
+		   .sendMessage("Messages cleared !")
+		   .complete()
+		   .delete()
+		   .queueAfter(2000, TimeUnit.MILLISECONDS);
 	}
 	
 	

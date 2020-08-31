@@ -24,13 +24,27 @@ public class Spam extends Command
 		
 		TextChannel textChannel = ctx.getChannel();
 		
-		if (ctx.getArgs().isEmpty())
+		if (ctx.getArgs()
+			   .isEmpty())
+		{
 			for (int i = 0; i < 25; i++)
-				textChannel.sendMessage("Spam !! : " + (i + 1)).complete();
+			{
+				textChannel.sendMessage("Spam !! : " + (i + 1))
+						   .complete();
+			}
+		}
 		
-		else if (ctx.getArgs().get(0).matches("\\d+"))
-			for (int i = 0; i < Integer.parseInt(ctx.getArgs().get(0)); i++)
-				textChannel.sendMessage("Spam !! : " + (i + 1)).complete();
+		else if (ctx.getArgs()
+					.get(0)
+					.matches("\\d+"))
+		{
+			for (int i = 0; i < Integer.parseInt(ctx.getArgs()
+													.get(0)); i++)
+			{
+				textChannel.sendMessage("Spam !! : " + (i + 1))
+						   .complete();
+			}
+		}
 		
 		
 	}

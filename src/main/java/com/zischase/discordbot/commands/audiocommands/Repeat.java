@@ -16,32 +16,45 @@ public class Repeat extends Command
 	public void handle(CommandContext ctx)
 	{
 		boolean repeat = GuildManager.getContext(ctx.getGuild())
-				.getAudioManager()
-				.getScheduler()
-				.isRepeat();
+									 .getAudioManager()
+									 .getScheduler()
+									 .isRepeat();
 		
-		if (! ctx.getArgs().isEmpty())
+		if (! ctx.getArgs()
+				 .isEmpty())
 		{
-			if (ctx.getArgs().get(0).matches("(?i)(on|start|yes)"))
+			if (ctx.getArgs()
+				   .get(0)
+				   .matches("(?i)(on|start|yes)"))
+			{
 				repeat = true;
-			else if (ctx.getArgs().get(0).matches("(?i)(off|stop|no)"))
+			}
+			else if (ctx.getArgs()
+						.get(0)
+						.matches("(?i)(off|stop|no)"))
+			{
 				repeat = false;
+			}
 			
 			GuildManager.getContext(ctx.getGuild())
-					.getAudioManager()
-					.getScheduler()
-					.setRepeat(repeat);
+						.getAudioManager()
+						.getScheduler()
+						.setRepeat(repeat);
 		}
 		
 		String message;
 		if (repeat)
+		{
 			message = "`On`";
+		}
 		else
+		{
 			message = "`Off`";
+		}
 		
 		ctx.getMessage()
-				.getChannel()
-				.sendMessage("Repeat is " + message)
-				.queue();
+		   .getChannel()
+		   .sendMessage("Repeat is " + message)
+		   .queue();
 	}
 }

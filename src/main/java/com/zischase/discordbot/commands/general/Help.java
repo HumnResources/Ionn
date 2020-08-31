@@ -37,11 +37,14 @@ public class Help extends Command
 		cmdList.appendDescription(String.format("The current prefix is set to: `%s`\n", prefix));
 		
 		CommandManager.getCommandList()
-				.forEach(command ->
-				{
-					if ((! command.premiumCommand) || (GuildManager.getContext(guild).isPremium()))
-						cmdList.appendDescription(String.format("`%s%s`\n", prefix, command.getName()));
-				});
+					  .forEach(command ->
+					  {
+						  if ((! command.premiumCommand) || (GuildManager.getContext(guild)
+																		 .isPremium()))
+						  {
+							  cmdList.appendDescription(String.format("`%s%s`\n", prefix, command.getName()));
+						  }
+					  });
 		
 		return cmdList.build();
 	}
@@ -55,23 +58,26 @@ public class Help extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
-		TextChannel  channel = ctx.getChannel();
-		List<String> args    = ctx.getArgs();
+		TextChannel channel = ctx.getChannel();
+		List<String> args = ctx.getArgs();
 		
 		if (args.isEmpty())
 		{
-			channel.sendMessage(printCommandList(ctx.getGuild())).queue();
+			channel.sendMessage(printCommandList(ctx.getGuild()))
+				   .queue();
 			return;
 		}
 		
-		String  cmdSearch = args.get(0);
-		Command command   = CommandManager.getCommand(cmdSearch);
+		String cmdSearch = args.get(0);
+		Command command = CommandManager.getCommand(cmdSearch);
 		
 		if (command == null)
 		{
-			channel.sendMessage("Command " + cmdSearch + " not found.").queue();
+			channel.sendMessage("Command " + cmdSearch + " not found.")
+				   .queue();
 			return;
 		}
-		channel.sendMessage(command.getHelp()).queue();
+		channel.sendMessage(command.getHelp())
+			   .queue();
 	}
 }

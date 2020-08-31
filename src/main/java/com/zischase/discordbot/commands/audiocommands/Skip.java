@@ -22,9 +22,11 @@ public class Skip extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
-		AudioManager audioManager = GuildManager.getContext(ctx.getGuild()).getAudioManager();
+		AudioManager audioManager = GuildManager.getContext(ctx.getGuild())
+												.getAudioManager();
 		
-		audioManager.getScheduler().nextTrack();
+		audioManager.getScheduler()
+					.nextTrack();
 		
 	}
 }

@@ -25,9 +25,8 @@ public class Queue extends Command
 	@Override
 	public String getHelp()
 	{
-		return "`Queue : Show current songs in the queue.`\n" +
-				"`Queue -[clear|c] : Clears the current queue.`\n" +
-				"`Aliases : " + String.join(" ", getAliases()) + "`";
+		return "`Queue : Show current songs in the queue.`\n" + "`Queue -[clear|c] : Clears the current queue.`\n" + "`Aliases : " + String
+				.join(" ", getAliases()) + "`";
 	}
 	
 	@Override
@@ -38,27 +37,28 @@ public class Queue extends Command
 		
 		if (! args.isEmpty())
 		{
-			if (args.get(0).matches("(?i)(-clear|-c)"))
+			if (args.get(0)
+					.matches("(?i)(-clear|-c)"))
 			{
 				EmbedBuilder embed = new EmbedBuilder();
 				embed.setColor(Color.BLUE);
 				
 				GuildManager.getContext(ctx.getGuild())
-						.getAudioManager()
-						.getScheduler()
-						.clearQueue();
+							.getAudioManager()
+							.getScheduler()
+							.clearQueue();
 				
 				embed.appendDescription("Queue cleared.");
 				ctx.getChannel()
-						.sendMessage(embed.build())
-						.queue();
+				   .sendMessage(embed.build())
+				   .queue();
 			}
 		}
 		
 		
 		GuildManager.getContext(ctx.getGuild())
-				.getPlayerPrinter()
-				.printQueue(ctx.getChannel());
+					.getPlayerPrinter()
+					.printQueue(ctx.getChannel());
 		
 	}
 	

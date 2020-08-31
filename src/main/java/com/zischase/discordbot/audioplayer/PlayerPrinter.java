@@ -30,11 +30,10 @@ public class PlayerPrinter
 	
 	public void printNowPlaying(TextChannel channel)
 	{
-		deletePrevious(channel);
 		
 		AudioPlayer player = GuildManager.getContext(guild)
-				.getAudioManager()
-				.getPlayer();
+										 .getAudioManager()
+										 .getPlayer();
 		
 		EmbedBuilder embed = new EmbedBuilder();
 		embed.setColor(Color.CYAN);
@@ -44,57 +43,76 @@ public class PlayerPrinter
 			embed.setTitle("Nothing Playing");
 			embed.setColor(Color.darkGray);
 			embed.setFooter(". . .");
-		} else
+		}
+		else
 		{
-			AudioTrackInfo info = player.getPlayingTrack().getInfo();
+			AudioTrackInfo info = player.getPlayingTrack()
+										.getInfo();
 			embed.setThumbnail(Config.get("MEDIA_PLAYER_ICON"));
 			embed.setTitle("Now Playing");
 			embed.appendDescription(info.title + "\n\n" + info.author + "\n");
 			embed.setFooter(info.uri);
 			
 			if (player.isPaused())
+			{
 				embed.appendDescription("Paused");
-		
+			}
+			
 		}
 		
 		long delayMS = 2000;
 		if (player.getPlayingTrack() != null)
-			delayMS = player.getPlayingTrack().getDuration() - player.getPlayingTrack().getPosition();
+		{
+			delayMS = player.getPlayingTrack()
+							.getDuration() - player.getPlayingTrack()
+												   .getPosition();
+		}
 		
-		Message message = new MessageBuilder()
-				.setEmbed(embed.build())
-				.build();
+		Message message = new MessageBuilder().setEmbed(embed.build())
+											  .build();
 		
 		List<Message> past = channel.getHistory()
-				.retrievePast(100)
-				.complete();
+									.retrievePast(100)
+									.complete();
 		
 		List<Message> delete = new ArrayList<>();
 		if (! past.isEmpty())
+		{
 			delete = past.stream()
-					.filter(msg -> ! msg.getEmbeds().isEmpty())
-					.filter(msg -> msg.getEmbeds().get(0).getTitle() != null)
-					.filter(msg -> Objects.requireNonNull(msg.getEmbeds()
-							.get(0)
-							.getTitle())
-							.equalsIgnoreCase(message.getEmbeds().get(0).getTitle()))
-					.collect(Collectors.toList());
+						 .filter(msg -> ! msg.getEmbeds()
+											 .isEmpty())
+						 .filter(msg -> msg.getEmbeds()
+										   .get(0)
+										   .getTitle() != null)
+						 .filter(msg -> Objects.requireNonNull(msg.getEmbeds()
+																  .get(0)
+																  .getTitle())
+											   .equalsIgnoreCase(message.getEmbeds()
+																		.get(0)
+																		.getTitle()))
+						 .collect(Collectors.toList());
+		}
 		
 		if (! delete.isEmpty())
 		{
 			if (delete.size() == 1)
-				channel.deleteMessageById(delete.get(0).getId())
-						.queue();
+			{
+				channel.deleteMessageById(delete.get(0)
+												.getId())
+					   .queue();
+			}
 			else
+			{
 				channel.deleteMessages(delete)
-						.queue();
+					   .queue();
+			}
 		}
 		
 		
 		channel.sendMessage(message)
-				.complete()
-				.delete()
-				.queueAfter(delayMS, TimeUnit.MILLISECONDS, null, Throwable::getSuppressed);
+			   .complete()
+			   .delete()
+			   .queueAfter(delayMS, TimeUnit.MILLISECONDS, null, Throwable::getSuppressed);
 		
 	}
 	
@@ -103,10 +121,10 @@ public class PlayerPrinter
 		deletePrevious(channel);
 		
 		AudioManager audioManager = GuildManager.getContext(channel.getGuild())
-				.getAudioManager();
+												.getAudioManager();
 		
 		ArrayList<AudioTrack> queue = audioManager.getScheduler()
-				.getQueue();
+												  .getQueue();
 		
 		EmbedBuilder embed = new EmbedBuilder();
 		embed.setColor(Color.BLUE);
@@ -116,9 +134,9 @@ public class PlayerPrinter
 			embed.appendDescription("Nothing in the queue.");
 			
 			channel.sendMessage(embed.build())
-					.complete()
-					.delete()
-					.queueAfter(2000, TimeUnit.MILLISECONDS);
+				   .complete()
+				   .delete()
+				   .queueAfter(2000, TimeUnit.MILLISECONDS);
 			return;
 		}
 		
@@ -132,16 +150,20 @@ public class PlayerPrinter
 			for (AudioTrack track : queue)
 			{
 				if (queue.get(queue.size() - 1) == track)
+				{
 					continue;
+				}
 				
 				embed.appendDescription(track.getInfo().title + "\n");
 				
 				// Limit is 2048 characters per embed description. This allows some buffer. Had issues at 2000 characters.
-				if (embed.getDescriptionBuilder().toString().length() >= 1800)
+				if (embed.getDescriptionBuilder()
+						 .toString()
+						 .length() >= 1800)
 				{
 					embed.appendDescription("```");
 					channel.sendMessage(embed.build())
-							.queue();
+						   .queue();
 					
 					embed = new EmbedBuilder();
 					embed.setColor(Color.BLUE);
@@ -154,7 +176,7 @@ public class PlayerPrinter
 		embed.appendDescription("``` ```fix\n" + track.getInfo().title + "```");
 		
 		channel.sendMessage(embed.build())
-				.queue();
+			   .queue();
 		
 		printNowPlaying(channel);
 	}
@@ -162,15 +184,20 @@ public class PlayerPrinter
 	private void deletePrevious(TextChannel textChannel)
 	{
 		List<Message> messages = textChannel.getHistory()
-				.retrievePast(100)
-				.complete();
+											.retrievePast(100)
+											.complete();
 		
 		for (Message message : messages)
 		{
-			if (message.getAuthor().isBot() && ! message.getEmbeds().isEmpty())
-				textChannel.deleteMessageById(message.getId()).complete();
+			if (message.getAuthor()
+					   .isBot() && ! message.getEmbeds()
+											.isEmpty())
+			{
+				textChannel.deleteMessageById(message.getId())
+						   .complete();
+			}
 		}
 		
 	}
-
+	
 }

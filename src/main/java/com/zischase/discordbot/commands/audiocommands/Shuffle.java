@@ -24,25 +24,24 @@ public class Shuffle extends Command
 	{
 		
 		ArrayList<AudioTrack> currentQueue = GuildManager.getContext(ctx.getGuild())
-				.getAudioManager()
-				.getScheduler()
-				.getQueue();
+														 .getAudioManager()
+														 .getScheduler()
+														 .getQueue();
 		
 		Collections.shuffle(currentQueue);
 		
 		GuildManager.getContext(ctx.getGuild())
-				.getAudioManager()
-				.getScheduler()
-				.clearQueue();
+					.getAudioManager()
+					.getScheduler()
+					.clearQueue();
 		
 		GuildManager.getContext(ctx.getGuild())
-				.getAudioManager()
-				.getScheduler()
-				.queueList(currentQueue, ctx.getChannel());
+					.getAudioManager()
+					.getScheduler()
+					.queueList(currentQueue, ctx.getChannel());
 		
-		Objects.requireNonNull(CommandManager
-				.getCommand("Queue"))
-				.handle(ctx);
+		Objects.requireNonNull(CommandManager.getCommand("Queue"))
+			   .handle(ctx);
 		
 	}
 }

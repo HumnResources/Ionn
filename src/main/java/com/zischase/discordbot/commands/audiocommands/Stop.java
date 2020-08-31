@@ -23,16 +23,16 @@ public class Stop extends Command
 	public void handle(CommandContext ctx)
 	{
 		AudioManager audioManager = GuildManager.getContext(ctx.getGuild())
-				.getAudioManager();
+												.getAudioManager();
 		
 		audioManager.getPlayer()
-				.stopTrack();
+					.stopTrack();
 		
 		audioManager.getScheduler()
-				.clearQueue();
+					.clearQueue();
 		
 		ctx.getJDA()
-				.getDirectAudioController()
-				.disconnect(ctx.getGuild());
+		   .getDirectAudioController()
+		   .disconnect(ctx.getGuild());
 	}
 }

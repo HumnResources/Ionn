@@ -19,19 +19,19 @@ public class Playlist extends Command
 {
 	
 	private final Map<String, ArrayList<AudioTrack>> playlists;
-
-
-//    static {
-//
-//        Jdbi.create(PostgreSQL::getConnection).useHandle(handle -> handle.execute(
-//                /* language=PostgreSQL */
-//                " CREATE TABLE IF NOT EXISTS guild_playlists( " +
-//                        "id SERIAL PRIMARY KEY," +
-//                        "guild_id VARCHAR(20) NOT NULL," +
-//                        "prefix VARCHAR(255) NOT NULL"
-//        ));
-//
-//    }
+	
+	
+	//    static {
+	//
+	//        Jdbi.create(PostgreSQL::getConnection).useHandle(handle -> handle.execute(
+	//                /* language=PostgreSQL */
+	//                " CREATE TABLE IF NOT EXISTS guild_playlists( " +
+	//                        "id SERIAL PRIMARY KEY," +
+	//                        "guild_id VARCHAR(20) NOT NULL," +
+	//                        "prefix VARCHAR(255) NOT NULL"
+	//        ));
+	//
+	//    }
 	
 	
 	public Playlist()
@@ -64,31 +64,36 @@ public class Playlist extends Command
 		}
 		
 		
-		String cmd      = args.get(0);
+		String cmd = args.get(0);
 		String playlist = String.join(" ", args.subList(1, args.size()));
 		
 		if (cmd.matches("(?i)(-play|-p)") || playlists.containsKey(cmd))
 		{
 			if (! playlists.containsKey(playlist.toLowerCase()))
 			{
-				ctx.getChannel().sendMessage("Sorry, playlist not found.").queue();
+				ctx.getChannel()
+				   .sendMessage("Sorry, playlist not found.")
+				   .queue();
 				return;
 			}
 			
-			ctx.getChannel().sendMessage("Loading playlist `" + playlist + "`").queue();
+			ctx.getChannel()
+			   .sendMessage("Loading playlist `" + playlist + "`")
+			   .queue();
 			
 			GuildManager.getContext(ctx.getGuild())
-					.getAudioManager()
-					.getScheduler()
-					.queueList(getPlaylist(playlist), ctx.getChannel());
+						.getAudioManager()
+						.getScheduler()
+						.queueList(getPlaylist(playlist), ctx.getChannel());
 			
 			return;
-		} else if (cmd.matches("(?i)(-current|-c|-np|-nowplaying)"))
+		}
+		else if (cmd.matches("(?i)(-current|-c|-np|-nowplaying)"))
 		{
 			ArrayList<AudioTrack> queue = GuildManager.getContext(ctx.getGuild())
-					.getAudioManager()
-					.getScheduler()
-					.getQueue();
+													  .getAudioManager()
+													  .getScheduler()
+													  .getQueue();
 			
 			addPlaylist("playlist-" + (playlists.size() + 1), queue);
 			printPlaylists(ctx.getChannel());
@@ -97,21 +102,27 @@ public class Playlist extends Command
 		}
 		
 		if (args.size() < 2)
+		{
 			ctx.getChannel()
-					.sendMessage("Not enough arguments ! Type `[prefix]help playlist` for help.")
-					.queue();
+			   .sendMessage("Not enough arguments ! Type `[prefix]help playlist` for help.")
+			   .queue();
+		}
 		
 		else if (cmd.matches("(?i)(-add|-new)"))
 		{
 			ArrayList<AudioTrack> q = GuildManager.getContext(ctx.getGuild())
-					.getAudioManager()
-					.getScheduler()
-					.getQueue();
+												  .getAudioManager()
+												  .getScheduler()
+												  .getQueue();
 			
 			addPlaylist(playlist, q);
 			printPlaylists(ctx.getChannel());
-		} else if (cmd.matches("(?i)(-delete|-d|-remove|-r)"))
-			playlists.remove(args.get(1).toLowerCase());
+		}
+		else if (cmd.matches("(?i)(-delete|-d|-remove|-r)"))
+		{
+			playlists.remove(args.get(1)
+								 .toLowerCase());
+		}
 		
 		
 	}
@@ -120,12 +131,13 @@ public class Playlist extends Command
 	{
 		playlists.putIfAbsent(name.toLowerCase(), tracks);
 		
-		Jdbi.create(PostgreSQL::getConnection).useHandle(handle ->
-		{
+		Jdbi.create(PostgreSQL::getConnection)
+			.useHandle(handle ->
+			{
 			
-			handle.execute("");
+				handle.execute("");
 			
-		});
+			});
 		
 	}
 	
@@ -139,7 +151,8 @@ public class Playlist extends Command
 		
 		if (playlists.isEmpty())
 		{
-			textChannel.sendMessage("Sorry, no available playlists! :c").queue();
+			textChannel.sendMessage("Sorry, no available playlists! :c")
+					   .queue();
 			return;
 		}
 		
@@ -152,7 +165,8 @@ public class Playlist extends Command
 			embed.appendDescription(key + System.lineSeparator());
 		}
 		
-		textChannel.sendMessage(embed.build()).queue();
+		textChannel.sendMessage(embed.build())
+				   .queue();
 	}
 	
 }

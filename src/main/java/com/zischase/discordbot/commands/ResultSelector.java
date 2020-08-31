@@ -40,7 +40,7 @@ public class ResultSelector
 			public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent tmpEvent)
 			{
 				Message tmpMessage = tmpEvent.getMessage();
-				String  choice     = tmpMessage.getContentDisplay();
+				String choice = tmpMessage.getContentDisplay();
 				
 				if (tmpEvent.getAuthor() == event.getAuthor())
 				{
@@ -56,16 +56,20 @@ public class ResultSelector
 			}
 		};
 		
-		event.getJDA().addEventListener(listener);
+		event.getJDA()
+			 .addEventListener(listener);
 		printList(event.getChannel());
 		JDA jda = event.getJDA();
 		
-		while (LocalDateTime.now().isBefore(LocalDateTime.now().plusSeconds(delayMS / 1000)))
+		while (LocalDateTime.now()
+							.isBefore(LocalDateTime.now()
+												   .plusSeconds(delayMS / 1000)))
 		{
 			if (result != null)
 			{
 				cf.complete(result);
-				LoggerFactory.getLogger(ResultSelector.class).info(result.getName());
+				LoggerFactory.getLogger(ResultSelector.class)
+							 .info(result.getName());
 				break;
 			}
 		}
@@ -80,7 +84,9 @@ public class ResultSelector
 		embed.setColor(Color.DARK_GRAY);
 		
 		if (searches.isEmpty())
+		{
 			embed.appendDescription("No results found !");
+		}
 		else
 		{
 			embed.setFooter("Don't take long!");
@@ -96,19 +102,18 @@ public class ResultSelector
 				{
 					length = "";
 					textChannel.sendMessage(embed.build())
-							.queue();
+							   .queue();
 					embed = new EmbedBuilder();
 					embed.setColor(Color.DARK_GRAY);
 				}
 			}
 		}
-		Message message = new MessageBuilder()
-				.setEmbed(embed.build())
-				.build();
+		Message message = new MessageBuilder().setEmbed(embed.build())
+											  .build();
 		
 		textChannel.sendMessage(message)
-				.complete()
-				.delete()
-				.queueAfter(delayMS + searchTimeOffset, TimeUnit.MILLISECONDS);
+				   .complete()
+				   .delete()
+				   .queueAfter(delayMS + searchTimeOffset, TimeUnit.MILLISECONDS);
 	}
 }

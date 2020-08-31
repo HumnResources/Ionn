@@ -8,6 +8,7 @@ import javax.security.auth.login.LoginException;
 
 public class Bot
 {
+	
 	static
 	{
 		PostgreSQL.getConnection();
@@ -16,9 +17,12 @@ public class Bot
 	public static void main(String[] args) throws LoginException
 	{
 		JDA jda = JDABuilder.createDefault(Config.get("TOKEN"))
-				.setActivity(Activity.watching("Starting..."))
-				.addEventListeners(new Listener())
-				.build();
+							.setActivity(Activity.watching("Starting..."))
+							.addEventListeners(new Listener())
+							.build();
+		
+		jda.getPresence()
+		   .setActivity(Activity.watching("Everything"));
 	}
-	
+
 }

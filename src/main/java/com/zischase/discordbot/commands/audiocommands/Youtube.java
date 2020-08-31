@@ -36,25 +36,30 @@ public class Youtube extends Command
 	@Override
 	public String getHelp()
 	{
-		return "`Youtube [Search Query] : Search youtube for a song. Then adds it to the queue`\n" +
-				"`Youtube -[search|s] : Provides a list of songs. Reply with a number to choose.`\n" +
-				"`Aliases: " + String.join(" ", getAliases()) + "`";
+		return "`Youtube [Search Query] : Search youtube for a song. Then adds it to the queue`\n" + "`Youtube -[search|s] : Provides a list of songs. Reply with a number to choose.`\n" + "`Aliases: " + String
+				.join(" ", getAliases()) + "`";
 	}
 	
 	@Override
 	public void handle(CommandContext ctx)
 	{
-		if (ctx.getArgs().isEmpty())
+		if (ctx.getArgs()
+			   .isEmpty())
+		{
 			return;
+		}
 		
-		boolean doSearch = ctx.getArgs().get(0).matches("(?i)(-s|-search)");
-		String  query    = String.join("+", ctx.getArgs());
-		String  url      = "http://youtube.com/results?search_query=" + query;
+		boolean doSearch = ctx.getArgs()
+							  .get(0)
+							  .matches("(?i)(-s|-search)");
+		String query = String.join("+", ctx.getArgs());
+		String url = "http://youtube.com/results?search_query=" + query;
 		
 		Document doc = null;
 		try
 		{
-			doc = Jsoup.connect(url).get();
+			doc = Jsoup.connect(url)
+					   .get();
 			
 			
 		}
@@ -66,7 +71,8 @@ public class Youtube extends Command
 		if (doc != null)
 		{
 			Element element = new Element("script");
-			doc.select("script").forEach(e -> element.append(e.html()));
+			doc.select("script")
+			   .forEach(e -> element.append(e.html()));
 			
 			List<ISearchable> songList = new ArrayList<>();
 			
@@ -76,13 +82,15 @@ public class Youtube extends Command
 			// .+?              - Any character up to ?.
 			// (?=")            - ? = ".
 			Pattern videoIDPattern = Pattern.compile("(?im)(?<=\"videoId\":\").+?(?=\")");
-			Matcher videoMatcher   = videoIDPattern.matcher(element.html());
+			Matcher videoMatcher = videoIDPattern.matcher(element.html());
 			
 			String videoID = "";
 			while (videoMatcher.find())
 			{
 				if (videoID.matches(videoMatcher.group(0)))
+				{
 					continue;
+				}
 				videoID = videoMatcher.group(0);
 				
 				// RegEx . . . again . . . it's fast though -- https://regex101.com/r/1c2wAQ/1
@@ -90,7 +98,7 @@ public class Youtube extends Command
 				// (?=i.ytimg.com/vi/"+uri+").{1,300}   - Positive lookahead to contain video ID near title. Arbitrarily up to 300 chars
 				// (?<="title":\{"runs":\[\{"text":")   - Positive lookbehind to contain text prior to title.
 				// (.+?(?=\"}]))                        - Extract song name. Any character up to the next "}]. - This closes the js object on YT end.
-				Pattern songName    = Pattern.compile("(?im)(?=vi/" + videoID + "/).{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?)(?=\"}])");
+				Pattern songName = Pattern.compile("(?im)(?=vi/" + videoID + "/).{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?)(?=\"}])");
 				Matcher nameMatcher = songName.matcher(element.html());
 				
 				if (nameMatcher.find())
@@ -104,25 +112,26 @@ public class Youtube extends Command
 						{
 							try
 							{
-								ISearchable result = new ResultSelector(songList)
-										.getChoice(ctx.getEvent())
-										.get();
+								ISearchable result = new ResultSelector(songList).getChoice(ctx.getEvent())
+																				 .get();
 								
 								new TrackLoader().load(ctx.getChannel(), ctx.getMember(), result.getUrl());
 							}
 							catch (InterruptedException | ExecutionException e)
 							{
-								LOGGER.warn("Youtube result exception: \n" + e.getCause().getLocalizedMessage());
+								LOGGER.warn("Youtube result exception: \n" + e.getCause()
+																			  .getLocalizedMessage());
 							}
 							break;
 						}
-					} else
+					}
+					else
 					{
 						AudioTrack track = (AudioTrack) GuildManager.getContext(ctx.getGuild())
-								.getAudioManager()
-								.getPlayerManager()
-								.source(YoutubeAudioSourceManager.class)
-								.loadTrackWithVideoId(videoID, true);
+																	.getAudioManager()
+																	.getPlayerManager()
+																	.source(YoutubeAudioSourceManager.class)
+																	.loadTrackWithVideoId(videoID, true);
 						
 						new TrackLoader().load(ctx.getChannel(), ctx.getMember(), track);
 						break;

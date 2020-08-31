@@ -47,55 +47,67 @@ public class Radio extends Command
 	@Override
 	public String getHelp()
 	{
-		return String.format(" Radio [genre] \n" +
-				"Radio -[search|s] [search term] \n" +
-				"Aliases: %s", getAliases());
+		return String.format(" Radio [genre] \n" + "Radio -[search|s] [search term] \n" + "Aliases: %s", getAliases());
 	}
 	
 	@Override
 	public void handle(CommandContext ctx)
 	{
 		GuildMessageReceivedEvent event = ctx.getEvent();
-		List<String>              args  = ctx.getArgs();
+		List<String> args = ctx.getArgs();
 		
 		if (! args.isEmpty())
 		{
-			String query = String.join(" ", args).toLowerCase();
+			String query = String.join(" ", args)
+								 .toLowerCase();
 			
-			if (args.get(0).matches("(i?)(-search|-s)"))
+			if (args.get(0)
+					.matches("(i?)(-search|-s)"))
 			{
 				
-				query = query.replaceFirst("(i?)(search|s)", "").trim();
+				query = query.replaceFirst("(i?)(search|s)", "")
+							 .trim();
 				
 				searchByString(event, query);
-			} else if (RADIO_BROWSER.listTags().containsKey(query))
+			}
+			else if (RADIO_BROWSER.listTags()
+								  .containsKey(query))
+			{
 				searchByTag(event, query);
+			}
 		}
 	}
 	
 	private void searchByTag(GuildMessageReceivedEvent event, String query)
 	{
 		List<Station> stations = STATION_LIST.stream()
-				.filter(stn -> stn.getTags().equalsIgnoreCase(query))
-				.collect(Collectors.toList());
+											 .filter(stn -> stn.getTags()
+															   .equalsIgnoreCase(query))
+											 .collect(Collectors.toList());
 		
 		Collections.shuffle(stations);
 		
 		if (stations.isEmpty())
+		{
 			return;
+		}
 		
-		new TrackLoader().load(event.getChannel(), event.getMember(), stations.get(0).getUrl());
+		new TrackLoader().load(event.getChannel(), event.getMember(), stations.get(0)
+																			  .getUrl());
 	}
 	
 	private void searchByString(GuildMessageReceivedEvent event, String query)
 	{
 		// RegEx for negative lookahead searching for only non word characters.
-		String finalQuery = query.replaceAll("(?!\\w|\\s)(\\W)", "").toLowerCase();
+		String finalQuery = query.replaceAll("(?!\\w|\\s)(\\W)", "")
+								 .toLowerCase();
 		
 		List<Station> stations = STATION_LIST.stream()
-				.filter(stn -> stn.getName().toLowerCase().contains(finalQuery))
-				.limit(50)
-				.collect(Collectors.toList());
+											 .filter(stn -> stn.getName()
+															   .toLowerCase()
+															   .contains(finalQuery))
+											 .limit(50)
+											 .collect(Collectors.toList());
 		
 		List<ISearchable> results = new ArrayList<>();
 		for (Station s : stations)
@@ -105,15 +117,15 @@ public class Radio extends Command
 		
 		try
 		{
-			ISearchable result = new ResultSelector(results)
-					.getChoice(event)
-					.get();
+			ISearchable result = new ResultSelector(results).getChoice(event)
+															.get();
 			
 			new TrackLoader().load(event.getChannel(), event.getMember(), result.getUrl());
 		}
 		catch (InterruptedException | ExecutionException e)
 		{
-			LOGGER.warn("Radio result exception: \n" + e.getCause().getLocalizedMessage());
+			LOGGER.warn("Radio result exception: \n" + e.getCause()
+														.getLocalizedMessage());
 		}
 	}
 	

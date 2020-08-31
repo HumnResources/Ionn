@@ -35,34 +35,34 @@ public class Play extends Command
 	@Override
 	public String getHelp()
 	{
-		return "`Play/Pause : Play or pause the player.`\n" +
-				"`Play [url] : Adds the specified song/playlist to queue.`\n" +
-				"`Play -[next|n] [url] : Adds the specified song/playlist to next in queue`" +
-				"`Aliases : " + String.join(" ", getAliases()) + "`";
+		return "`Play/Pause : Play or pause the player.`\n" + "`Play [url] : Adds the specified song/playlist to queue.`\n" + "`Play -[next|n] [url] : Adds the specified song/playlist to next in queue`" + "`Aliases : " + String
+				.join(" ", getAliases()) + "`";
 	}
 	
 	@Override
 	public void handle(CommandContext ctx)
 	{
-		List<String> args  = ctx.getArgs();
-		Guild        guild = ctx.getGuild();
+		List<String> args = ctx.getArgs();
+		Guild guild = ctx.getGuild();
 		
 		if (args.isEmpty())
 		{
 			AudioPlayer player = GuildManager.getContext(guild)
-					.getAudioManager()
-					.getPlayer();
+											 .getAudioManager()
+											 .getPlayer();
 			boolean isPaused = player.isPaused();
 			player.setPaused(! isPaused);
-		} else if (args.get(0).matches("(?i)(-next|-n)"))
+		}
+		else if (args.get(0)
+					 .matches("(?i)(-next|-n)"))
 		{
 			AudioManager manager = GuildManager.getContext(ctx.getGuild())
-					.getAudioManager();
+											   .getAudioManager();
 			ArrayList<AudioTrack> queueCopy = manager.getScheduler()
-					.getQueue();
+													 .getQueue();
 			
 			manager.getScheduler()
-					.clearQueue();
+				   .clearQueue();
 			
 			
 			new TrackLoader().load(ctx.getChannel(), ctx.getMember(), args.get(1));
@@ -80,9 +80,12 @@ public class Play extends Command
 			}
 			
 			manager.getScheduler()
-					.queueList(queueCopy, ctx.getChannel());
-		} else
+				   .queueList(queueCopy, ctx.getChannel());
+		}
+		else
+		{
 			new TrackLoader().load(ctx.getChannel(), ctx.getMember(), args.get(0));
+		}
 	}
 	
 	

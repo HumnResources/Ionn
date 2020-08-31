@@ -8,32 +8,26 @@ import com.zischase.discordbot.commands.general.Prefix;
 import com.zischase.discordbot.commands.general.Spam;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import com.zischase.discordbot.guildcontrol.PremiumManager;
-import me.duncte123.botcommons.BotCommons;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class CommandManager
 {
-	private static final List<Command> commands = new ArrayList<>();
-	private static final Logger        LOGGER   = LoggerFactory.getLogger(CommandManager.class);
+	private static final List<Command>      commands = new ArrayList<>();
+	private static final Logger             LOGGER   = LoggerFactory.getLogger(CommandManager.class);
 	private static final int                POOL_COUNT;
 	private static final ThreadPoolExecutor THREAD_POOL_EXECUTOR;
-	
-	public static List<Command> getCommandList()
-	{
-		return commands;
-	}
 	
 	static
 	{
@@ -62,45 +56,63 @@ public final class CommandManager
 			System.exit(1);
 		}
 		
+		int defaultPoolCount = Integer.parseInt(Config.get("DEFAULT_COMMAND_THREADS"));
+		POOL_COUNT = GuildManager.getGuildCount() * (CommandManager.getCommandCount() / 4);
 		
-		POOL_COUNT =  GuildManager.getGuildCount() * (CommandManager.getCommandCount() / 4);
-		if (POOL_COUNT > Integer.parseInt(Config.get("DEFAULT_COMMAND_THREADS")))
+		if (POOL_COUNT > defaultPoolCount)
+		{
 			THREAD_POOL_EXECUTOR = (ThreadPoolExecutor) Executors.newFixedThreadPool(POOL_COUNT);
+		}
 		else
-			THREAD_POOL_EXECUTOR = (ThreadPoolExecutor) Executors.newFixedThreadPool(Integer.parseInt(Config.get("DEFAULT_COMMAND_THREADS")));
+		{
+			THREAD_POOL_EXECUTOR = (ThreadPoolExecutor) Executors.newFixedThreadPool(defaultPoolCount);
+		}
+		THREAD_POOL_EXECUTOR.setKeepAliveTime(5000, TimeUnit.MILLISECONDS);
+		THREAD_POOL_EXECUTOR.allowsCoreThreadTimeOut();
+		THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount());
+	}
+	
+	public static List<Command> getCommandList()
+	{
+		return commands;
 	}
 	
 	public static void invoke(GuildMessageReceivedEvent event)
 	{
 		String prefix = Prefix.getPrefix(event.getGuild());
 		
-		String[] split = event.getMessage().getContentRaw()
-				.replaceFirst("(?i)" + Pattern.quote(prefix), "")
-				.split("\\s");
+		String[] argsArr = event.getMessage()
+								.getContentRaw()
+								.replaceFirst("(?i)" + Pattern.quote(prefix), "")
+								.split("\\s");
 		
-		String  invoke = split[0].toLowerCase();
-		Command cmd    = getCommand(invoke);
+		String invoke = argsArr[0].toLowerCase();
+		Command cmd = getCommand(invoke);
 		
 		if (cmd != null)
 		{
-			List<String>   args = Arrays.asList(split).subList(1, split.length);
-			CommandContext ctx  = new CommandContext(event, args);
+			List<String> args = Arrays.asList(argsArr)
+									  .subList(1, argsArr.length);
+			CommandContext ctx = new CommandContext(event, args);
 			
-			if (cmd.premiumCommand && ! PremiumManager.getPremium(event.getGuild()))
+			boolean isGuildPremium = PremiumManager.getPremium(event.getGuild());
+			
+			if (cmd.premiumCommand && ! isGuildPremium)
 			{
 				event.getChannel()
-						.sendMessage("Sorry, this feature is for premium guilds only :c")
-						.queue();
+					 .sendMessage("Sorry, this feature is for premium guilds only :c")
+					 .queue();
 				return;
 			}
 			
 			new CompletableFuture<>().completeAsync(() ->
 			{
-				
 				cmd.handle(ctx);
 				
 				return null;
 			}, THREAD_POOL_EXECUTOR);
+			
+			THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount() + 1);
 		}
 	}
 	
@@ -110,26 +122,49 @@ public final class CommandManager
 	}
 	
 	
-	@Nullable
 	public static Command getCommand(String search)
 	{
 		for (Command cmd : commands)
 		{
-			List<String> aliases = cmd.getAliases().stream()
-					.map(String::toLowerCase)
-					.collect(Collectors.toList());
+			List<String> aliases = cmd.getAliases()
+									  .stream()
+									  .map(String::toLowerCase)
+									  .collect(Collectors.toList());
 			
-			if (cmd.getClass().getSimpleName().equalsIgnoreCase(search) || aliases.contains(search))
+			if (cmd.getClass()
+				   .getSimpleName()
+				   .equalsIgnoreCase(search) || aliases.contains(search))
+			{
 				return cmd;
+			}
 		}
 		return null;
 	}
 	
+	public static void shutdown()
+	{
+		LOGGER.info(CommandManager.shutdownThreads());
+	}
+	
+
+	public static String getReport()
+	{
+		return "=======================\n" +
+				"Tasks completed: " + THREAD_POOL_EXECUTOR.getCompletedTaskCount() + "\n" +
+				"Tasks in queue: " + THREAD_POOL_EXECUTOR.getQueue()
+														 .size() + "\n" +
+				"=======================\n" +
+				"Active Thread Count: " + THREAD_POOL_EXECUTOR.getActiveCount() + "\n" +
+				"Current Thread Count: " + THREAD_POOL_EXECUTOR.getCorePoolSize() + "\n" +
+				"Max Thread Count: " + THREAD_POOL_EXECUTOR.getMaximumPoolSize() + "\n" +
+				"=======================\n";
+	}
+	
 	private static void addCommand(Command command)
 	{
-		boolean commandFound = commands
-				.stream()
-				.anyMatch(cmd -> cmd.getName().equalsIgnoreCase(command.getName()));
+		boolean commandFound = commands.stream()
+									   .anyMatch(cmd -> cmd.getName()
+														   .equalsIgnoreCase(command.getName()));
 		
 		if (commandFound)
 		{
@@ -140,23 +175,10 @@ public final class CommandManager
 		commands.add(command);
 	}
 	
-	public static void shutdown(GuildMessageReceivedEvent event)
-	{
-		LOGGER.info(CommandManager.shutdownThreads());
-		
-		if (! THREAD_POOL_EXECUTOR.isShutdown())
-		{
-			THREAD_POOL_EXECUTOR.shutdownNow();
-		}
-		
-		BotCommons.shutdown(event.getJDA());
-		event.getJDA().shutdown();
-	}
-
 	private static String shutdownThreads()
 	{
 		THREAD_POOL_EXECUTOR.getQueue()
-				.clear();
+							.clear();
 		THREAD_POOL_EXECUTOR.shutdown();
 		try
 		{
@@ -166,22 +188,14 @@ public final class CommandManager
 		{
 			e.printStackTrace();
 		}
-		if (! THREAD_POOL_EXECUTOR.isShutdown())
+		finally
 		{
-			THREAD_POOL_EXECUTOR.shutdownNow();
+			if (! THREAD_POOL_EXECUTOR.isShutdown())
+			{
+				THREAD_POOL_EXECUTOR.shutdownNow();
+			}
 		}
-		return getReport() + "Shutting Down . . .\n";
-	}
 	
-	public static String getReport()
-	{
-		return "=======================\n" +
-				"Tasks completed: " + THREAD_POOL_EXECUTOR.getCompletedTaskCount() + "\n" +
-				"Active command accesses: " + THREAD_POOL_EXECUTOR.getActiveCount() + "\n" +
-				"=======================\n" +
-				"Current Pool Size: " + THREAD_POOL_EXECUTOR.getPoolSize() + "\n" +
-				"Max Pool Size: " + THREAD_POOL_EXECUTOR.getMaximumPoolSize() + "\n" +
-				"Core Pool Size: " + THREAD_POOL_EXECUTOR.getCorePoolSize() + "\n" +
-				"=======================\n";
+		return getReport() + "Shutting Down . . .\n";
 	}
 }

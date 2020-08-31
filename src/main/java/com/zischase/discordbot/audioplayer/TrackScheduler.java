@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -22,9 +23,10 @@ public class TrackScheduler extends AudioEventAdapter
 	private final        AudioPlayer               player;
 	private final        BlockingQueue<AudioTrack> queue;
 	
-	private boolean     repeat      = false;
-	private AudioTrack  lastTrack;
-	private TextChannel textChannel = null;
+	private final List<AudioTrack> cache       = new ArrayList<>(250);
+	private       boolean          repeat      = false;
+	private       AudioTrack       lastTrack;
+	private       TextChannel      textChannel = null;
 	
 	public TrackScheduler(AudioManager manager)
 	{
@@ -48,13 +50,15 @@ public class TrackScheduler extends AudioEventAdapter
 	{
 		this.textChannel = textChannel;
 		boolean hasPlayingTrack = GuildManager.getContext(textChannel.getGuild())
-				.getAudioManager()
-				.getPlayer()
-				.getPlayingTrack() != null;
+											  .getAudioManager()
+											  .getPlayer()
+											  .getPlayingTrack() != null;
 		
 		if (hasPlayingTrack)
+		{
 			textChannel.sendMessage("Added `" + track.getInfo().title + "` to the queue.")
-					.queue();
+					   .queue();
+		}
 		
 		if (! player.startTrack(track, true))
 		{ // noInterrupt: True == add to queue
@@ -76,10 +80,14 @@ public class TrackScheduler extends AudioEventAdapter
 		}
 		
 		if (player.isPaused())
+		{
 			player.setPaused(false);
+		}
 		
 		else if (player.getPlayingTrack() == null)
+		{
 			player.startTrack(queue.poll(), false);
+		}
 	}
 	
 	public void clearQueue()
@@ -92,50 +100,54 @@ public class TrackScheduler extends AudioEventAdapter
 		ArrayList<AudioTrack> trackList = new ArrayList<>();
 		
 		if (! this.queue.isEmpty())
+		{
 			trackList.addAll(queue);
+		}
 		
 		return trackList;
 	}
 	
 	public void nextTrack()
 	{
-		this.player
-				.startTrack(queue.poll(), false);
+		this.player.startTrack(queue.poll(), false);
 	}
 	
 	public void prevTrack()
 	{
-		this.player
-				.startTrack(lastTrack, false);
+		this.player.startTrack(lastTrack, false);
 	}
 	
 	@Override
 	public void onPlayerPause(AudioPlayer player)
 	{
 		GuildManager.getContext(textChannel.getGuild())
-				.getPlayerPrinter()
-				.printNowPlaying(textChannel);
+					.getPlayerPrinter()
+					.printNowPlaying(textChannel);
 	}
 	
 	@Override
 	public void onPlayerResume(AudioPlayer player)
 	{
 		GuildManager.getContext(textChannel.getGuild())
-				.getPlayerPrinter()
-				.printNowPlaying(textChannel);
+					.getPlayerPrinter()
+					.printNowPlaying(textChannel);
 	}
 	
 	@Override
 	public void onTrackStart(AudioPlayer player, AudioTrack track)
 	{
 		if (! queue.isEmpty())
+		{
 			GuildManager.getContext(textChannel.getGuild())
-				.getPlayerPrinter()
-				.printQueue(textChannel);
+						.getPlayerPrinter()
+						.printQueue(textChannel);
+		}
 		
 		GuildManager.getContext(textChannel.getGuild())
-				.getPlayerPrinter()
-				.printNowPlaying(textChannel);
+					.getPlayerPrinter()
+					.printNowPlaying(textChannel);
+		
+		cache.add(track.makeClone());
 	}
 	
 	@Override
@@ -146,35 +158,39 @@ public class TrackScheduler extends AudioEventAdapter
 			boolean tooManyAttempts = false;
 			
 			if (lastTrack != null)
-				tooManyAttempts = lastTrack.getInfo()
-						.identifier
-						.equalsIgnoreCase(track.getInfo().identifier);
+			{
+				tooManyAttempts = lastTrack.getInfo().identifier.equalsIgnoreCase(track.getInfo().identifier);
+			}
 			
 			if (tooManyAttempts)
 			{
 				textChannel.sendMessage("Sorry, too many errors. \nGotta move on.")
-						.complete()
-						.delete()
-						.queueAfter(2000, TimeUnit.MILLISECONDS);
+						   .complete()
+						   .delete()
+						   .queueAfter(2000, TimeUnit.MILLISECONDS);
 				nextTrack();
 				return;
 			}
 			
 			textChannel.sendMessage("Loading failed. . . \nTrying again!")
-					.complete()
-					.delete()
-					.queueAfter(2000, TimeUnit.MILLISECONDS);
+					   .complete()
+					   .delete()
+					   .queueAfter(2000, TimeUnit.MILLISECONDS);
 			
 			Member member = textChannel.getGuild()
-					.getMember(textChannel.getJDA().getSelfUser());
+									   .getMember(textChannel.getJDA()
+															 .getSelfUser());
 			
 			new TrackLoader().load(textChannel, member, track.getInfo().identifier);
-		} else if (endReason.mayStartNext)
+		}
+		else if (endReason.mayStartNext)
 		{
 			player.startTrack(queue.poll(), false);
 		}
 		
 		this.lastTrack = track.makeClone();
+		
+		cache.add(track.makeClone());
 		
 		if (repeat)
 		{
@@ -185,17 +201,17 @@ public class TrackScheduler extends AudioEventAdapter
 	@Override
 	public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception)
 	{
-		if (lastTrack.getIdentifier().matches(track.getIdentifier()))
+		if (lastTrack.getIdentifier()
+					 .matches(track.getIdentifier()))
 		{
-			textChannel
-					.sendMessage("There was an error playing the song, I tried twice but... \nI'm afraid we have to move on.")
-					.complete()
-					.delete()
-					.queueAfter(2000, TimeUnit.MILLISECONDS);
-		} else
+			textChannel.sendMessage("There was an error playing the song, I tried twice but... \nI'm afraid we have to move on.")
+					   .complete()
+					   .delete()
+					   .queueAfter(2000, TimeUnit.MILLISECONDS);
+		}
+		else
 		{
-			player
-					.playTrack(track.makeClone());
+			player.playTrack(track.makeClone());
 		}
 		lastTrack = track;
 	}
@@ -204,9 +220,9 @@ public class TrackScheduler extends AudioEventAdapter
 	public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs)
 	{
 		GuildManager.getContext(textChannel.getGuild())
-				.getAudioManager()
-				.getPlayer()
-				.stopTrack();
+					.getAudioManager()
+					.getPlayer()
+					.stopTrack();
 		
 		if (! queue.isEmpty())
 		{

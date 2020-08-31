@@ -24,25 +24,30 @@ public class Join extends Command
 	
 	private void connectToVoice(TextChannel channel, Member member)
 	{
-		List<VoiceChannel> voiceChannels = member.getGuild().getVoiceChannels();
-		VoiceChannel       voiceChannel  = null;
+		List<VoiceChannel> voiceChannels = member.getGuild()
+												 .getVoiceChannels();
+		VoiceChannel voiceChannel = null;
 		
 		if (! voiceChannels.isEmpty())
 		{
 			for (VoiceChannel c : voiceChannels)
 			{
-				if (c.getMembers().contains(member))
+				if (c.getMembers()
+					 .contains(member))
 				{
 					c.getGuild()
-							.getJDA()
-							.getDirectAudioController()
-							.connect(c);
+					 .getJDA()
+					 .getDirectAudioController()
+					 .connect(c);
 					voiceChannel = c;
 				}
 			}
 		}
 		if (voiceChannel == null)
-			channel.sendMessage("You must be in a voice channel for that !").queue();
+		{
+			channel.sendMessage("You must be in a voice channel for that !")
+				   .queue();
+		}
 	}
 	
 }

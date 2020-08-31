@@ -9,16 +9,17 @@ public final class PremiumManager
 	public static boolean getPremium(Guild guild)
 	{
 		
-		return Jdbi.create(PostgreSQL::getConnection).withHandle(handle ->
-		{
-			boolean b = handle.createQuery("SELECT premium FROM guild_settings WHERE guild_id = ?")
-					.bind(0, guild.getId())
-					.mapTo(boolean.class)
-					.findFirst()
-					.orElse(false);
+		return Jdbi.create(PostgreSQL::getConnection)
+				   .withHandle(handle ->
+				   {
+					   boolean b = handle.createQuery("SELECT premium FROM guild_settings WHERE guild_id = ?")
+										 .bind(0, guild.getId())
+										 .mapTo(boolean.class)
+										 .findFirst()
+										 .orElse(false);
 			
-			handle.close();
-			return b;
-		});
+					   handle.close();
+					   return b;
+				   });
 	}
 }
