@@ -136,7 +136,7 @@ public class PlayerPrinter
 			channel.sendMessage(embed.build())
 				   .complete()
 				   .delete()
-				   .queueAfter(2000, TimeUnit.MILLISECONDS);
+				   .queueAfter(5000, TimeUnit.MILLISECONDS);
 			return;
 		}
 		
@@ -145,8 +145,9 @@ public class PlayerPrinter
 		
 		if (queue.size() > 1)
 		{
+			int index = 2;
 			embed.appendDescription("```\n");
-			// Subtract 1 to remove next song, display separate..
+			// Subtract 1 to remove next(last in list) song in queue to display separately.
 			for (AudioTrack track : queue)
 			{
 				if (queue.get(queue.size() - 1) == track)
@@ -154,7 +155,8 @@ public class PlayerPrinter
 					continue;
 				}
 				
-				embed.appendDescription(track.getInfo().title + "\n");
+				embed.appendDescription(index + ". " + track.getInfo().title + "\n");
+				index++;
 				
 				// Limit is 2048 characters per embed description. This allows some buffer. Had issues at 2000 characters.
 				if (embed.getDescriptionBuilder()
@@ -170,11 +172,11 @@ public class PlayerPrinter
 					embed.appendDescription("```\n");
 				}
 			}
-			embed.appendDescription("```\n");
+			embed.appendDescription("```");
 		}
 		AudioTrack track = queue.get(queue.size() - 1);
 		
-		embed.appendDescription("```fix\n" + track.getInfo().title + "```");
+		embed.appendDescription(" ```fix\n" + track.getInfo().title + "```");
 		
 		channel.sendMessage(embed.build())
 			   .queue();
