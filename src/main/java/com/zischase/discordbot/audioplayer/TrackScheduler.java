@@ -109,6 +109,18 @@ public class TrackScheduler extends AudioEventAdapter
 	
 	public void nextTrack()
 	{
+		if (repeat)
+		{
+			if (player.getPlayingTrack() != null)
+			{
+				queue.add(player.getPlayingTrack().makeClone());
+			}
+			else if (lastTrack != null)
+			{
+				queue.add(lastTrack.makeClone());
+			}
+		}
+		
 		this.player.startTrack(queue.poll(), false);
 	}
 	
@@ -148,6 +160,13 @@ public class TrackScheduler extends AudioEventAdapter
 					.printNowPlaying(textChannel);
 		
 		cache.add(track.makeClone());
+		lastTrack = track.makeClone();
+		
+		if (cache.size() >= 200)
+		{
+			cache.remove(0);
+		}
+		
 	}
 	
 	@Override
@@ -159,7 +178,9 @@ public class TrackScheduler extends AudioEventAdapter
 			
 			if (lastTrack != null)
 			{
-				tooManyAttempts = lastTrack.getInfo().identifier.equalsIgnoreCase(track.getInfo().identifier);
+				tooManyAttempts = lastTrack.getInfo()
+						.identifier
+						.equalsIgnoreCase(track.getInfo().identifier);
 			}
 			
 			if (tooManyAttempts)
@@ -167,7 +188,7 @@ public class TrackScheduler extends AudioEventAdapter
 				textChannel.sendMessage("Sorry, too many errors. \nGotta move on.")
 						   .complete()
 						   .delete()
-						   .queueAfter(2000, TimeUnit.MILLISECONDS);
+						   .queueAfter(5000, TimeUnit.MILLISECONDS);
 				nextTrack();
 				return;
 			}
@@ -175,7 +196,7 @@ public class TrackScheduler extends AudioEventAdapter
 			textChannel.sendMessage("Loading failed. . . \nTrying again!")
 					   .complete()
 					   .delete()
-					   .queueAfter(2000, TimeUnit.MILLISECONDS);
+					   .queueAfter(5000, TimeUnit.MILLISECONDS);
 			
 			Member member = textChannel.getGuild()
 									   .getMember(textChannel.getJDA()
@@ -183,18 +204,10 @@ public class TrackScheduler extends AudioEventAdapter
 			
 			new TrackLoader().load(textChannel, member, track.getInfo().identifier);
 		}
+		
 		else if (endReason.mayStartNext)
 		{
-			player.startTrack(queue.poll(), false);
-		}
-		
-		this.lastTrack = track.makeClone();
-		
-		cache.add(track.makeClone());
-		
-		if (repeat)
-		{
-			queue.add(track.makeClone());
+			nextTrack();
 		}
 	}
 	
@@ -207,13 +220,13 @@ public class TrackScheduler extends AudioEventAdapter
 			textChannel.sendMessage("There was an error playing the song, I tried twice but... \nI'm afraid we have to move on.")
 					   .complete()
 					   .delete()
-					   .queueAfter(2000, TimeUnit.MILLISECONDS);
+					   .queueAfter(5000, TimeUnit.MILLISECONDS);
 		}
 		else
 		{
 			player.playTrack(track.makeClone());
 		}
-		lastTrack = track;
+		lastTrack = track.makeClone();
 	}
 	
 	@Override
@@ -226,7 +239,7 @@ public class TrackScheduler extends AudioEventAdapter
 		
 		if (! queue.isEmpty())
 		{
-			player.playTrack(queue.poll());
+			nextTrack();
 		}
 	}
 }

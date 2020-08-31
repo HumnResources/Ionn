@@ -17,7 +17,7 @@ public class Bot
 	public static void main(String[] args) throws LoginException
 	{
 		// DEV_TOKEN = TESTING PURPOSES ONLY
-		JDA jda = JDABuilder.createDefault(Config.get("DEV_TOKEN"))
+		JDA jda = JDABuilder.createDefault(Config.get("TOKEN"))
 							.setActivity(Activity.watching("Starting..."))
 							.addEventListeners(new Listener())
 							.build();
