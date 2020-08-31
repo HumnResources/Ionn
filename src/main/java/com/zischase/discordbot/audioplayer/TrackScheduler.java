@@ -128,9 +128,14 @@ public class TrackScheduler extends AudioEventAdapter
 	@Override
 	public void onTrackStart(AudioPlayer player, AudioTrack track)
 	{
-		GuildManager.getContext(textChannel.getGuild())
+		if (! queue.isEmpty())
+			GuildManager.getContext(textChannel.getGuild())
 				.getPlayerPrinter()
 				.printQueue(textChannel);
+		
+		GuildManager.getContext(textChannel.getGuild())
+				.getPlayerPrinter()
+				.printNowPlaying(textChannel);
 	}
 	
 	@Override

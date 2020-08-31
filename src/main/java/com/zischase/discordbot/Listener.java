@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 
 public class Listener extends ListenerAdapter
 {
@@ -52,7 +51,8 @@ public class Listener extends ListenerAdapter
 				LOGGER.info("Shutting down...");
 				shutdown(event);
 				return;
-			} else if (raw.equalsIgnoreCase(prefix + "restart"))
+			}
+			else if (raw.equalsIgnoreCase(prefix + "restart"))
 			{
 				try
 				{
@@ -66,24 +66,21 @@ public class Listener extends ListenerAdapter
 				shutdown(event);
 				return;
 			}
+			else if (raw.equalsIgnoreCase(prefix + "threadreport"))
+			{
+				event.getChannel()
+						.sendMessage(CommandManager.getReport())
+						.queue();
+			}
 		}
 		
 		if (raw.startsWith(prefix))
-			execute(event);
-	}
-	
-	private void execute(GuildMessageReceivedEvent event)
-	{
-		new CompletableFuture<Void>().completeAsync(() ->
-		{
 			CommandManager.invoke(event);
-			return null;
-		}, CommandManager.getThreadPoolExecutor());
 	}
-	
+
 	private static void shutdown(GuildMessageReceivedEvent event)
 	{
-		LOGGER.info(CommandManager.shutdownThreads());
+		CommandManager.shutdown(event);
 		
 		if (! CommandManager.getThreadPoolExecutor().isShutdown())
 		{

@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands;
 
+import com.zischase.discordbot.Config;
 import com.zischase.discordbot.commands.audiocommands.*;
 import com.zischase.discordbot.commands.general.Clear;
 import com.zischase.discordbot.commands.general.Help;
@@ -16,6 +17,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.regex.Pattern;
@@ -62,7 +64,10 @@ public final class CommandManager
 		
 		
 		POOL_COUNT =  GuildManager.getGuildCount() * (CommandManager.getCommandCount() / 4);
-		THREAD_POOL_EXECUTOR = (ThreadPoolExecutor) Executors.newFixedThreadPool(POOL_COUNT);
+		if (POOL_COUNT > Integer.parseInt(Config.get("DEFAULT_COMMAND_THREADS")))
+			THREAD_POOL_EXECUTOR = (ThreadPoolExecutor) Executors.newFixedThreadPool(POOL_COUNT);
+		else
+			THREAD_POOL_EXECUTOR = (ThreadPoolExecutor) Executors.newFixedThreadPool(Integer.parseInt(Config.get("DEFAULT_COMMAND_THREADS")));
 	}
 	
 	public static void invoke(GuildMessageReceivedEvent event)
@@ -89,7 +94,13 @@ public final class CommandManager
 				return;
 			}
 			
-			cmd.handle(ctx);
+			new CompletableFuture<>().completeAsync(() ->
+			{
+				
+				cmd.handle(ctx);
+				
+				return null;
+			}, THREAD_POOL_EXECUTOR);
 		}
 	}
 	
@@ -114,11 +125,6 @@ public final class CommandManager
 		return null;
 	}
 	
-	public static ThreadPoolExecutor getThreadPoolExecutor()
-	{
-		return THREAD_POOL_EXECUTOR;
-	}
-	
 	private static void addCommand(Command command)
 	{
 		boolean commandFound = commands
@@ -134,31 +140,21 @@ public final class CommandManager
 		commands.add(command);
 	}
 	
-	private static void shutdown(GuildMessageReceivedEvent event)
+	public static void shutdown(GuildMessageReceivedEvent event)
 	{
 		LOGGER.info(CommandManager.shutdownThreads());
 		
-		if (! CommandManager.getThreadPoolExecutor().isShutdown())
+		if (! THREAD_POOL_EXECUTOR.isShutdown())
 		{
-			CommandManager.getThreadPoolExecutor().shutdownNow();
+			THREAD_POOL_EXECUTOR.shutdownNow();
 		}
 		
 		BotCommons.shutdown(event.getJDA());
 		event.getJDA().shutdown();
 	}
 
-	public static String shutdownThreads()
+	private static String shutdownThreads()
 	{
-		String report = "Shutting down...\n" +
-				"=======================\n" +
-				"Tasks completed: " + THREAD_POOL_EXECUTOR.getCompletedTaskCount() + "\n" +
-				"Active command accesses: " + THREAD_POOL_EXECUTOR.getActiveCount() + "\n" +
-				"=======================\n" +
-				"Current Pool Size: " + THREAD_POOL_EXECUTOR.getPoolSize() + "\n" +
-				"Max Pool Size: " + THREAD_POOL_EXECUTOR.getMaximumPoolSize() + "\n" +
-				"Core Pool Size: " + THREAD_POOL_EXECUTOR.getCorePoolSize() + "\n" +
-				"=======================\n" +
-				"Terminating....\n";
 		THREAD_POOL_EXECUTOR.getQueue()
 				.clear();
 		THREAD_POOL_EXECUTOR.shutdown();
@@ -174,7 +170,18 @@ public final class CommandManager
 		{
 			THREAD_POOL_EXECUTOR.shutdownNow();
 		}
-		return report;
+		return getReport() + "Shutting Down . . .\n";
 	}
 	
+	public static String getReport()
+	{
+		return "=======================\n" +
+				"Tasks completed: " + THREAD_POOL_EXECUTOR.getCompletedTaskCount() + "\n" +
+				"Active command accesses: " + THREAD_POOL_EXECUTOR.getActiveCount() + "\n" +
+				"=======================\n" +
+				"Current Pool Size: " + THREAD_POOL_EXECUTOR.getPoolSize() + "\n" +
+				"Max Pool Size: " + THREAD_POOL_EXECUTOR.getMaximumPoolSize() + "\n" +
+				"Core Pool Size: " + THREAD_POOL_EXECUTOR.getCorePoolSize() + "\n" +
+				"=======================\n";
+	}
 }
