@@ -145,7 +145,7 @@ public class PlayerPrinter
 		
 		if (queue.size() > 1)
 		{
-			int index = 2;
+			int index = queue.size();
 			embed.appendDescription("```\n");
 			// Subtract 1 to remove next(last in list) song in queue to display separately.
 			for (AudioTrack track : queue)
@@ -155,8 +155,13 @@ public class PlayerPrinter
 					continue;
 				}
 				
-				embed.appendDescription(index + ". " + track.getInfo().title + "\n");
-				index++;
+				if (index > 1)
+				{
+					embed.appendDescription(index + ". ");
+				}
+				index--;
+				
+				embed.appendDescription(track.getInfo().title + "\n");
 				
 				// Limit is 2048 characters per embed description. This allows some buffer. Had issues at 2000 characters.
 				if (embed.getDescriptionBuilder()
