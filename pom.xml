@@ -46,7 +46,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>com.zischase.discordbot.Main</mainClass>
+                            <mainClass>com.zischase.discordbot.Bot</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -59,7 +59,7 @@
         <dependency>
             <groupId>net.dv8tion</groupId>
             <artifactId>JDA</artifactId>
-            <version>4.2.0_180</version>
+            <version>4.2.0_199</version>
         </dependency>
         <dependency>
             <groupId>com.jagrosh</groupId>
@@ -107,6 +107,18 @@
             <groupId>org.jdbi</groupId>
             <artifactId>jdbi3-sqlobject</artifactId>
             <version>3.14.1</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>RELEASE</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>RELEASE</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
