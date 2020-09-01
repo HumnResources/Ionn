@@ -1,12 +1,12 @@
 package com.zischase.discordbot.commands;
 
+import com.zischase.discordbot.Bot;
 import com.zischase.discordbot.Config;
 import com.zischase.discordbot.commands.audiocommands.*;
 import com.zischase.discordbot.commands.general.Clear;
 import com.zischase.discordbot.commands.general.Help;
 import com.zischase.discordbot.commands.general.Prefix;
 import com.zischase.discordbot.commands.general.Spam;
-import com.zischase.discordbot.guildcontrol.GuildManager;
 import com.zischase.discordbot.guildcontrol.PremiumManager;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.slf4j.Logger;
@@ -57,7 +57,7 @@ public final class CommandManager
 		}
 		
 		int defaultPoolCount = Integer.parseInt(Config.get("DEFAULT_COMMAND_THREADS"));
-		POOL_COUNT = GuildManager.getGuildCount() * (CommandManager.getCommandCount() / 4);
+		POOL_COUNT = Bot.guildCount() * (CommandManager.getCommandCount() / 4);
 		
 		if (POOL_COUNT > defaultPoolCount)
 		{
