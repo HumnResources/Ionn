@@ -15,23 +15,12 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class PlayerPrinter
 {
-	private static final ThreadPoolExecutor EXECUTOR;
-
-	static
-	{
-		EXECUTOR = (ThreadPoolExecutor) Executors.newFixedThreadPool(GuildManager.getGuildCount());
-	}
-	
-	private final        Guild              guild;
+	private final Guild guild;
 	
 	public PlayerPrinter(Guild guild)
 	{
@@ -69,7 +58,6 @@ public class PlayerPrinter
 			
 		}
 		
-		
 		long delayMS = 2000;
 		if (player.getPlayingTrack() != null)
 		{
@@ -81,55 +69,50 @@ public class PlayerPrinter
 		Message message = new MessageBuilder().setEmbed(embed.build())
 											  .build();
 		
-		long finalDelayMS = delayMS;
-		new CompletableFuture<Void>().completeAsync(() ->
-		{
-			List<Message> past = channel.getHistory()
+		List<Message> messages = channel.getHistory()
 										.retrievePast(100)
-										.complete();
-			
-			List<Message> delete = new ArrayList<>();
-			if (! past.isEmpty())
-			{
-				delete = past.stream()
-							 .filter(msg -> ! msg.getEmbeds()
-												 .isEmpty())
-							 .filter(msg -> msg.getEmbeds()
-											   .get(0)
-											   .getTitle() != null)
-							 .filter(msg -> Objects.requireNonNull(msg.getEmbeds()
-																	  .get(0)
-																	  .getTitle())
-												   .equalsIgnoreCase(message.getEmbeds()
-																			.get(0)
-																			.getTitle()))
-							 .collect(Collectors.toList());
-			}
-			
-			if (! delete.isEmpty())
-			{
-				if (delete.size() == 1)
-				{
-					channel.deleteMessageById(delete.get(0)
-													.getId())
-						   .queue(null, Throwable::getSuppressed);
-				}
-				else
-				{
-					channel.deleteMessages(delete)
-						   .queue(null, Throwable::getSuppressed);
-				}
-			}
-			
-			channel.sendMessage(message)
-				   .complete()
-				   .delete()
-				   .queueAfter(finalDelayMS, TimeUnit.MILLISECONDS, null, Throwable::getSuppressed);
-			
-			return null;
-		}, EXECUTOR);
+										.complete()
+										.stream()
+										.filter(msg -> msg.getAuthor()
+														  .isBot())
+										.filter(msg -> ! msg.getEmbeds()
+															.isEmpty())
+										.filter(msg ->
+										{
+											if (msg.getEmbeds()
+												   .get(0)
+												   .getTitle() != null)
+											{
+												String title = msg.getEmbeds()
+																  .get(0)
+																  .getTitle();
+				
+												assert title != null;
+												return title.equalsIgnoreCase("Now Playing");
+											}
+											return false;
+										})
+										.collect(Collectors.toList());
 		
+		if (! messages.isEmpty())
+		{
+			if (messages.size() == 1)
+			{
+				channel.deleteMessageById(messages.get(0)
+												  .getId())
+					   .queue(null, Throwable::getSuppressed);
+			}
+			else
+			{
+				channel.deleteMessages(messages)
+					   .queue(null, Throwable::getSuppressed);
+			}
+		}
 		
+		channel.sendMessage(message)
+			   .complete()
+			   .delete()
+			   .queueAfter(delayMS, TimeUnit.MILLISECONDS, null, Throwable::getSuppressed);
 	}
 	
 	public void printQueue(TextChannel channel)
@@ -201,27 +184,31 @@ public class PlayerPrinter
 		
 		channel.sendMessage(embed.build())
 			   .queue();
-		
-		printNowPlaying(channel);
 	}
 	
 	private void deletePrevious(TextChannel textChannel)
 	{
 		List<Message> messages = textChannel.getHistory()
 											.retrievePast(100)
-											.complete();
+											.complete()
+											.stream()
+											.filter(msg -> msg.getAuthor()
+															  .isBot())
+											.filter(msg -> ! msg.getEmbeds()
+																.isEmpty())
+											.collect(Collectors.toList());
 		
-		for (Message message : messages)
+		if (messages.size() == 1)
 		{
-			if (message.getAuthor()
-					   .isBot() && ! message.getEmbeds()
-											.isEmpty())
-			{
-				textChannel.deleteMessageById(message.getId())
-						   .queue(null, Throwable::getSuppressed);
-			}
+			textChannel.deleteMessageById(messages.get(0)
+												  .getId())
+					   .queue();
 		}
-		
+		else if (messages.size() > 1)
+		{
+			textChannel.deleteMessages(messages)
+					   .queue(null, Throwable::getSuppressed);
+		}
 	}
 	
 }
