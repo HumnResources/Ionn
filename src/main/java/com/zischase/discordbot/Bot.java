@@ -8,22 +8,35 @@ import javax.security.auth.login.LoginException;
 
 public class Bot
 {
+	private static JDA jda = null;
 	
 	static
 	{
 		PostgreSQL.getConnection();
+		
+		try
+		{
+			// DEV_TOKEN = TESTING PURPOSES ONLY
+			
+			jda = JDABuilder.createDefault(Config.get("TOKEN"))
+							.setActivity(Activity.watching("Starting..."))
+							.addEventListeners(new Listener())
+							.build();
+		}
+		catch (LoginException e)
+		{
+			e.printStackTrace();
+		}
 	}
 	
 	public static void main(String[] args) throws LoginException
 	{
-		// DEV_TOKEN = TESTING PURPOSES ONLY
-		JDA jda = JDABuilder.createDefault(Config.get("TOKEN"))
-							.setActivity(Activity.watching("Starting..."))
-							.addEventListeners(new Listener())
-							.build();
-		
 		jda.getPresence()
 		   .setActivity(Activity.watching("Everything"));
 	}
-
+	
+	public static int guildCount()
+	{
+		return jda.getGuilds().size();
+	}
 }
