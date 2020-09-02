@@ -61,7 +61,7 @@ public class TrackScheduler extends AudioEventAdapter
 		
 		if (! player.startTrack(track, true))
 		{ // noInterrupt: True == add to queue; Returns true if added
-			queue.offer(track);
+			this.queue.offer(track);
 		}
 	}
 	
@@ -80,12 +80,12 @@ public class TrackScheduler extends AudioEventAdapter
 		
 		if (player.isPaused())
 		{
-			player.setPaused(false);
+			this.player.setPaused(false);
 		}
 		
 		else if (player.getPlayingTrack() == null)
 		{
-			player.startTrack(queue.poll(), false);
+			this.player.startTrack(queue.poll(), false);
 		}
 	}
 	
@@ -110,9 +110,9 @@ public class TrackScheduler extends AudioEventAdapter
 	{
 		if (repeat)
 		{
-			if (player.getPlayingTrack() != null)
+			if (this.player.getPlayingTrack() != null)
 			{
-				queue.add(player.getPlayingTrack().makeClone());
+				queue.add(this.player.getPlayingTrack().makeClone());
 			}
 			else if (lastTrack != null)
 			{
@@ -213,7 +213,7 @@ public class TrackScheduler extends AudioEventAdapter
 		}
 		else
 		{
-			lastTrack = track;
+			this.lastTrack = track;
 			player.playTrack(track.makeClone());
 		}
 	}

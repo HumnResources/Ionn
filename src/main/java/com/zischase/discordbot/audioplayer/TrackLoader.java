@@ -18,7 +18,7 @@ public class TrackLoader implements AudioLoadResultHandler
 	private       Member              member;
 	private       TextChannel         textChannel;
 	
-	private final LinkedMap<String, AudioTrack> cache = new LinkedMap<>(250);
+	private static final LinkedMap<String, AudioTrack> CACHE = new LinkedMap<>(250);
 	
 	public TrackLoader()
 	{
@@ -37,12 +37,12 @@ public class TrackLoader implements AudioLoadResultHandler
 		
 		if (connectVoice())
 		{
-			if (cache.containsKey(url))
+			if (CACHE.containsKey(url))
 			{
 				GuildManager.getContext(textChannel.getGuild())
 							.audioManager()
 							.getScheduler()
-							.queueAudio(cache.get(url).makeClone(), textChannel);
+							.queueAudio(CACHE.get(url).makeClone(), textChannel);
 			}
 			else
 			{
@@ -51,42 +51,14 @@ public class TrackLoader implements AudioLoadResultHandler
 							.getPlayerManager()
 							.loadItem(url, this);
 			}
+		}
+		else
+		{
 			textChannel.sendMessage("You must be in a voice channel to listen to music silly.")
 					   .queue();
 		}
-		
 	}
-	
-//	public void load(TextChannel channel, Member member, AudioTrack track)
-//	{
-//		this.textChannel = channel;
-//		if (member != null)
-//		{
-//			this.member = member;
-//		}
-//
-//		if (connectVoice())
-//		{
-//			if (cache.containsValue(track))
-//			{
-//				GuildManager.getContext(textChannel.getGuild())
-//							.audioManager()
-//							.getScheduler()
-//							.queueAudio(track.makeClone(), textChannel);
-//			}
-//
-//			GuildManager.getContext(channel.getGuild())
-//						.audioManager()
-//						.getScheduler()
-//						.queueAudio(track, channel);
-//		}
-//		else
-//		{
-//			textChannel.sendMessage("You must be in a voice channel to listen to music silly.")
-//					   .queue();
-//		}
-//	}
-	
+
 	private boolean connectVoice()
 	{
 		for (VoiceChannel channel : this.member.getGuild()
@@ -107,17 +79,11 @@ public class TrackLoader implements AudioLoadResultHandler
 	@Override
 	public void trackLoaded(AudioTrack audioTrack)
 	{
-		if (!audioTrack.getInfo().title.isEmpty())
+		CACHE.putIfAbsent(audioTrack.getInfo().uri, audioTrack);
+		
+		if (CACHE.size() >= 250)
 		{
-			cache.putIfAbsent(audioTrack.getInfo().title, audioTrack);
-		}
-		else
-		{
-			cache.putIfAbsent(audioTrack.getIdentifier(), audioTrack);
-		}
-		if (cache.size() >= 250)
-		{
-			cache.remove(0);
+			CACHE.remove(0);
 		}
 		
 		GuildManager.getContext(textChannel.getGuild())
