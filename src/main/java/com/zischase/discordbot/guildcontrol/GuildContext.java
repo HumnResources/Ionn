@@ -20,13 +20,8 @@ public class GuildContext implements IGuildContext
 		this.playerPrinter = new PlayerPrinter(guild);
 	}
 	
-	
-//	public AudioManager getAudioManager()
-//	{
-//		return audioManager;
-//	}
-	
-	public PlayerPrinter getPlayerPrinter()
+	@Override
+	public PlayerPrinter playerPrinter()
 	{
 		return playerPrinter;
 	}

@@ -132,7 +132,7 @@ public class TrackScheduler extends AudioEventAdapter
 	public void onPlayerPause(AudioPlayer player)
 	{
 		GuildManager.getContext(textChannel.getGuild())
-					.getPlayerPrinter()
+					.playerPrinter()
 					.printNowPlaying(textChannel);
 	}
 	
@@ -140,7 +140,7 @@ public class TrackScheduler extends AudioEventAdapter
 	public void onPlayerResume(AudioPlayer player)
 	{
 		GuildManager.getContext(textChannel.getGuild())
-					.getPlayerPrinter()
+					.playerPrinter()
 					.printNowPlaying(textChannel);
 	}
 	
@@ -150,12 +150,12 @@ public class TrackScheduler extends AudioEventAdapter
 		if (! queue.isEmpty())
 		{
 			GuildManager.getContext(textChannel.getGuild())
-						.getPlayerPrinter()
+						.playerPrinter()
 						.printQueue(textChannel);
 		}
 		
 		GuildManager.getContext(textChannel.getGuild())
-					.getPlayerPrinter()
+					.playerPrinter()
 					.printNowPlaying(textChannel);
 	}
 	

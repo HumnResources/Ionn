@@ -100,11 +100,11 @@ public class Queue extends Command
 		}
 		
 		GuildManager.getContext(ctx.getGuild())
-					.getPlayerPrinter()
+					.playerPrinter()
 					.printQueue(ctx.getChannel());
 		
 		GuildManager.getContext(ctx.getGuild())
-					.getPlayerPrinter()
+					.playerPrinter()
 					.printNowPlaying(ctx.getChannel());
 	}
 }
