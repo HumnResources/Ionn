@@ -1,10 +1,7 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.*;
-import com.zischase.discordbot.guildcontrol.GuildManager;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -127,13 +124,15 @@ public class Youtube extends Command
 					}
 					else
 					{
-						AudioTrack track = (AudioTrack) GuildManager.getContext(ctx.getGuild())
-																	.audioManager()
-																	.getPlayerManager()
-																	.source(YoutubeAudioSourceManager.class)
-																	.loadTrackWithVideoId(videoID, true);
+						String videoUrl = "https://www.youtube.com/watch?v=" + videoID;
 						
-						new TrackLoader().load(ctx.getChannel(), ctx.getMember(), track);
+//						AudioTrack track = (AudioTrack) GuildManager.getContext(ctx.getGuild())
+//																	.audioManager()
+//																	.getPlayerManager()
+//																	.source(YoutubeAudioSourceManager.class)
+//																	.loadTrackWithVideoId(videoID, true);
+						
+						new TrackLoader().load(ctx.getChannel(), ctx.getMember(), videoUrl);
 						break;
 					}
 				}

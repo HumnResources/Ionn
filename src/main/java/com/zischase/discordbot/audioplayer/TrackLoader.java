@@ -57,35 +57,35 @@ public class TrackLoader implements AudioLoadResultHandler
 		
 	}
 	
-	public void load(TextChannel channel, Member member, AudioTrack track)
-	{
-		this.textChannel = channel;
-		if (member != null)
-		{
-			this.member = member;
-		}
-		
-		if (connectVoice())
-		{
-			if (cache.containsValue(track))
-			{
-				GuildManager.getContext(textChannel.getGuild())
-							.audioManager()
-							.getScheduler()
-							.queueAudio(track.makeClone(), textChannel);
-			}
-			
-			GuildManager.getContext(channel.getGuild())
-						.audioManager()
-						.getScheduler()
-						.queueAudio(track, channel);
-		}
-		else
-		{
-			textChannel.sendMessage("You must be in a voice channel to listen to music silly.")
-					   .queue();
-		}
-	}
+//	public void load(TextChannel channel, Member member, AudioTrack track)
+//	{
+//		this.textChannel = channel;
+//		if (member != null)
+//		{
+//			this.member = member;
+//		}
+//
+//		if (connectVoice())
+//		{
+//			if (cache.containsValue(track))
+//			{
+//				GuildManager.getContext(textChannel.getGuild())
+//							.audioManager()
+//							.getScheduler()
+//							.queueAudio(track.makeClone(), textChannel);
+//			}
+//
+//			GuildManager.getContext(channel.getGuild())
+//						.audioManager()
+//						.getScheduler()
+//						.queueAudio(track, channel);
+//		}
+//		else
+//		{
+//			textChannel.sendMessage("You must be in a voice channel to listen to music silly.")
+//					   .queue();
+//		}
+//	}
 	
 	private boolean connectVoice()
 	{
