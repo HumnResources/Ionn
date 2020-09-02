@@ -29,7 +29,6 @@ public class NowPlaying extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
-		
 		GuildManager.getContext(ctx.getGuild())
 					.playerPrinter()
 					.printNowPlaying(ctx.getChannel());

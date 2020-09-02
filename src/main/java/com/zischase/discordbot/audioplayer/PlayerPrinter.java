@@ -188,14 +188,13 @@ public class PlayerPrinter
 	
 	private void deletePrevious(TextChannel textChannel)
 	{
+		textChannel.getHistory().retrievePast(100).complete();
+		
 		List<Message> messages = textChannel.getHistory()
-											.retrievePast(100)
-											.complete()
+											.getRetrievedHistory()
 											.stream()
-											.filter(msg -> msg.getAuthor()
-															  .isBot())
-											.filter(msg -> ! msg.getEmbeds()
-																.isEmpty())
+											.filter(msg -> msg.getAuthor().isBot())
+											.filter(msg -> ! msg.getEmbeds().isEmpty())
 											.collect(Collectors.toList());
 		
 		if (messages.size() == 1)

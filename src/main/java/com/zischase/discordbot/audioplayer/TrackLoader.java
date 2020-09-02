@@ -26,7 +26,7 @@ public class TrackLoader implements AudioLoadResultHandler
 		this.textChannel = null;
 	}
 	
-	public void load(TextChannel channel, Member member, String url)
+	public void load(TextChannel channel, Member member, String uri)
 	{
 		this.textChannel = channel;
 		
@@ -37,19 +37,19 @@ public class TrackLoader implements AudioLoadResultHandler
 		
 		if (connectVoice())
 		{
-			if (CACHE.containsKey(url))
+			if (CACHE.containsKey(uri))
 			{
 				GuildManager.getContext(textChannel.getGuild())
 							.audioManager()
 							.getScheduler()
-							.queueAudio(CACHE.get(url).makeClone(), textChannel);
+							.queueAudio(CACHE.get(uri).makeClone(), textChannel);
 			}
 			else
 			{
 				GuildManager.getContext(textChannel.getGuild())
 							.audioManager()
 							.getPlayerManager()
-							.loadItem(url, this);
+							.loadItem(uri, this);
 			}
 		}
 		else
