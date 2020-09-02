@@ -39,7 +39,7 @@ public class Volume extends Command
 						});
 		
 		GuildManager.getContext(guild)
-					.getAudioManager()
+					.audioManager()
 					.getPlayer()
 					.setVolume(setVolume);
 	}

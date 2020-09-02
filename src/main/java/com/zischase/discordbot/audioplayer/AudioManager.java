@@ -28,14 +28,12 @@ public class AudioManager
 		PLAYER_MANAGER.registerSourceManager(new LocalAudioSourceManager());
 		AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER);
 		AudioSourceManagers.registerLocalSource(PLAYER_MANAGER);
-		
-		
 	}
 	
 	public AudioManager(Guild guild)
 	{
 		this.player = PLAYER_MANAGER.createPlayer();
-		this.scheduler = new TrackScheduler(this);
+		this.scheduler = new TrackScheduler(this.getPlayer());
 		this.player.addListener(scheduler);
 		
 		guild.getAudioManager()

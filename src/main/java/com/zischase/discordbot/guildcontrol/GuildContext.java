@@ -21,10 +21,10 @@ public class GuildContext implements IGuildContext
 	}
 	
 	
-	public AudioManager getAudioManager()
-	{
-		return audioManager;
-	}
+//	public AudioManager getAudioManager()
+//	{
+//		return audioManager;
+//	}
 	
 	public PlayerPrinter getPlayerPrinter()
 	{

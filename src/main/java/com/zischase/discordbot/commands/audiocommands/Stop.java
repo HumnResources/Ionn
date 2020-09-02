@@ -23,7 +23,7 @@ public class Stop extends Command
 	public void handle(CommandContext ctx)
 	{
 		AudioManager audioManager = GuildManager.getContext(ctx.getGuild())
-												.getAudioManager();
+												.audioManager();
 		
 		audioManager.getPlayer()
 					.stopTrack();

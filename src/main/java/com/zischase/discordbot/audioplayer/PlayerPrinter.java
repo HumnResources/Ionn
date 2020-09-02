@@ -30,7 +30,7 @@ public class PlayerPrinter
 	public void printNowPlaying(TextChannel channel)
 	{
 		AudioPlayer player = GuildManager.getContext(guild)
-										 .getAudioManager()
+										 .audioManager()
 										 .getPlayer();
 		
 		EmbedBuilder embed = new EmbedBuilder();
@@ -120,7 +120,7 @@ public class PlayerPrinter
 		deletePrevious(channel);
 		
 		AudioManager audioManager = GuildManager.getContext(channel.getGuild())
-												.getAudioManager();
+												.audioManager();
 		
 		ArrayList<AudioTrack> queue = audioManager.getScheduler()
 												  .getQueue();

@@ -16,7 +16,7 @@ public class Repeat extends Command
 	public void handle(CommandContext ctx)
 	{
 		boolean repeat = GuildManager.getContext(ctx.getGuild())
-									 .getAudioManager()
+									 .audioManager()
 									 .getScheduler()
 									 .isRepeat();
 		
@@ -37,7 +37,7 @@ public class Repeat extends Command
 			}
 			
 			GuildManager.getContext(ctx.getGuild())
-						.getAudioManager()
+						.audioManager()
 						.getScheduler()
 						.setRepeat(repeat);
 		}

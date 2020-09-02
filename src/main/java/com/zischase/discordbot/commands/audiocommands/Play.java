@@ -48,7 +48,7 @@ public class Play extends Command
 		if (args.isEmpty())
 		{
 			AudioPlayer player = GuildManager.getContext(guild)
-											 .getAudioManager()
+											 .audioManager()
 											 .getPlayer();
 			boolean isPaused = player.isPaused();
 			player.setPaused(! isPaused);
@@ -57,7 +57,7 @@ public class Play extends Command
 					 .matches("(?i)(-next|-n)"))
 		{
 			AudioManager manager = GuildManager.getContext(ctx.getGuild())
-											   .getAudioManager();
+											   .audioManager();
 			ArrayList<AudioTrack> queueCopy = manager.getScheduler()
 													 .getQueue();
 			

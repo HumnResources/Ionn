@@ -37,7 +37,7 @@ public class Queue extends Command
 	{
 		List<String> args = ctx.getArgs();
 		TrackScheduler scheduler = GuildManager.getContext(ctx.getGuild())
-											   .getAudioManager()
+											   .audioManager()
 											   .getScheduler();
 		
 		if (! args.isEmpty())

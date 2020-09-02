@@ -82,7 +82,7 @@ public class Playlist extends Command
 			   .queue();
 			
 			GuildManager.getContext(ctx.getGuild())
-						.getAudioManager()
+						.audioManager()
 						.getScheduler()
 						.queueList(getPlaylist(playlist), ctx.getChannel());
 			
@@ -91,7 +91,7 @@ public class Playlist extends Command
 		else if (cmd.matches("(?i)(-current|-c|-np|-nowplaying)"))
 		{
 			ArrayList<AudioTrack> queue = GuildManager.getContext(ctx.getGuild())
-													  .getAudioManager()
+													  .audioManager()
 													  .getScheduler()
 													  .getQueue();
 			
@@ -111,7 +111,7 @@ public class Playlist extends Command
 		else if (cmd.matches("(?i)(-add|-new)"))
 		{
 			ArrayList<AudioTrack> q = GuildManager.getContext(ctx.getGuild())
-												  .getAudioManager()
+												  .audioManager()
 												  .getScheduler()
 												  .getQueue();
 			

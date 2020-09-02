@@ -35,7 +35,7 @@ public class Lyrics extends Command
 		if (args.isEmpty())
 		{
 			search = GuildManager.getContext(ctx.getGuild())
-								 .getAudioManager()
+								 .audioManager()
 								 .getPlayer()
 								 .getPlayingTrack()
 								 .getInfo().title.strip()

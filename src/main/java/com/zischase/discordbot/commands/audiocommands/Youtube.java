@@ -128,7 +128,7 @@ public class Youtube extends Command
 					else
 					{
 						AudioTrack track = (AudioTrack) GuildManager.getContext(ctx.getGuild())
-																	.getAudioManager()
+																	.audioManager()
 																	.getPlayerManager()
 																	.source(YoutubeAudioSourceManager.class)
 																	.loadTrackWithVideoId(videoID, true);

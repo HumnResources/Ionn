@@ -32,7 +32,7 @@ public class Previous extends Command
 	{
 		
 		GuildManager.getContext(ctx.getGuild())
-					.getAudioManager()
+					.audioManager()
 					.getScheduler()
 					.prevTrack();
 		
