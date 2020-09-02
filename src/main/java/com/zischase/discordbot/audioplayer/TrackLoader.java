@@ -8,14 +8,17 @@ import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import org.apache.commons.collections4.map.LinkedMap;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
 public class TrackLoader implements AudioLoadResultHandler
 {
-	private Member      member;
-	private TextChannel textChannel;
+	private       Member              member;
+	private       TextChannel         textChannel;
+	
+	private final LinkedMap<String, AudioTrack> cache = new LinkedMap<>(250);
 	
 	public TrackLoader()
 	{
@@ -26,6 +29,7 @@ public class TrackLoader implements AudioLoadResultHandler
 	public void load(TextChannel channel, Member member, String url)
 	{
 		this.textChannel = channel;
+		
 		if (member != null)
 		{
 			this.member = member;
@@ -33,16 +37,24 @@ public class TrackLoader implements AudioLoadResultHandler
 		
 		if (connectVoice())
 		{
-			GuildManager.getContext(textChannel.getGuild())
-						.getAudioManager()
-						.getPlayerManager()
-						.loadItem(url, this);
-		}
-		else
-		{
+			if (cache.containsKey(url))
+			{
+				GuildManager.getContext(textChannel.getGuild())
+							.audioManager()
+							.getScheduler()
+							.queueAudio(cache.get(url).makeClone(), textChannel);
+			}
+			else
+			{
+				GuildManager.getContext(textChannel.getGuild())
+							.audioManager()
+							.getPlayerManager()
+							.loadItem(url, this);
+			}
 			textChannel.sendMessage("You must be in a voice channel to listen to music silly.")
 					   .queue();
 		}
+		
 	}
 	
 	public void load(TextChannel channel, Member member, AudioTrack track)
@@ -55,8 +67,16 @@ public class TrackLoader implements AudioLoadResultHandler
 		
 		if (connectVoice())
 		{
+			if (cache.containsValue(track))
+			{
+				GuildManager.getContext(textChannel.getGuild())
+							.audioManager()
+							.getScheduler()
+							.queueAudio(track.makeClone(), textChannel);
+			}
+			
 			GuildManager.getContext(channel.getGuild())
-						.getAudioManager()
+						.audioManager()
 						.getScheduler()
 						.queueAudio(track, channel);
 		}
@@ -87,8 +107,21 @@ public class TrackLoader implements AudioLoadResultHandler
 	@Override
 	public void trackLoaded(AudioTrack audioTrack)
 	{
+		if (!audioTrack.getInfo().title.isEmpty())
+		{
+			cache.putIfAbsent(audioTrack.getInfo().title, audioTrack);
+		}
+		else
+		{
+			cache.putIfAbsent(audioTrack.getIdentifier(), audioTrack);
+		}
+		if (cache.size() >= 250)
+		{
+			cache.remove(0);
+		}
+		
 		GuildManager.getContext(textChannel.getGuild())
-					.getAudioManager()
+					.audioManager()
 					.getScheduler()
 					.queueAudio(audioTrack, textChannel);
 	}
@@ -97,7 +130,7 @@ public class TrackLoader implements AudioLoadResultHandler
 	public void playlistLoaded(AudioPlaylist audioPlaylist)
 	{
 		GuildManager.getContext(textChannel.getGuild())
-					.getAudioManager()
+					.audioManager()
 					.getScheduler()
 					.queueList((ArrayList<AudioTrack>) audioPlaylist.getTracks(), textChannel);
 	}

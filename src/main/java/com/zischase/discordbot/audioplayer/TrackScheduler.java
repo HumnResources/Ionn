@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -23,14 +22,14 @@ public class TrackScheduler extends AudioEventAdapter
 	private final        AudioPlayer               player;
 	private final        BlockingQueue<AudioTrack> queue;
 	
-	private final List<AudioTrack> cache       = new ArrayList<>(250);
-	private       boolean          repeat      = false;
-	private       AudioTrack       lastTrack;
-	private       TextChannel      textChannel = null;
 	
-	public TrackScheduler(AudioManager manager)
+	private       boolean             repeat      = false;
+	private       AudioTrack          lastTrack;
+	private       TextChannel         textChannel = null;
+	
+	public TrackScheduler(AudioPlayer player)
 	{
-		this.player = manager.getPlayer();
+		this.player = player;
 		this.queue = new LinkedBlockingQueue<>();
 		
 		LOGGER.info("TrackScheduler created.");
@@ -50,7 +49,7 @@ public class TrackScheduler extends AudioEventAdapter
 	{
 		this.textChannel = textChannel;
 		boolean hasPlayingTrack = GuildManager.getContext(textChannel.getGuild())
-											  .getAudioManager()
+											  .audioManager()
 											  .getPlayer()
 											  .getPlayingTrack() != null;
 		
@@ -61,7 +60,7 @@ public class TrackScheduler extends AudioEventAdapter
 		}
 		
 		if (! player.startTrack(track, true))
-		{ // noInterrupt: True == add to queue
+		{ // noInterrupt: True == add to queue; Returns true if added
 			queue.offer(track);
 		}
 	}
@@ -158,14 +157,6 @@ public class TrackScheduler extends AudioEventAdapter
 		GuildManager.getContext(textChannel.getGuild())
 					.getPlayerPrinter()
 					.printNowPlaying(textChannel);
-		
-		cache.add(track.makeClone());
-		
-		if (cache.size() >= 200)
-		{
-			cache.remove(0);
-		}
-		
 	}
 	
 	@Override
@@ -230,10 +221,7 @@ public class TrackScheduler extends AudioEventAdapter
 	@Override
 	public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs)
 	{
-		GuildManager.getContext(textChannel.getGuild())
-					.getAudioManager()
-					.getPlayer()
-					.stopTrack();
+		player.stopTrack();
 		
 		if (! queue.isEmpty())
 		{
