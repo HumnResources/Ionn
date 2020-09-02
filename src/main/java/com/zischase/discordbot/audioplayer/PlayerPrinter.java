@@ -188,10 +188,9 @@ public class PlayerPrinter
 	
 	private void deletePrevious(TextChannel textChannel)
 	{
-		textChannel.getHistory().retrievePast(100).complete();
-		
 		List<Message> messages = textChannel.getHistory()
-											.getRetrievedHistory()
+											.retrievePast(100)
+											.complete()
 											.stream()
 											.filter(msg -> msg.getAuthor().isBot())
 											.filter(msg -> ! msg.getEmbeds().isEmpty())
@@ -201,7 +200,7 @@ public class PlayerPrinter
 		{
 			textChannel.deleteMessageById(messages.get(0)
 												  .getId())
-					   .queue();
+					   .queue(null, Throwable::getSuppressed);
 		}
 		else if (messages.size() > 1)
 		{
