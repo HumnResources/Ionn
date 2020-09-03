@@ -9,16 +9,17 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.apache.commons.collections4.map.LinkedMap;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
 public class TrackLoader implements AudioLoadResultHandler
 {
-	private       Member              member;
-	private       TextChannel         textChannel;
-	
-	private static final LinkedMap<String, AudioTrack> CACHE = new LinkedMap<>(250);
+	private static final Logger                        LOGGER = LoggerFactory.getLogger(TrackLoader.class);
+	private static final LinkedMap<String, AudioTrack> CACHE  = new LinkedMap<>(250);
+	private              Member                        member;
+	private              TextChannel                   textChannel;
 	
 	public TrackLoader()
 	{
@@ -42,7 +43,9 @@ public class TrackLoader implements AudioLoadResultHandler
 				GuildManager.getContext(textChannel.getGuild())
 							.audioManager()
 							.getScheduler()
-							.queueAudio(CACHE.get(uri).makeClone(), textChannel);
+							.queueAudio(CACHE.get(uri)
+											 .makeClone(), textChannel);
+				LOGGER.info("Cache: {} - {}", CACHE.get(uri).getInfo().title, CACHE.get(uri).getInfo().uri);
 			}
 			else
 			{
@@ -50,6 +53,8 @@ public class TrackLoader implements AudioLoadResultHandler
 							.audioManager()
 							.getPlayerManager()
 							.loadItem(uri, this);
+				
+				LOGGER.info("Loading: {}", uri);
 			}
 		}
 		else
@@ -58,7 +63,7 @@ public class TrackLoader implements AudioLoadResultHandler
 					   .queue();
 		}
 	}
-
+	
 	private boolean connectVoice()
 	{
 		for (VoiceChannel channel : this.member.getGuild()
@@ -115,6 +120,6 @@ public class TrackLoader implements AudioLoadResultHandler
 		LoggerFactory.getLogger(TrackLoader.class)
 					 .error(e.getCause()
 							 .getLocalizedMessage());
-
+		
 	}
 }
