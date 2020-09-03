@@ -51,14 +51,13 @@ public class Youtube extends Command
 							  .matches("(?i)(-s|-search)");
 		String query = String.join("+", ctx.getArgs());
 		String url = "http://youtube.com/results?search_query=" + query;
-		
+		TrackLoader trackLoader = new TrackLoader();
 		Document doc = null;
+		
 		try
 		{
 			doc = Jsoup.connect(url)
 					   .get();
-			
-			
 		}
 		catch (IOException e)
 		{
@@ -73,13 +72,16 @@ public class Youtube extends Command
 			
 			List<ISearchable> songList = new ArrayList<>();
 			
-			// RegEx
-			// (?im)            - caseInsensitive, Multiline
-			// (?<="videoId":") - Negative lookbehind for finding video ID key
-			// .+?              - Any character up to ?.
-			// (?=")            - ? = ".
+//			RegEx
+//			(?im)            - caseInsensitive, Multiline
+//			(?<="videoId":") - Negative lookbehind for finding video ID key
+//			.+?              - Any character up to ?.
+//			(?=")            - ? = ".
 			Pattern videoIDPattern = Pattern.compile("(?im)(?<=\"videoId\":\").+?(?=\")");
 			Matcher videoMatcher = videoIDPattern.matcher(element.html());
+			
+			Pattern songName;
+			Matcher nameMatcher;
 			
 			String videoID = "";
 			while (videoMatcher.find())
@@ -90,13 +92,13 @@ public class Youtube extends Command
 				}
 				videoID = videoMatcher.group(0);
 				
-				// RegEx . . . again . . . it's fast though -- https://regex101.com/r/1c2wAQ/1
-				// (?im)                                - caseInsensitive, Multiline
-				// (?=i.ytimg.com/vi/"+uri+").{1,300}   - Positive lookahead to contain video ID near title. Arbitrarily up to 300 chars
-				// (?<="title":\{"runs":\[\{"text":")   - Positive lookbehind to contain text prior to title.
-				// (.+?(?=\"}]))                        - Extract song name. Any character up to the next "}]. - This closes the js object on YT end.
-				Pattern songName = Pattern.compile("(?im)(?=vi/" + videoID + "/).{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?)(?=\"}])");
-				Matcher nameMatcher = songName.matcher(element.html());
+//				RegEx. . . again . . . 				 - https://regex101.com/r/1c2wAQ/1
+//				(?im)                                - caseInsensitive, Multiline
+//				(?=i.ytimg.com/vi/"+uri+").{1,300}   - Positive lookahead to contain video ID near title. Arbitrarily up to 300 chars
+//				(?<="title":\{"runs":\[\{"text":")   - Positive lookbehind to contain text prior to title.
+//				(.+?(?=\"}]))                        - Extract song name. Any character up to the next "}]. - This closes the js object on YT end.
+				songName = Pattern.compile("(?im)(?=vi/" + videoID + "/).{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?)(?=\"}])");
+				nameMatcher = songName.matcher(element.html());
 				
 				if (nameMatcher.find())
 				{
@@ -112,7 +114,7 @@ public class Youtube extends Command
 								ISearchable result = new ResultSelector(songList).getChoice(ctx.getEvent())
 																				 .get();
 								
-								new TrackLoader().load(ctx.getChannel(), ctx.getMember(), result.getUrl());
+								trackLoader.load(ctx.getChannel(), ctx.getMember(), result.getUrl());
 							}
 							catch (InterruptedException | ExecutionException e)
 							{
@@ -125,14 +127,7 @@ public class Youtube extends Command
 					else
 					{
 						String videoUrl = "https://www.youtube.com/watch?v=" + videoID;
-						
-//						AudioTrack track = (AudioTrack) GuildManager.getContext(ctx.getGuild())
-//																	.audioManager()
-//																	.getPlayerManager()
-//																	.source(YoutubeAudioSourceManager.class)
-//																	.loadTrackWithVideoId(videoID, true);
-						
-						new TrackLoader().load(ctx.getChannel(), ctx.getMember(), videoUrl);
+						trackLoader.load(ctx.getChannel(), ctx.getMember(), videoUrl);
 						break;
 					}
 				}
