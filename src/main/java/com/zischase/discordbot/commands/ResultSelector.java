@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands;
 
+import com.zischase.discordbot.Config;
 import com.zischase.discordbot.Listener;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -19,8 +20,8 @@ import java.util.concurrent.TimeUnit;
 
 public class ResultSelector
 {
-	private final int               delayMS          = 10000; // Where delay is the duration until listener gets terminated.
-	private final int               searchTimeOffset = 2500; // Where offset is approximate time to query result.
+	private final int               delayMS          = Integer.parseInt(Config.get("SEARCH_RESULT_DELAY_MS")); // Where delay is the duration until listener gets terminated.
+	private final int               searchTimeOffset = Integer.parseInt(Config.get("SEARCH_RESULT_OFFSET_MS")); // Where offset is approximate time to query result.
 	private final List<ISearchable> searches;
 	private       ISearchable       result           = null;
 	
@@ -31,7 +32,6 @@ public class ResultSelector
 	
 	public Future<ISearchable> getChoice(GuildMessageReceivedEvent event)
 	{
-		
 		JDA jda = event.getJDA();
 		CompletableFuture<ISearchable> cf = new CompletableFuture<>();
 		
@@ -61,9 +61,8 @@ public class ResultSelector
 		jda.addEventListener(listener);
 		printList(event.getChannel());
 		
-		while (LocalDateTime.now()
-							.isBefore(LocalDateTime.now()
-												   .plusSeconds(delayMS / 1000)))
+		LocalDateTime now = LocalDateTime.now();
+		while (now.isBefore(now.plusSeconds(delayMS / 1000)))
 		{
 			if (result != null)
 			{
