@@ -12,6 +12,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.awt.*;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,18 +21,17 @@ import java.util.stream.Collectors;
 
 public class PlayerPrinter
 {
-	private final Guild guild;
+	private final AudioManager audioManager;
 	
 	public PlayerPrinter(Guild guild)
 	{
-		this.guild = guild;
+		this.audioManager = GuildManager.getContext(guild)
+				.audioManager();
 	}
 	
 	public void printNowPlaying(TextChannel channel)
 	{
-		AudioPlayer player = GuildManager.getContext(guild)
-										 .audioManager()
-										 .getPlayer();
+		AudioPlayer player = audioManager.getPlayer();
 		
 		EmbedBuilder embed = new EmbedBuilder();
 		embed.setColor(Color.CYAN);
@@ -69,58 +69,61 @@ public class PlayerPrinter
 		Message message = new MessageBuilder().setEmbed(embed.build())
 											  .build();
 		
-		List<Message> messages = channel.getHistory()
-										.retrievePast(100)
-										.complete()
-										.stream()
-										.filter(msg -> msg.getAuthor()
-														  .isBot())
-										.filter(msg -> ! msg.getEmbeds()
-															.isEmpty())
-										.filter(msg ->
-										{
-											if (msg.getEmbeds()
-												   .get(0)
-												   .getTitle() != null)
-											{
-												String title = msg.getEmbeds()
-																  .get(0)
-																  .getTitle();
+		long finalDelayMS = delayMS;
+		channel.getHistory()
+			   .retrievePast(100)
+			   .queue(messages -> {
+			   		List<Message> deleteList = messages.stream()
+							.filter(msg -> msg.getAuthor()
+											  .isBot())
+							.filter(msg -> ! msg.getEmbeds()
+												.isEmpty())
+							.filter(msg ->
+							{
+								if (msg.getEmbeds()
+									   .get(0)
+									   .getTitle() != null)
+								{
+									String title = msg.getEmbeds()
+													  .get(0)
+													  .getTitle();
+									assert title != null;
+									return title.equalsIgnoreCase("Now Playing");
+								}
+								return false;
+							})
+							.collect(Collectors.toList());
 				
-												assert title != null;
-												return title.equalsIgnoreCase("Now Playing");
-											}
-											return false;
-										})
-										.collect(Collectors.toList());
-		
-		if (! messages.isEmpty())
-		{
-			if (messages.size() == 1)
-			{
-				channel.deleteMessageById(messages.get(0)
-												  .getId())
-					   .queue(null, Throwable::getSuppressed);
-			}
-			else
-			{
-				channel.deleteMessages(messages)
-					   .queue(null, Throwable::getSuppressed);
-			}
-		}
-		
-		channel.sendMessage(message)
-			   .complete()
-			   .delete()
-			   .queueAfter(delayMS, TimeUnit.MILLISECONDS, null, Throwable::getSuppressed);
+				   if (! deleteList.isEmpty())
+				   {
+					   if (deleteList.size() == 1)
+					   {
+						   channel.deleteMessageById(deleteList.get(0)
+															 .getId())
+								  .queue(null, Throwable::getSuppressed);
+					   }
+					   else
+					   {
+						   channel.deleteMessages(deleteList)
+								  .queue(null, Throwable::getSuppressed);
+					   }
+				   }
+				   channel.sendMessage(message)
+						  .queue(msg ->
+						  {
+						  	if (msg == null)
+							{
+								return;
+							}
+							  msg.delete()
+								 .queueAfter(finalDelayMS, TimeUnit.MILLISECONDS);
+						  });
+			   });
 	}
 	
 	public void printQueue(TextChannel channel)
 	{
 		deletePrevious(channel);
-		
-		AudioManager audioManager = GuildManager.getContext(channel.getGuild())
-												.audioManager();
 		
 		ArrayList<AudioTrack> queue = audioManager.getScheduler()
 												  .getQueue();
@@ -133,17 +136,14 @@ public class PlayerPrinter
 			embed.appendDescription("Nothing in the queue.");
 			
 			channel.sendMessage(embed.build())
-				   .complete()
-				   .delete()
-				   .queueAfter(5000, TimeUnit.MILLISECONDS);
+				   .queue(msg -> msg.delete().queueAfter(5000, TimeUnit.MILLISECONDS));
 			return;
 		}
 		
-		Collections.reverse(queue);
-		
-		
 		if (queue.size() > 1)
 		{
+			Collections.reverse(queue);
+			
 			int index = queue.size();
 			embed.appendDescription("```\n");
 			// Subtract 1 to remove next(last in list) song in queue to display separately.
@@ -178,9 +178,8 @@ public class PlayerPrinter
 			}
 			embed.appendDescription("```");
 		}
-		AudioTrack track = queue.get(queue.size() - 1);
 		
-		embed.appendDescription(" ```fix\n" + track.getInfo().title + "```");
+		embed.appendDescription(" ```fix\nUp Next: " + queue.get(0).getInfo().title + "```");
 		
 		channel.sendMessage(embed.build())
 			   .queue();
@@ -188,25 +187,32 @@ public class PlayerPrinter
 	
 	private void deletePrevious(TextChannel textChannel)
 	{
-		List<Message> messages = textChannel.getHistory()
-											.retrievePast(100)
-											.complete()
-											.stream()
-											.filter(msg -> msg.getAuthor().isBot())
-											.filter(msg -> ! msg.getEmbeds().isEmpty())
-											.collect(Collectors.toList());
 		
-		if (messages.size() == 1)
-		{
-			textChannel.deleteMessageById(messages.get(0)
-												  .getId())
-					   .queue(null, Throwable::getSuppressed);
-		}
-		else if (messages.size() > 1)
-		{
-			textChannel.deleteMessages(messages)
-					   .queue(null, Throwable::getSuppressed);
-		}
+		textChannel.getHistory()
+				   .retrievePast(100)
+				   .queue(messages ->
+				   {
+					   List<Message> msgList = messages.stream()
+													   .filter(msg -> msg.getAuthor()
+																		 .isBot())
+													   .filter(msg -> ! msg.getEmbeds()
+																		   .isEmpty())
+													   .filter(msg -> msg.getTimeCreated()
+																		 .isBefore(OffsetDateTime.now()))
+													   .collect(Collectors.toList());
+					   if (msgList.size() == 1)
+					   {
+						   textChannel.deleteMessageById(msgList.get(0)
+																.getId())
+									  .queue(null, Throwable::getSuppressed);
+					   }
+					   else if (msgList.size() > 1)
+					   {
+						   textChannel.deleteMessages(msgList)
+									  .queue(null, Throwable::getSuppressed);
+					   }
+				   });
+		
 	}
 	
 }
