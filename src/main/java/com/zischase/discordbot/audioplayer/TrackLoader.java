@@ -43,7 +43,9 @@ public class TrackLoader implements AudioLoadResultHandler
 							.getScheduler()
 							.queueAudio(CACHE.get(uri)
 											 .makeClone(), textChannel);
-				LOGGER.info("Cache: {} - {}", CACHE.get(uri).getInfo().title, CACHE.get(uri).getInfo().uri);
+				LOGGER.info("Cache: {} - {}", CACHE.get(uri)
+												   .getInfo().title, CACHE.get(uri)
+																		  .getInfo().uri);
 			}
 			else
 			{

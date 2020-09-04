@@ -24,9 +24,9 @@ public class TrackScheduler extends AudioEventAdapter
 	private final        BlockingQueue<AudioTrack> queue;
 	
 	
-	private       boolean             repeat      = false;
-	private       AudioTrack          lastTrack;
-	private       TextChannel         textChannel = null;
+	private boolean     repeat      = false;
+	private AudioTrack  lastTrack;
+	private TextChannel textChannel = null;
 	
 	public TrackScheduler(AudioPlayer player)
 	{
@@ -66,16 +66,8 @@ public class TrackScheduler extends AudioEventAdapter
 		}
 	}
 	
-	public void queueList(ArrayList<AudioTrack> list, TextChannel channel)
+	public void queueList(ArrayList<AudioTrack> tracks, TextChannel channel)
 	{
-		AudioPlaylist playlist = (AudioPlaylist) list;
-		queueList(playlist, textChannel);
-	}
-	
-	public void queueList(AudioPlaylist playlist, TextChannel channel)
-	{
-		ArrayList<AudioTrack> tracks = (ArrayList<AudioTrack>) playlist.getTracks();
-		
 		if (tracks.isEmpty())
 		{
 			return;
@@ -87,8 +79,6 @@ public class TrackScheduler extends AudioEventAdapter
 			this.queue.add(track.makeClone());
 		}
 		
-		textChannel.sendMessage("Added playlist `" + playlist.getName() + "` to the queue.").queue();
-		
 		if (player.isPaused())
 		{
 			this.player.setPaused(false);
@@ -97,7 +87,14 @@ public class TrackScheduler extends AudioEventAdapter
 		{
 			this.player.startTrack(queue.poll(), false);
 		}
-		
+	}
+	
+	public void queueList(AudioPlaylist playlist, TextChannel channel)
+	{
+		ArrayList<AudioTrack> tracks = (ArrayList<AudioTrack>) playlist.getTracks();
+		channel.sendMessage("Adding playlist `" + playlist.getName() + "` to the queue.")
+			   .queue();
+		queueList(tracks, channel);
 	}
 	
 	public void clearQueue()
@@ -123,7 +120,8 @@ public class TrackScheduler extends AudioEventAdapter
 		{
 			if (this.player.getPlayingTrack() != null)
 			{
-				queue.add(this.player.getPlayingTrack().makeClone());
+				queue.add(this.player.getPlayingTrack()
+									 .makeClone());
 			}
 			else if (lastTrack != null)
 			{

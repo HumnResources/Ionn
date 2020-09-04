@@ -71,7 +71,7 @@ public class Youtube extends Command
 			   .forEach(e -> element.append(e.html()));
 			
 			List<ISearchable> songList = new ArrayList<>();
-			
+
 //			RegEx
 //			(?im)            - caseInsensitive, Multiline
 //			(?<="videoId":") - Negative lookbehind for finding video ID key
@@ -91,7 +91,7 @@ public class Youtube extends Command
 					continue;
 				}
 				videoID = videoMatcher.group(0);
-				
+
 //				RegEx. . . again . . . 				 - https://regex101.com/r/1c2wAQ/1
 //				(?im)                                - caseInsensitive, Multiline
 //				(?=i.ytimg.com/vi/"+uri+").{1,300}   - Positive lookahead to contain video ID near title. Arbitrarily up to 300 chars

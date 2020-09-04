@@ -7,7 +7,6 @@ import com.zischase.discordbot.Config;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.awt.*;
@@ -42,13 +41,13 @@ public class PlayerPrinter
 		}
 		else
 		{
-			AudioTrackInfo info = player.getPlayingTrack()
-										.getInfo();
+			AudioTrackInfo info = player.getPlayingTrack().getInfo();
 			
 			long duration = info.length / 1000;
-			long position = player.getPlayingTrack()
-								  .getPosition() / 1000;
-			String timeTotal = String.format("%d:%02d:%02d", duration / 3600 , (duration % 3600) / 60, (duration % 60));
+			long position = player.getPlayingTrack().getPosition() / 1000;
+			
+			String timeTotal = String.format("%d:%02d:%02d", duration / 3600, (duration % 3600) / 60, (duration % 60));
+			
 			String timeCurrent = String.format("%d:%02d:%02d", position / 3600, (position % 3600) / 60, (position % 60));
 			
 			embed.setThumbnail(Config.get("MEDIA_PLAYER_ICON"));
@@ -74,9 +73,7 @@ public class PlayerPrinter
 		long delayMS = 2000;
 		if (player.getPlayingTrack() != null)
 		{
-			delayMS = player.getPlayingTrack()
-							.getDuration() - player.getPlayingTrack()
-												   .getPosition();
+			delayMS = player.getPlayingTrack().getDuration() - player.getPlayingTrack().getPosition();
 		}
 		
 		Message message = new MessageBuilder().setEmbed(embed.build())
@@ -88,19 +85,13 @@ public class PlayerPrinter
 			   .queue(messages ->
 			   {
 				   List<Message> deleteList = messages.stream()
-													  .filter(msg -> msg.getAuthor()
-																		.isBot())
-													  .filter(msg -> ! msg.getEmbeds()
-																		  .isEmpty())
+													  .filter(msg -> msg.getAuthor().isBot())
+													  .filter(msg -> ! msg.getEmbeds().isEmpty())
 													  .filter(msg ->
 													  {
-														  if (msg.getEmbeds()
-																 .get(0)
-																 .getTitle() != null)
+														  if (msg.getEmbeds().get(0).getTitle() != null)
 														  {
-															  String title = msg.getEmbeds()
-																				.get(0)
-																				.getTitle();
+															  String title = msg.getEmbeds().get(0).getTitle();
 															  assert title != null;
 															  return title.equalsIgnoreCase("Now Playing");
 														  }
@@ -112,8 +103,7 @@ public class PlayerPrinter
 				   {
 					   if (deleteList.size() == 1)
 					   {
-						   channel.deleteMessageById(deleteList.get(0)
-															   .getId())
+						   channel.deleteMessageById(deleteList.get(0).getId())
 								  .queue(null, Throwable::getSuppressed);
 					   }
 					   else
@@ -122,16 +112,11 @@ public class PlayerPrinter
 								  .queue(null, Throwable::getSuppressed);
 					   }
 				   }
-				   if (message.getType().equals(MessageType.UNKNOWN))
-				   {
-				   	return;
-				   }
 				   
 				   channel.sendMessage(message)
 						  .queue(msg ->
 						  {
-							  if (!msg.getType()
-									 .equals(MessageType.UNKNOWN))
+							  if (channel.getHistory().getRetrievedHistory().contains(msg))
 							  {
 								  msg.delete()
 									 .queueAfter(finalDelayMS, TimeUnit.MILLISECONDS);
@@ -157,8 +142,7 @@ public class PlayerPrinter
 			channel.sendMessage(embed.build())
 				   .queue(msg ->
 				   {
-					   if (!msg.getType()
-							  .equals(MessageType.UNKNOWN))
+					   if (channel.getHistory().getRetrievedHistory().contains(msg))
 					   {
 						   msg.delete()
 							  .queueAfter(5000, TimeUnit.MILLISECONDS);
@@ -181,18 +165,13 @@ public class PlayerPrinter
 					continue;
 				}
 				
-				if (index > 1)
-				{
-					embed.appendDescription(index + ". ");
-				}
+				embed.appendDescription((index) + ". ");
 				index--;
 				
 				embed.appendDescription(track.getInfo().title + "\n");
 				
 				// Limit is 2048 characters per embed description. This allows some buffer. Had issues at 2000 characters.
-				if (embed.getDescriptionBuilder()
-						 .toString()
-						 .length() >= 1800)
+				if (embed.getDescriptionBuilder().toString().length() >= 1800)
 				{
 					embed.appendDescription("```");
 					channel.sendMessage(embed.build())
@@ -206,8 +185,7 @@ public class PlayerPrinter
 			embed.appendDescription("```");
 		}
 		
-		embed.appendDescription(" ```fix\nUp Next: " + queue.get(0)
-															.getInfo().title + "```");
+		embed.appendDescription(" ```fix\nUp Next: " + queue.get(queue.size() - 1).getInfo().title + "```");
 		
 		channel.sendMessage(embed.build())
 			   .queue();
@@ -221,17 +199,13 @@ public class PlayerPrinter
 				   .queue(messages ->
 				   {
 					   List<Message> msgList = messages.stream()
-													   .filter(msg -> msg.getAuthor()
-																		 .isBot())
-													   .filter(msg -> ! msg.getEmbeds()
-																		   .isEmpty())
-													   .filter(msg -> msg.getTimeCreated()
-																		 .isBefore(OffsetDateTime.now()))
+													   .filter(msg -> msg.getAuthor().isBot())
+													   .filter(msg -> ! msg.getEmbeds().isEmpty())
+													   .filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
 													   .collect(Collectors.toList());
 					   if (msgList.size() == 1)
 					   {
-						   textChannel.deleteMessageById(msgList.get(0)
-																.getId())
+						   textChannel.deleteMessageById(msgList.get(0).getId())
 									  .queue(null, Throwable::getSuppressed);
 					   }
 					   else if (msgList.size() > 1)

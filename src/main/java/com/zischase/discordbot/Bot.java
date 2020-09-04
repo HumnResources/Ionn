@@ -37,6 +37,7 @@ public class Bot
 	
 	public static int guildCount()
 	{
-		return jda.getGuilds().size();
+		return jda.getGuilds()
+				  .size();
 	}
 }

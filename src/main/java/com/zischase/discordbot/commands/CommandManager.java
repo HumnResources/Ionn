@@ -146,7 +146,7 @@ public final class CommandManager
 		LOGGER.info(CommandManager.shutdownThreads());
 	}
 	
-
+	
 	public static String getReport()
 	{
 		return "=======================\n" +
@@ -196,7 +196,7 @@ public final class CommandManager
 				THREAD_POOL_EXECUTOR.shutdownNow();
 			}
 		}
-	
+		
 		return getReport() + "Shutting Down . . .\n";
 	}
 }
