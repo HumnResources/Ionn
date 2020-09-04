@@ -4,11 +4,10 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.zischase.discordbot.Config;
-import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.awt.*;
@@ -23,10 +22,9 @@ public class PlayerPrinter
 {
 	private final AudioManager audioManager;
 	
-	public PlayerPrinter(Guild guild)
+	public PlayerPrinter(AudioManager audioManager)
 	{
-		this.audioManager = GuildManager.getContext(guild)
-				.audioManager();
+		this.audioManager = audioManager;
 	}
 	
 	public void printNowPlaying(TextChannel channel)
@@ -46,16 +44,31 @@ public class PlayerPrinter
 		{
 			AudioTrackInfo info = player.getPlayingTrack()
 										.getInfo();
+			
+			long duration = info.length / 1000;
+			long position = player.getPlayingTrack()
+								  .getPosition() / 1000;
+			String timeTotal = String.format("%d:%02d:%02d", duration / 3600 , (duration % 3600) / 60, (duration % 60));
+			String timeCurrent = String.format("%d:%02d:%02d", position / 3600, (position % 3600) / 60, (position % 60));
+			
 			embed.setThumbnail(Config.get("MEDIA_PLAYER_ICON"));
 			embed.setTitle("Now Playing");
-			embed.appendDescription(info.title + "\n\n" + info.author + "\n");
-			embed.setFooter(info.uri);
+			embed.appendDescription(info.title + "\n\n");
 			
 			if (player.isPaused())
 			{
 				embed.appendDescription("Paused");
 			}
+			else if (player.getPlayingTrack().getInfo().length == Integer.MAX_VALUE)
+			{
+				embed.appendDescription("Live");
+			}
+			else
+			{
+				embed.appendDescription(timeCurrent + " - " + timeTotal);
+			}
 			
+			embed.setFooter(info.uri);
 		}
 		
 		long delayMS = 2000;
@@ -72,34 +85,35 @@ public class PlayerPrinter
 		long finalDelayMS = delayMS;
 		channel.getHistory()
 			   .retrievePast(100)
-			   .queue(messages -> {
-			   		List<Message> deleteList = messages.stream()
-							.filter(msg -> msg.getAuthor()
-											  .isBot())
-							.filter(msg -> ! msg.getEmbeds()
-												.isEmpty())
-							.filter(msg ->
-							{
-								if (msg.getEmbeds()
-									   .get(0)
-									   .getTitle() != null)
-								{
-									String title = msg.getEmbeds()
-													  .get(0)
-													  .getTitle();
-									assert title != null;
-									return title.equalsIgnoreCase("Now Playing");
-								}
-								return false;
-							})
-							.collect(Collectors.toList());
-				
+			   .queue(messages ->
+			   {
+				   List<Message> deleteList = messages.stream()
+													  .filter(msg -> msg.getAuthor()
+																		.isBot())
+													  .filter(msg -> ! msg.getEmbeds()
+																		  .isEmpty())
+													  .filter(msg ->
+													  {
+														  if (msg.getEmbeds()
+																 .get(0)
+																 .getTitle() != null)
+														  {
+															  String title = msg.getEmbeds()
+																				.get(0)
+																				.getTitle();
+															  assert title != null;
+															  return title.equalsIgnoreCase("Now Playing");
+														  }
+														  return false;
+													  })
+													  .collect(Collectors.toList());
+			
 				   if (! deleteList.isEmpty())
 				   {
 					   if (deleteList.size() == 1)
 					   {
 						   channel.deleteMessageById(deleteList.get(0)
-															 .getId())
+															   .getId())
 								  .queue(null, Throwable::getSuppressed);
 					   }
 					   else
@@ -108,15 +122,20 @@ public class PlayerPrinter
 								  .queue(null, Throwable::getSuppressed);
 					   }
 				   }
+				   if (message.getType().equals(MessageType.UNKNOWN))
+				   {
+				   	return;
+				   }
+				   
 				   channel.sendMessage(message)
 						  .queue(msg ->
 						  {
-						  	if (msg == null)
-							{
-								return;
-							}
-							  msg.delete()
-								 .queueAfter(finalDelayMS, TimeUnit.MILLISECONDS);
+							  if (!msg.getType()
+									 .equals(MessageType.UNKNOWN))
+							  {
+								  msg.delete()
+									 .queueAfter(finalDelayMS, TimeUnit.MILLISECONDS);
+							  }
 						  });
 			   });
 	}
@@ -136,7 +155,15 @@ public class PlayerPrinter
 			embed.appendDescription("Nothing in the queue.");
 			
 			channel.sendMessage(embed.build())
-				   .queue(msg -> msg.delete().queueAfter(5000, TimeUnit.MILLISECONDS));
+				   .queue(msg ->
+				   {
+					   if (!msg.getType()
+							  .equals(MessageType.UNKNOWN))
+					   {
+						   msg.delete()
+							  .queueAfter(5000, TimeUnit.MILLISECONDS);
+					   }
+				   });
 			return;
 		}
 		
@@ -179,7 +206,8 @@ public class PlayerPrinter
 			embed.appendDescription("```");
 		}
 		
-		embed.appendDescription(" ```fix\nUp Next: " + queue.get(0).getInfo().title + "```");
+		embed.appendDescription(" ```fix\nUp Next: " + queue.get(0)
+															.getInfo().title + "```");
 		
 		channel.sendMessage(embed.build())
 			   .queue();
