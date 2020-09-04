@@ -6,18 +6,20 @@ import net.dv8tion.jda.api.entities.Guild;
 
 public class GuildContext implements IGuildContext
 {
-	private final Guild         guild;
-	private final boolean       premium;
-	private final AudioManager  audioManager;
-	private final PlayerPrinter playerPrinter;
+	private final        Guild                   guild;
+	private final        boolean                 premium;
+	private final        AudioManager            audioManager;
+	private final        PlayerPrinter           playerPrinter;
 	
 	
 	public GuildContext(Guild guild)
 	{
-		this.premium = false;
 		this.guild = guild;
+		this.premium = false;
 		this.audioManager = new AudioManager(guild);
-		this.playerPrinter = new PlayerPrinter(guild);
+		this.playerPrinter = new PlayerPrinter(audioManager);
+		
+		GuildManager.setGuild(this);
 	}
 	
 	@Override

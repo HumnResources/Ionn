@@ -15,9 +15,10 @@ public final class GuildManager
 	
 	private static final Map<Long, GuildContext> GUILDS = new HashMap<>();
 	
-	public static void setGuild(Guild guild)
+	public static void setGuild(GuildContext guildContext)
 	{
-		GUILDS.putIfAbsent(guild.getIdLong(), new GuildContext(guild));
+		Guild guild = guildContext.guild();
+		GUILDS.putIfAbsent(guild.getIdLong(), guildContext);
 		
 		String dbIDQuery = Jdbi.create(PostgreSQL::getConnection)
 							   .withHandle(handle ->

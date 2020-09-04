@@ -2,7 +2,7 @@ package com.zischase.discordbot;
 
 import com.zischase.discordbot.commands.CommandManager;
 import com.zischase.discordbot.commands.general.Prefix;
-import com.zischase.discordbot.guildcontrol.GuildManager;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import me.duncte123.botcommons.BotCommons;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
@@ -27,7 +27,7 @@ public class Listener extends ListenerAdapter
 	{
 		event.getJDA()
 			 .getGuilds()
-			 .forEach(GuildManager::setGuild);
+			 .forEach(GuildContext::new);
 		
 		LOGGER.info("{} is ready", event.getJDA()
 										.getSelfUser()
