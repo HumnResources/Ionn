@@ -3,6 +3,7 @@ package com.zischase.discordbot.audioplayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
+import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import com.zischase.discordbot.guildcontrol.GuildManager;
@@ -65,8 +66,16 @@ public class TrackScheduler extends AudioEventAdapter
 		}
 	}
 	
-	public void queueList(ArrayList<AudioTrack> tracks, TextChannel channel)
+	public void queueList(ArrayList<AudioTrack> list, TextChannel channel)
 	{
+		AudioPlaylist playlist = (AudioPlaylist) list;
+		queueList(playlist, textChannel);
+	}
+	
+	public void queueList(AudioPlaylist playlist, TextChannel channel)
+	{
+		ArrayList<AudioTrack> tracks = (ArrayList<AudioTrack>) playlist.getTracks();
+		
 		if (tracks.isEmpty())
 		{
 			return;
@@ -78,15 +87,17 @@ public class TrackScheduler extends AudioEventAdapter
 			this.queue.add(track.makeClone());
 		}
 		
+		textChannel.sendMessage("Added playlist `" + playlist.getName() + "` to the queue.").queue();
+		
 		if (player.isPaused())
 		{
 			this.player.setPaused(false);
 		}
-		
 		else if (player.getPlayingTrack() == null)
 		{
 			this.player.startTrack(queue.poll(), false);
 		}
+		
 	}
 	
 	public void clearQueue()
