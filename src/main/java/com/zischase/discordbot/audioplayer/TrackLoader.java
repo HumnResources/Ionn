@@ -12,8 +12,6 @@ import org.apache.commons.collections4.map.LinkedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-
 public class TrackLoader implements AudioLoadResultHandler
 {
 	private static final Logger                        LOGGER = LoggerFactory.getLogger(TrackLoader.class);
@@ -103,7 +101,7 @@ public class TrackLoader implements AudioLoadResultHandler
 		GuildManager.getContext(textChannel.getGuild())
 					.audioManager()
 					.getScheduler()
-					.queueList((ArrayList<AudioTrack>) audioPlaylist.getTracks(), textChannel);
+					.queueList(audioPlaylist, textChannel);
 	}
 	
 	@Override
@@ -116,10 +114,6 @@ public class TrackLoader implements AudioLoadResultHandler
 	@Override
 	public void loadFailed(FriendlyException e)
 	{
-		
-		LoggerFactory.getLogger(TrackLoader.class)
-					 .error(e.getCause()
-							 .getLocalizedMessage());
-		
+		e.getSuppressed();
 	}
 }
