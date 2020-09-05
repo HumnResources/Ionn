@@ -1,12 +1,11 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.zischase.discordbot.Config;
-import com.zischase.discordbot.PostgreSQL;
+import com.zischase.discordbot.DataBaseManager;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.entities.Guild;
-import org.jdbi.v3.core.Jdbi;
 
 import java.util.Arrays;
 import java.util.List;
@@ -14,34 +13,27 @@ import java.util.List;
 public class Volume extends Command
 {
 	private final int maxVolume     = Integer.parseInt(Config.get("MAX_VOLUME"));
-	private final int defaultVolume = Integer.parseInt(Config.get("VOLUME"));
-	private       int setVolume     = defaultVolume;
+	
 	
 	public Volume()
 	{
 		super(false);
 	}
 	
-	public void setVolume(Guild guild)
+	public static void init(Guild guild)
 	{
+		String guildVol = DataBaseManager.get(guild.getId(), "volume");
 		
-		setVolume = Jdbi.create(PostgreSQL::getConnection)
-						.withHandle(handle ->
-						{
-							int r = handle.createQuery("SELECT volume FROM guild_settings WHERE guild_id = ?")
-										  .bind(0, guild.getId())
-										  .mapTo(Integer.class)
-										  .findFirst()
-										  .orElse(defaultVolume);
-			
-							handle.close();
-							return r;
-						});
+		if (guildVol == null)
+		{
+			guildVol = Config.get("DEFAULT_VOLUME");
+			DataBaseManager.update(guild.getId(), "volume", guildVol);
+		}
 		
 		GuildManager.getContext(guild)
 					.audioManager()
 					.getPlayer()
-					.setVolume(setVolume);
+					.setVolume(Integer.parseInt(guildVol));
 	}
 	
 	@Override
@@ -66,13 +58,12 @@ public class Volume extends Command
 		{
 			ctx.getEvent()
 			   .getChannel()
-			   .sendMessage("Volume is currently at: `" + setVolume + "`")
+			   .sendMessage("Volume is currently at: `" + getVolume(guild) + "`")
 			   .queue();
 			return;
 		}
 		
-		if (args.get(0)
-				.matches("\\d+"))
+		if (args.get(0).matches("\\d+"))
 		{
 			int num = Integer.parseInt(args.get(0));
 			
@@ -80,15 +71,11 @@ public class Volume extends Command
 			
 			if (validNum)
 			{
-				Jdbi.create(PostgreSQL::getConnection)
-					.useHandle(handle -> handle.execute("UPDATE guild_settings SET volume = ? WHERE guild_id = ?", args.get(0), guild
-							.getId()));
-				
-				this.setVolume(guild);
+				setVolume(guild, String.valueOf(num));
 				
 				ctx.getEvent()
 				   .getChannel()
-				   .sendMessage("The volume has been set to `" + setVolume + "`")
+				   .sendMessage("The volume has been set to `" + getVolume(guild) + "`")
 				   .queue();
 				
 				return;
@@ -98,5 +85,23 @@ public class Volume extends Command
 		   .getChannel()
 		   .sendMessage("Please input a number between 0-" + maxVolume)
 		   .queue();
+	}
+	
+	private void setVolume(Guild guild, String value)
+	{
+		DataBaseManager.update(guild.getId(), "volume", value);
+		GuildManager.getContext(guild)
+					.audioManager()
+					.getPlayer()
+					.setVolume(Integer.parseInt(value));
+	}
+	
+	private String getVolume(Guild guild)
+	{
+//		return DataBaseManager.get(guild.getId(), "volume");
+		return String.valueOf(GuildManager.getContext(guild)
+										  .audioManager()
+										  .getPlayer()
+										  .getVolume());
 	}
 }

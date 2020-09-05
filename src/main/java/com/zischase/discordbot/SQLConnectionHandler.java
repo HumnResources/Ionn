@@ -7,10 +7,10 @@ import org.slf4j.LoggerFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
-public class PostgreSQL
+public final class SQLConnectionHandler
 {
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQL.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SQLConnectionHandler.class);
 	private static final String url;
 	private static final String user;
 	private static final String pass;
@@ -21,7 +21,7 @@ public class PostgreSQL
 		user = Config.get("DB_USER");
 		pass = Config.get("DB_PASSWORD");
 		
-		Jdbi.create(PostgreSQL::connect)
+		Jdbi.create(SQLConnectionHandler::connect)
 			.useHandle(handle -> handle.execute(
 					/* language=PostgreSQL */
 					" CREATE TABLE IF NOT EXISTS guild_settings( " + "id SERIAL PRIMARY KEY," + "guild_id VARCHAR(20) NOT NULL," + "isPremium VARCHAR(10) NOT NULL DEFAULT 'false'," + "prefix VARCHAR(255) NOT NULL DEFAULT '!!'," + "volume VARCHAR(100) NOT NULL DEFAULT '10')"));
@@ -29,7 +29,7 @@ public class PostgreSQL
 		LOGGER.info("Connection established!");
 	}
 	
-	private PostgreSQL()
+	private SQLConnectionHandler()
 	{
 	}
 	
@@ -52,4 +52,5 @@ public class PostgreSQL
 		}
 		return null;
 	}
+	
 }

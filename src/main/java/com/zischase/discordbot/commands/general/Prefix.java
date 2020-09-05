@@ -1,11 +1,9 @@
 package com.zischase.discordbot.commands.general;
 
-import com.zischase.discordbot.Config;
-import com.zischase.discordbot.PostgreSQL;
+import com.zischase.discordbot.DataBaseManager;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import net.dv8tion.jda.api.entities.Guild;
-import org.jdbi.v3.core.Jdbi;
 
 import java.util.List;
 
@@ -19,26 +17,7 @@ public class Prefix extends Command
 	
 	public static String getPrefix(Guild guild)
 	{
-		String prefix = Config.get("PREFIX");
-		
-		String result = Jdbi.create(PostgreSQL::getConnection)
-							.withHandle(handle ->
-							{
-								String r = handle.createQuery("SELECT prefix FROM guild_settings where guild_id = ?")
-												 .bind(0, guild.getId())
-												 .mapTo(String.class)
-												 .findFirst()
-												 .orElse(null);
-								handle.close();
-								return r;
-							});
-		
-		if (result != null)
-		{
-			prefix = result;
-		}
-		
-		return prefix;
+		return DataBaseManager.get(guild.getId(), "prefix");
 	}
 	
 	@Override
@@ -57,18 +36,16 @@ public class Prefix extends Command
 		{
 			ctx.getEvent()
 			   .getChannel()
-			   .sendMessage("The current prefix is `" + getPrefix(ctx.getGuild()) + "`")
+			   .sendMessage("The current prefix is `" + getPrefix(guild) + "`")
 			   .queue();
 			return;
 		}
 		
-		Jdbi.create(PostgreSQL::getConnection)
-			.useHandle(handle -> handle.execute("UPDATE guild_settings SET prefix = ? WHERE guild_id = ?", args.get(0), guild
-					.getId()));
-		
+		DataBaseManager.update(guild.getId(), "prefix", args.get(0));
+
 		ctx.getEvent()
 		   .getChannel()
-		   .sendMessage("The new prefix has been set to `" + args.get(0) + "`")
+		   .sendMessage("The new prefix has been set to `" + getPrefix(guild) + "`")
 		   .queue();
 	}
 }

@@ -12,7 +12,7 @@ public class Bot
 	
 	static
 	{
-		PostgreSQL.getConnection();
+		SQLConnectionHandler.getConnection();
 		
 		try
 		{
