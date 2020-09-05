@@ -14,7 +14,21 @@ public final class DataBaseManager
 	
 	public static void update(String guildID, String setting, String value)
 	{
-			Jdbi.create(SQLConnectionHandler::getConnection)
+		if (setting.matches("(?i)(premium|id|guild_id)"))
+		{
+			try
+			{
+				throw new IllegalAccessException();
+			}
+			catch (IllegalAccessException e)
+			{
+				LOGGER.warn("Illegal Access Attempt on DataBase!!");
+				e.printStackTrace();
+				return;
+			}
+		}
+		
+		Jdbi.create(SQLConnectionHandler::getConnection)
 				.withHandle(handle ->
 				{
 					if (checkTable(handle, "guild_settings", setting))
@@ -33,20 +47,6 @@ public final class DataBaseManager
 	
 	public static String get(String guildID, String setting)
 	{
-		if (setting.matches("(?i)(premium|id|guild_id)"))
-		{
-			try
-			{
-				throw new IllegalAccessException();
-			}
-			catch (IllegalAccessException e)
-			{
-				LOGGER.warn("Illegal Access Attempt on DataBase!!");
-				e.printStackTrace();
-				return "";
-			}
-		}
-		
 		return Jdbi.create(SQLConnectionHandler::getConnection)
 				   .withHandle(handle ->
 				   {
@@ -75,14 +75,13 @@ public final class DataBaseManager
 	private static boolean checkTable(Handle handle, String table, String setting)
 	{
 		List<String> settings = handle.createQuery( /* Language=PostgreSQL */
-				"SELECT column_name\n" +
-						"  FROM information_schema.columns\n" +
-						" WHERE table_schema = 'public'\n" +
-						"   AND table_name   = '"+table+"'")
+				"SELECT column_name" +
+						" FROM information_schema.columns" +
+						" WHERE table_schema = 'public'" +
+						" AND table_name     = '"+table+"'")
 									  .mapTo(String.class)
 									  .list();
 		
 		return settings.contains(setting);
 	}
-	
 }

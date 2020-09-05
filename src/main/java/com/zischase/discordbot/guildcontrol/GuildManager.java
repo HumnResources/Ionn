@@ -26,17 +26,13 @@ public final class GuildManager
 		{
 			Jdbi.create(SQLConnectionHandler::getConnection)
 				.useHandle(handle ->
-				{
-					handle.execute("INSERT INTO guild_settings(guild_id) VALUES (?)", guild.getId());
-				});
+						handle.execute("INSERT INTO guild_settings(guild_id) VALUES (?)", guild.getId()));
 		}
 		if (!hasMediaSettings)
 		{
 			Jdbi.create(SQLConnectionHandler::getConnection)
 				.useHandle(handle ->
-				{
-					handle.execute("INSERT INTO media_settings(guild_id) VALUES (?)", guild.getId());
-				});
+						handle.execute("INSERT INTO media_settings(guild_id) VALUES (?)", guild.getId()));
 		}
 		
 		Volume.init(guild);
