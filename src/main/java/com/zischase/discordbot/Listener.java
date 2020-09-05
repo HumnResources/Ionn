@@ -37,8 +37,7 @@ public class Listener extends ListenerAdapter
 	@Override
 	public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent event)
 	{
-		if (event.getAuthor()
-				 .isBot() || event.isWebhookMessage())
+		if (event.getAuthor().isBot() || event.isWebhookMessage())
 		{
 			return;
 		}
@@ -47,9 +46,7 @@ public class Listener extends ListenerAdapter
 		String raw = event.getMessage()
 						  .getContentRaw();
 		
-		if (event.getAuthor()
-				 .getId()
-				 .equals(Config.get("OWNER_ID")))
+		if (event.getAuthor().getId().equals(Config.get("OWNER_ID")))
 		{
 			if (raw.equalsIgnoreCase(prefix + "shutdown"))
 			{
