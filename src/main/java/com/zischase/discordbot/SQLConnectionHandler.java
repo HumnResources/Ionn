@@ -22,9 +22,22 @@ public final class SQLConnectionHandler
 		pass = Config.get("DB_PASSWORD");
 		
 		Jdbi.create(SQLConnectionHandler::connect)
-			.useHandle(handle -> handle.execute(
-					/* language=PostgreSQL */
-					" CREATE TABLE IF NOT EXISTS guild_settings( " + "id SERIAL PRIMARY KEY," + "guild_id VARCHAR(20) NOT NULL," + "isPremium VARCHAR(10) NOT NULL DEFAULT 'false'," + "prefix VARCHAR(255) NOT NULL DEFAULT '!!'," + "volume VARCHAR(100) NOT NULL DEFAULT '10')"));
+			.useHandle(handle ->
+			{
+				handle.execute(
+						/* language=PostgreSQL */
+						" CREATE TABLE IF NOT EXISTS guild_settings( " +
+								"id SERIAL PRIMARY KEY," +
+								"guild_id VARCHAR(20) NOT NULL," +
+								"isPremium VARCHAR(10) NOT NULL DEFAULT 'false'," +
+								"prefix VARCHAR(255) NOT NULL DEFAULT '"+Config.get("DEFAULT_PREFIX")+"')");
+				handle.execute(
+						/* language=PostgreSQL */
+						" CREATE TABLE IF NOT EXISTS media_settings( " +
+								"id SERIAL PRIMARY KEY," +
+								"guild_id VARCHAR(20) NOT NULL," +
+								"volume VARCHAR NOT NULL DEFAULT '"+Config.get("DEFAULT_VOLUME")+"')");
+			});
 		
 		LOGGER.info("Connection established!");
 	}
@@ -47,6 +60,7 @@ public final class SQLConnectionHandler
 		}
 		catch (Exception e)
 		{
+			LOGGER.warn("Error Connecting to DataBase !!");
 			e.printStackTrace();
 			System.exit(1);
 		}

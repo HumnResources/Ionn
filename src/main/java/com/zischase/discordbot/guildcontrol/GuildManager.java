@@ -1,5 +1,6 @@
 package com.zischase.discordbot.guildcontrol;
 
+import com.zischase.discordbot.DataBaseManager;
 import com.zischase.discordbot.SQLConnectionHandler;
 import com.zischase.discordbot.commands.audiocommands.Volume;
 import net.dv8tion.jda.api.entities.Guild;
@@ -18,24 +19,24 @@ public final class GuildManager
 		Guild guild = guildContext.guild();
 		GUILDS.putIfAbsent(guild.getIdLong(), guildContext);
 		
-		String dbIDQuery = Jdbi.create(SQLConnectionHandler::getConnection)
-							   .withHandle(handle ->
-							   {
-								   String r = handle.createQuery("SELECT guild_id FROM guild_settings WHERE guild_id = ?")
-													.bind(0, guild.getId())
-													.mapTo(String.class)
-													.findFirst()
-													.orElse(null);
-			
-								   handle.close();
-								   return r;
-							   });
+		boolean hasGuildSettings = !DataBaseManager.get(guild.getId(), "prefix").isEmpty();
+		boolean hasMediaSettings = !DataBaseManager.get(guild.getId(), "volume").isEmpty();
 		
-		if (dbIDQuery == null)
+		if (!hasGuildSettings)
 		{
 			Jdbi.create(SQLConnectionHandler::getConnection)
 				.useHandle(handle ->
-						handle.execute("INSERT INTO guild_settings(guild_id) VALUES (?)", guild.getId()));
+				{
+					handle.execute("INSERT INTO guild_settings(guild_id) VALUES (?)", guild.getId());
+				});
+		}
+		if (!hasMediaSettings)
+		{
+			Jdbi.create(SQLConnectionHandler::getConnection)
+				.useHandle(handle ->
+				{
+					handle.execute("INSERT INTO media_settings(guild_id) VALUES (?)", guild.getId());
+				});
 		}
 		
 		Volume.init(guild);

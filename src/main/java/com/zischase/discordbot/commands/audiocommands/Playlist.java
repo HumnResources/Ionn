@@ -1,13 +1,11 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.zischase.discordbot.SQLConnectionHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.TextChannel;
-import org.jdbi.v3.core.Jdbi;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -117,13 +115,7 @@ public class Playlist extends Command
 	{
 		playlists.putIfAbsent(name.toLowerCase(), tracks);
 		
-		Jdbi.create(SQLConnectionHandler::getConnection)
-			.useHandle(handle ->
-			{
-			
-				handle.execute("");
-			
-			});
+		
 		
 	}
 	
