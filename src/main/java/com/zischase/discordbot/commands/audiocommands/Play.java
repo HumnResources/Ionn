@@ -45,7 +45,9 @@ public class Play extends Command
 	{
 		List<String> args = ctx.getArgs();
 		Guild guild = ctx.getGuild();
-		TrackLoader trackLoader = new TrackLoader();
+		TrackLoader trackLoader = GuildManager.getContext(ctx.getGuild())
+				.audioManager()
+				.getTrackLoader();
 		
 		if (args.isEmpty())
 		{

@@ -1,7 +1,7 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.*;
+import com.zischase.discordbot.guildcontrol.GuildManager;
 import de.sfuhrm.radiobrowser4j.Paging;
 import de.sfuhrm.radiobrowser4j.RadioBrowser;
 import de.sfuhrm.radiobrowser4j.Station;
@@ -92,8 +92,11 @@ public class Radio extends Command
 			return;
 		}
 		
-		new TrackLoader().load(event.getChannel(), event.getMember(), stations.get(0)
-																			  .getUrl());
+		GuildManager.getContext(event.getGuild())
+					.audioManager()
+					.getTrackLoader()
+					.load(event.getChannel(), event.getMember(), stations.get(0)
+																		 .getUrl());
 	}
 	
 	private void searchByString(GuildMessageReceivedEvent event, String query)
@@ -120,7 +123,10 @@ public class Radio extends Command
 			ISearchable result = new ResultSelector(results).getChoice(event)
 															.get();
 			
-			new TrackLoader().load(event.getChannel(), event.getMember(), result.getUrl());
+			GuildManager.getContext(event.getGuild())
+						.audioManager()
+						.getTrackLoader()
+						.load(event.getChannel(), event.getMember(), result.getUrl());
 		}
 		catch (InterruptedException | ExecutionException e)
 		{

@@ -2,6 +2,7 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.*;
+import com.zischase.discordbot.guildcontrol.GuildManager;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -51,7 +52,9 @@ public class Youtube extends Command
 							  .matches("(?i)(-s|-search)");
 		String query = String.join("+", ctx.getArgs());
 		String url = "http://youtube.com/results?search_query=" + query;
-		TrackLoader trackLoader = new TrackLoader();
+		TrackLoader trackLoader = GuildManager.getContext(ctx.getGuild())
+											  .audioManager()
+											  .getTrackLoader();
 		Document doc = null;
 		
 		try

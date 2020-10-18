@@ -194,7 +194,10 @@ public class TrackScheduler extends AudioEventAdapter
 										   .getMember(textChannel.getJDA()
 																 .getSelfUser());
 				
-				new TrackLoader().load(textChannel, member, track.getInfo().identifier);
+				GuildManager.getContext(textChannel.getGuild())
+							.audioManager()
+							.getTrackLoader()
+							.load(textChannel, member, track.getInfo().identifier);
 			}
 		}
 		lastTrack = track;

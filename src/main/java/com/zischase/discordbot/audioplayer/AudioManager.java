@@ -16,6 +16,7 @@ public class AudioManager
 	private final static AudioPlayerManager PLAYER_MANAGER = new DefaultAudioPlayerManager();
 	private final        AudioPlayer        player;
 	private final        TrackScheduler     scheduler;
+	private final 		 TrackLoader		trackLoader;
 	
 	static
 	{
@@ -34,10 +35,15 @@ public class AudioManager
 	{
 		this.player = PLAYER_MANAGER.createPlayer();
 		this.scheduler = new TrackScheduler(this.getPlayer());
+		this.trackLoader = new TrackLoader();
 		this.player.addListener(scheduler);
-		
 		guild.getAudioManager()
 			 .setSendingHandler(this.getSendHandler());
+	}
+	
+	public TrackLoader getTrackLoader()
+	{
+		return trackLoader;
 	}
 	
 	public AudioPlayerManager getPlayerManager()
