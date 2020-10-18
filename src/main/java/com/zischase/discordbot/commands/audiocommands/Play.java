@@ -8,6 +8,7 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,7 @@ public class Play extends Command
 	{
 		List<String> args = ctx.getArgs();
 		Guild guild = ctx.getGuild();
+		TrackLoader trackLoader = new TrackLoader();
 		
 		if (args.isEmpty())
 		{
@@ -53,40 +55,76 @@ public class Play extends Command
 			boolean isPaused = player.isPaused();
 			player.setPaused(! isPaused);
 		}
-		else if (args.get(0)
-					 .matches("(?i)(-next|-n)"))
+		else if (args.get(0).matches("(?i)(-next|-n)"))
 		{
-			AudioManager manager = GuildManager.getContext(ctx.getGuild())
-											   .audioManager();
-			ArrayList<AudioTrack> queueCopy = manager.getScheduler()
-													 .getQueue();
+			String song = String.join(" ", args.subList(1, args.size()));
+			playNext(song, ctx.getEvent(), trackLoader);
+		}
+		else
+		{
+			trackLoader.load(ctx.getChannel(), ctx.getMember(), args.get(0));
+		}
+	}
+	
+	private void playNext(String song, GuildMessageReceivedEvent event, TrackLoader trackLoader)
+	{
+		AudioManager audioManager = GuildManager.getContext(event.getGuild())
+				.audioManager();
+		
+		ArrayList<AudioTrack> currentQueue = audioManager.getScheduler().getQueue();
+		
+		String trackName;
+		AudioTrack nextTrack = null;
+		for (AudioTrack track : currentQueue)
+		{
+			trackName = track.getInfo().title.toLowerCase();
+			if (song.matches("\\d+") && currentQueue.indexOf(track) == Integer.parseInt(song))
+			{
+				nextTrack = track;
+				break;
+			}
+			else if (trackName.contains(song.trim().toLowerCase()))
+			{
+				nextTrack = track;
+				break;
+			}
+		}
+		
+		boolean songFound = nextTrack != null && currentQueue.contains(nextTrack);
+		if (songFound)
+		{
+			currentQueue.remove(nextTrack);
+			currentQueue.add(0, nextTrack);
 			
-			manager.getScheduler()
-				   .clearQueue();
+			audioManager.getScheduler().clearQueue();
+			audioManager.getScheduler().queueList(currentQueue, event.getChannel());
+		}
+		else
+		{
+			audioManager.getScheduler().clearQueue();
 			
-			
-			new TrackLoader().load(ctx.getChannel(), ctx.getMember(), args.get(1));
-
+			trackLoader.load(event.getChannel(), event.getMember(), song);
             /*
-                Wait 2s to allow for the new entry to load. Event's are handled asynchronously.
+                Wait 1s to allow for the new entry to load. Event's are handled asynchronously.
              */
 			try
 			{
-				Thread.sleep(2000);
+				Thread.sleep(1000);
 			}
 			catch (InterruptedException e)
 			{
 				e.printStackTrace();
 			}
 			
-			manager.getScheduler()
-				   .queueList(queueCopy, ctx.getChannel());
-		}
-		else
-		{
-			new TrackLoader().load(ctx.getChannel(), ctx.getMember(), args.get(0));
+			audioManager.getScheduler().queueList(currentQueue, event.getChannel());
 		}
 	}
+	
+//	private void jumpPosition()
+//	{
+//
+//	}
+	
 	
 	
 }
