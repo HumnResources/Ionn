@@ -1,14 +1,13 @@
 package com.zischase.discordbot.commands;
 
 import com.zischase.discordbot.Config;
-import com.zischase.discordbot.Listener;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import org.slf4j.LoggerFactory;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -35,45 +34,54 @@ public class ResultSelector
 		JDA jda = event.getJDA();
 		CompletableFuture<ISearchable> cf = new CompletableFuture<>();
 		
-		Listener listener = new Listener()
+		ListenerAdapter response = new ListenerAdapter()
 		{
+			final LocalDateTime start = LocalDateTime.now();
+			
 			@Override
 			public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent tmpEvent)
 			{
-				Message tmpMessage = tmpEvent.getMessage();
-				String choice = tmpMessage.getContentDisplay();
-				
 				if (tmpEvent.getAuthor() == event.getAuthor())
 				{
+					Message tmpMessage = tmpEvent.getMessage();
+					String choice = tmpMessage.getContentDisplay();
+					
 					if (tmpMessage.getChannel() == event.getChannel() && choice.matches("(\\d+).?"))
 					{
 						int num = Integer.parseInt(choice);
 						if (num > 0 && num <= searches.size())
 						{
 							result = searches.get(num - 1);
+							cf.complete(result);
+							event.getChannel()
+								 .sendMessage("Adding: `" + result.getName() + "` . . .")
+								 .queue();
 						}
 					}
+					jda.removeEventListener(this);
+				}
+				else if (LocalDateTime.now().isAfter(start.plusSeconds(delayMS / 1000)))
+				{
 					jda.removeEventListener(this);
 				}
 			}
 		};
 		
-		jda.addEventListener(listener);
+		
+		jda.addEventListener(response);
 		printList(event.getChannel());
 		
-		LocalDateTime now = LocalDateTime.now();
-		while (now.isBefore(now.plusSeconds(delayMS / 1000)))
+		try
 		{
-			if (result != null)
-			{
-				cf.complete(result);
-				LoggerFactory.getLogger(ResultSelector.class)
-							 .info(result.getName());
-				break;
-			}
+			Thread.sleep(delayMS);
 		}
-		
-		jda.removeEventListener(listener);
+		catch (InterruptedException e)
+		{
+			e.printStackTrace();
+		}
+
+
+		jda.removeEventListener(response);
 		return cf;
 	}
 	
