@@ -74,10 +74,7 @@ public class TrackScheduler extends AudioEventAdapter
 		}
 		this.textChannel = channel;
 		
-		for (AudioTrack track : tracks)
-		{
-			this.queue.add(track.makeClone());
-		}
+		this.queue.addAll(tracks);
 		
 		if (player.isPaused())
 		{

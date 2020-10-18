@@ -4,6 +4,7 @@ import com.zischase.discordbot.commands.CommandManager;
 import com.zischase.discordbot.commands.general.Prefix;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import me.duncte123.botcommons.BotCommons;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -51,7 +52,7 @@ public class Listener extends ListenerAdapter
 			if (raw.equalsIgnoreCase(prefix + "shutdown"))
 			{
 				LOGGER.info("Shutting down...");
-				shutdown(event);
+				shutdown(event.getJDA());
 				return;
 			}
 			else if (raw.equalsIgnoreCase(prefix + "restart"))
@@ -76,30 +77,24 @@ public class Listener extends ListenerAdapter
 	
 	private static void restart(GuildMessageReceivedEvent event)
 	{
+		shutdown(event.getJDA());
+		
 		try
 		{
-			Runtime.getRuntime()
-				   .exec("cmd /c start powershell -noexit java -jar discordbot-" + Config.get("VERSION") + ".jar");
+			Runtime.getRuntime().exec("java -jar discordbot-" + Config.get("VERSION") + ".jar");
 		}
 		catch (IOException e)
 		{
 			e.printStackTrace();
 		}
-		finally
-		{
-			shutdown(event);
-		}
+		
 	}
 	
-	private static void shutdown(GuildMessageReceivedEvent event)
+	private static void shutdown(JDA jda)
 	{
 		CommandManager.shutdown();
-		event.getChannel()
-			 .sendMessage(CommandManager.getReport())
-			 .queue();
 		
-		BotCommons.shutdown(event.getJDA());
-		event.getJDA()
-			 .shutdown();
+		BotCommons.shutdown(jda);
+		jda.shutdown();
 	}
 }
