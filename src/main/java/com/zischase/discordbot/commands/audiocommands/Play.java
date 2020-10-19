@@ -80,7 +80,7 @@ public class Play extends Command
 		for (AudioTrack track : currentQueue)
 		{
 			trackName = track.getInfo().title.toLowerCase();
-			if (song.matches("\\d+") && currentQueue.indexOf(track) == Integer.parseInt(song))
+			if (song.matches("\\d+") && currentQueue.indexOf(track) == Integer.parseInt(song) - 1) // Subtract '1' for '0' based counting.
 			{
 				nextTrack = track;
 				break;
@@ -120,6 +120,14 @@ public class Play extends Command
 			
 			audioManager.getScheduler().queueList(currentQueue, event.getChannel());
 		}
+		
+		GuildManager.getContext(event.getGuild())
+					.playerPrinter()
+					.printQueue(event.getChannel());
+		
+		GuildManager.getContext(event.getGuild())
+					.playerPrinter()
+					.printNowPlaying(event.getChannel());
 	}
 	
 //	private void jumpPosition()
