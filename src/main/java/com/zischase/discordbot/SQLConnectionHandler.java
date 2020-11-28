@@ -4,6 +4,8 @@ import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
@@ -11,15 +13,31 @@ public final class SQLConnectionHandler
 {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(SQLConnectionHandler.class);
-	private static final String url;
-	private static final String user;
-	private static final String pass;
+	private static final String URL;
+	private static final String USER;
+	private static final String PASS;
 	
 	static
 	{
-		url = Config.get("DB_URL");
-		user = Config.get("DB_USER");
-		pass = Config.get("DB_PASSWORD");
+		URI uri = null;
+		try {
+			uri = new URI(System.getenv("DATABASE_URL"));
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+
+		if (uri != null)
+		{
+			USER = uri.getUserInfo().split(":")[0];
+			PASS = uri.getUserInfo().split(":")[1];
+			URL = "jdbc:postgresql://" + uri.getHost() + ':' + uri.getPort() + uri.getPath() + "?sslmode=require";
+		}
+		else
+		{
+			USER = null;
+			PASS = null;
+			URL = null;
+		}
 		
 		Jdbi.create(SQLConnectionHandler::connect)
 			.useHandle(handle ->
@@ -56,7 +74,7 @@ public final class SQLConnectionHandler
 		try
 		{
 			Class.forName("org.postgresql.Driver");
-			return DriverManager.getConnection(url, user, pass);
+			return DriverManager.getConnection(URL, USER, PASS);
 		}
 		catch (Exception e)
 		{
