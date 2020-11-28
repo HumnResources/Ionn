@@ -9,7 +9,7 @@ public class Config
 	
 	public static String get(String key)
 	{
-		return dotEnv.get(key.toUpperCase());
+		return System.getenv().get(key.toUpperCase());
 	}
 	
 }
