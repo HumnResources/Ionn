@@ -21,7 +21,7 @@ public final class SQLConnectionHandler
 	{
 		URI uri = null;
 		try {
-			uri = new URI(System.getenv("DATABASE_URL"));
+			uri = new URI(Config.get("DATABASE_URL"));
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
 		}
