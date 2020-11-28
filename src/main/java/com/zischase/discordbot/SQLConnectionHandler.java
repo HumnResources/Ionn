@@ -30,7 +30,7 @@ public final class SQLConnectionHandler
 		{
 			USER = uri.getUserInfo().split(":")[0];
 			PASS = uri.getUserInfo().split(":")[1];
-			URL = "jdbc:postgresql://" + uri.getHost() + ':' + uri.getPort() + uri.getPath() + "?sslmode=require";
+			URL = "jdbc:postgresql://" + uri.getHost() + ':' + uri.getPort() + uri.getPath();
 		}
 		else
 		{
