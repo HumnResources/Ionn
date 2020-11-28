@@ -1,15 +1,31 @@
 package com.zischase.discordbot.commands;
 
-public abstract class Command implements ICommand {
+import java.util.List;
 
-    public boolean premiumCommand;
-
-    public Command(boolean premiumCommand) {
-        this.premiumCommand = premiumCommand;
-    }
-
-    public abstract void handle(CommandContext ctx);
-
-    public abstract String getHelp();
-
+public abstract class Command
+{
+	public boolean premiumCommand;
+	
+	public Command(boolean premiumCommand)
+	{
+		this.premiumCommand = premiumCommand;
+	}
+	
+	public String getName()
+	{
+		return this.getClass()
+				   .getSimpleName();
+	}
+	
+	public List<String> getAliases()
+	{
+		return List.of();
+	}
+	
+	public String getHelp()
+	{
+		return "No description provided.";
+	}
+	
+	public abstract void handle(CommandContext ctx);
 }

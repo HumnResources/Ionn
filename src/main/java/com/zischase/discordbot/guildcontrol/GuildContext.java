@@ -1,38 +1,48 @@
 package com.zischase.discordbot.guildcontrol;
 
-import com.zischase.discordbot.audioplayer.MusicManager;
-import com.zischase.discordbot.commands.CommandManager;
+import com.zischase.discordbot.audioplayer.AudioManager;
+import com.zischase.discordbot.audioplayer.PlayerPrinter;
 import net.dv8tion.jda.api.entities.Guild;
 
-import javax.annotation.Nullable;
-
-@Nullable
-public class GuildContext {
-    private final Guild guild;
-    private final boolean premium;
-    private final MusicManager musicManager;
-    private final CommandManager commandManager;
-
-    public GuildContext(Guild guild, boolean isPremium) {
-        this.guild = guild;
-        this.premium = isPremium;
-        this.musicManager = new MusicManager(guild);
-        this.commandManager = new CommandManager();
-    }
-
-    public CommandManager getCommandManager() {
-        return commandManager;
-    }
-
-    public MusicManager getMusicManager() {
-        return musicManager;
-    }
-
-    public Guild getGuild() {
-        return guild;
-    }
-
-    public boolean isPremium() {
-        return premium;
-    }
+public class GuildContext implements IGuildContext
+{
+	private final Guild         guild;
+	private final boolean       premium;
+	private final AudioManager  audioManager;
+	private final PlayerPrinter playerPrinter;
+	
+	
+	public GuildContext(Guild guild)
+	{
+		this.guild = guild;
+		this.premium = false;
+		this.audioManager = new AudioManager(guild);
+		this.playerPrinter = new PlayerPrinter(audioManager);
+		
+		GuildManager.setGuild(this);
+	}
+	
+	@Override
+	public PlayerPrinter playerPrinter()
+	{
+		return playerPrinter;
+	}
+	
+	@Override
+	public Guild guild()
+	{
+		return guild;
+	}
+	
+	@Override
+	public AudioManager audioManager()
+	{
+		return this.audioManager;
+	}
+	
+	@Override
+	public boolean isPremium()
+	{
+		return premium;
+	}
 }
