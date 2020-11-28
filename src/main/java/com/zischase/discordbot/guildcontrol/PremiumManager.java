@@ -12,7 +12,7 @@ public final class PremiumManager
 		return Jdbi.create(SQLConnectionHandler::getConnection)
 				   .withHandle(handle ->
 				   {
-					   boolean b = handle.createQuery("SELECT premium FROM guild_settings WHERE guild_id = ?")
+					   boolean b = handle.createQuery("SELECT guild_settings.ispremium FROM guild_settings WHERE guild_id = ?")
 										 .bind(0, guild.getId())
 										 .mapTo(boolean.class)
 										 .findFirst()

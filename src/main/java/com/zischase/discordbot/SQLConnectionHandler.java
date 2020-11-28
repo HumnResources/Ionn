@@ -29,7 +29,7 @@ public final class SQLConnectionHandler
 						" CREATE TABLE IF NOT EXISTS guild_settings( " +
 								"id SERIAL PRIMARY KEY," +
 								"guild_id VARCHAR(20) NOT NULL," +
-								"isPremium VARCHAR(10) NOT NULL DEFAULT 'false'," +
+								"ispremium VARCHAR(10) NOT NULL DEFAULT 'false'," +
 								"prefix VARCHAR(255) NOT NULL DEFAULT '"+Config.get("DEFAULT_PREFIX")+"')");
 				handle.execute(
 						/* language=PostgreSQL */
