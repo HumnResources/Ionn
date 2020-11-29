@@ -106,15 +106,15 @@ public final class CommandManager
 //					.getContentDisplay()
 //					.matches(lastMessage.getContentDisplay());
 
-			new CompletableFuture<>().completeAsync(() ->
-			{
 			if (cmd.premiumCommand && ! isGuildPremium)
 			{
 				event.getChannel()
 					 .sendMessage("Sorry, this feature is for premium guilds only :c")
 					 .complete();
-				return false;
+				return;
 			}
+			new CompletableFuture<>().completeAsync(() ->
+				{
 				cmd.handle(ctx);
 				return true;
 			}, THREAD_POOL_EXECUTOR);
