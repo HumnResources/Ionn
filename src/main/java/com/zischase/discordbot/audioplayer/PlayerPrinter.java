@@ -46,14 +46,20 @@ public class PlayerPrinter
 		{
 			AudioTrackInfo info = player.getPlayingTrack().getInfo();
 
-			LOGGER.info(info.title);
+
 			long duration = info.length / 1000;
 			long position = player.getPlayingTrack().getPosition() / 1000;
 			
 			String timeTotal = String.format("%d:%02d:%02d", duration / 3600, (duration % 3600) / 60, (duration % 60));
 			
 			String timeCurrent = String.format("%d:%02d:%02d", position / 3600, (position % 3600) / 60, (position % 60));
-			
+
+			LOGGER.info(info.title);
+			LOGGER.info(info.author);
+			LOGGER.info(info.uri);
+			LOGGER.info(String.valueOf(info.length));
+
+
 			embed.setThumbnail(Config.get("MEDIA_PLAYER_ICON"));
 			embed.setTitle("Now Playing");
 			embed.appendDescription(info.title + "\n\n");
