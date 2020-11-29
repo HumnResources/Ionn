@@ -109,7 +109,7 @@ public final class CommandManager
 					event.getChannel()
 							.sendMessage(premiumCMDMessage)
 							.queue(
-									s -> s.delete().completeAfter(5000, TimeUnit.MILLISECONDS)
+//									s -> s.delete().completeAfter(5000, TimeUnit.MILLISECONDS)
 							);
 					return;
 				}
