@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands.audiocommands;
 
+import com.zischase.discordbot.audioplayer.PlayerPrinter;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
@@ -29,10 +30,7 @@ public class NowPlaying extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
-		GuildManager.getContext(ctx.getGuild())
-					.playerPrinter()
-					.printNowPlaying(GuildManager.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
-		
+		new PlayerPrinter().printNowPlaying(GuildManager.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
 	}
 	
 }

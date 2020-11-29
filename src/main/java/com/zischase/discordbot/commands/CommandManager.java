@@ -7,7 +7,6 @@ import com.zischase.discordbot.commands.general.Clear;
 import com.zischase.discordbot.commands.general.Help;
 import com.zischase.discordbot.commands.general.Prefix;
 import com.zischase.discordbot.guildcontrol.PremiumManager;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,34 +89,34 @@ public final class CommandManager
 
 		if (cmd != null)
 		{
-			new CompletableFuture<>().completeAsync(() ->
-			{
 			List<String> args = Arrays.asList(argsArr)
 									  .subList(1, argsArr.length);
 
 			CommandContext ctx = new CommandContext(event, args);
 			
 			boolean isGuildPremium = PremiumManager.getPremium(event.getGuild());
-			Message lastMessage = event.getChannel()
-										.getIterableHistory().getLast();
+//			Message lastMessage = event.getChannel()
+//										.getIterableHistory().getLast();
 
-			boolean messageSent = event.getChannel()
-					.getHistory()
-					.retrievePast(1)
-					.complete()
-					.get(0)
-					.getContentDisplay()
-					.matches(lastMessage.getContentDisplay());
+//			boolean messageSent = event.getChannel()
+//					.getHistory()
+//					.retrievePast(1)
+//					.complete()
+//					.get(0)
+//					.getContentDisplay()
+//					.matches(lastMessage.getContentDisplay());
 
-			if (cmd.premiumCommand && ! isGuildPremium && ! messageSent)
+			new CompletableFuture<>().completeAsync(() ->
+			{
+			if (cmd.premiumCommand && ! isGuildPremium)
 			{
 				event.getChannel()
 					 .sendMessage("Sorry, this feature is for premium guilds only :c")
 					 .complete();
-				return null;
+				return false;
 			}
 				cmd.handle(ctx);
-				return null;
+				return true;
 			}, THREAD_POOL_EXECUTOR);
 			
 			THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount() + 1);
