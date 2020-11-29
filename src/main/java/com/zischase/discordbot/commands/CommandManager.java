@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public final class CommandManager
 {
 	private static final List<Command>      commands = new ArrayList<>();
+	private static final List<Long> 		ACTIVE_COMMAND_GUILDS = new ArrayList<>();
 	private static final Logger             LOGGER   = LoggerFactory.getLogger(CommandManager.class);
 	private static final int                POOL_COUNT;
 	private static final ThreadPoolExecutor THREAD_POOL_EXECUTOR;
@@ -88,6 +90,14 @@ public final class CommandManager
 
 		if (cmd != null)
 		{
+			if (ACTIVE_COMMAND_GUILDS.contains(event.getGuild().getIdLong()))
+			{
+				return;
+			}
+
+			ACTIVE_COMMAND_GUILDS.add(event.getGuild().getIdLong());
+
+
 			List<String> args = Arrays.asList(argsArr)
 									  .subList(1, argsArr.length);
 
@@ -95,31 +105,27 @@ public final class CommandManager
 			
 			boolean isGuildPremium = PremiumManager.getPremium(event.getGuild());
 
-			if (cmd.premiumCommand && ! isGuildPremium)
+			if (cmd.premiumCommand && ! isGuildPremium )
 			{
-//				Message last = event.getChannel()
-//						.getIterableHistory()
-//						.getLast();
 
 				String premiumCMDMessage = "Sorry, this feature is for premium guilds only :c";
 
-//				if (!last.getContentRaw().equalsIgnoreCase(premiumCMDMessage))
-//				{
 					event.getChannel()
 							.sendMessage(premiumCMDMessage)
-							.queue(
-//									s -> s.delete().completeAfter(5000, TimeUnit.MILLISECONDS)
-							);
+							.queue();
+
+					ACTIVE_COMMAND_GUILDS.remove(event.getGuild().getIdLong());
 					return;
 //				}
 			}
-//			new CompletableFuture<>().completeAsync(() ->
-//				{
+			new CompletableFuture<>().completeAsync(() ->
+			{
 				cmd.handle(ctx);
-//				return true;
-//			}, THREAD_POOL_EXECUTOR);
+				ACTIVE_COMMAND_GUILDS.remove(event.getGuild().getIdLong());
+				return true;
+			}, THREAD_POOL_EXECUTOR);
 //
-//			THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount() + 1);
+			THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount() + 1);
 		}
 	}
 	

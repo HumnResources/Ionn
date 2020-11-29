@@ -43,10 +43,10 @@ public class PlayerPrinter
 		{
 			AudioTrackInfo info = player.getPlayingTrack().getInfo();
 
-			if (info == null)
-			{
-				return;
-			}
+//			if (info == null)
+//			{
+//				return;
+//			}
 
 			long duration = info.length / 1000;
 			long position = player.getPlayingTrack().getPosition() / 1000;
@@ -86,7 +86,7 @@ public class PlayerPrinter
 		
 		long finalDelayMS = delayMS;
 		channel.getHistory()
-			   .retrievePast(100)
+			   .retrievePast(10)
 			   .queue(messages ->
 			   {
 				   List<Message> deleteList = messages.stream()
