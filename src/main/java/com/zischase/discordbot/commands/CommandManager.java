@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -115,13 +114,13 @@ public final class CommandManager
 					return;
 				}
 			}
-			new CompletableFuture<>().completeAsync(() ->
-				{
+//			new CompletableFuture<>().completeAsync(() ->
+//				{
 				cmd.handle(ctx);
-				return true;
-			}, THREAD_POOL_EXECUTOR);
-			
-			THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount() + 1);
+//				return true;
+//			}, THREAD_POOL_EXECUTOR);
+//
+//			THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount() + 1);
 		}
 	}
 	
