@@ -8,6 +8,8 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.time.OffsetDateTime;
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
 
 public class PlayerPrinter
 {
+	private static final Logger LOGGER = LoggerFactory.getLogger(PlayerPrinter.class);
 //	private final AudioManager audioManager;
 	
 	public PlayerPrinter()
@@ -43,11 +46,7 @@ public class PlayerPrinter
 		{
 			AudioTrackInfo info = player.getPlayingTrack().getInfo();
 
-//			if (info == null)
-//			{
-//				return;
-//			}
-
+			LOGGER.info(info.title);
 			long duration = info.length / 1000;
 			long position = player.getPlayingTrack().getPosition() / 1000;
 			
