@@ -6,7 +6,6 @@ import com.zischase.discordbot.commands.audiocommands.*;
 import com.zischase.discordbot.commands.general.Clear;
 import com.zischase.discordbot.commands.general.Help;
 import com.zischase.discordbot.commands.general.Prefix;
-import com.zischase.discordbot.commands.general.Spam;
 import com.zischase.discordbot.guildcontrol.PremiumManager;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.slf4j.Logger;

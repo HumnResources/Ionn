@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands.general;
 
+import com.zischase.discordbot.DataBaseManager;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.commands.CommandManager;
@@ -33,7 +34,7 @@ public class Help extends Command
 		cmdList.setColor(Color.ORANGE);
 		cmdList.setTitle("Commands");
 		String prefix = Prefix.getPrefix(guild);
-		
+
 		cmdList.appendDescription(String.format("The current prefix is set to: `%s`\n", prefix));
 		
 		CommandManager.getCommandList()
@@ -67,17 +68,28 @@ public class Help extends Command
 				   .queue();
 			return;
 		}
-		
-		String cmdSearch = args.get(0);
-		Command command = CommandManager.getCommand(cmdSearch);
-		
-		if (command == null)
+		else if (args.size() > 1 && args.get(1).matches("(?i)audio | media | music"))
 		{
-			channel.sendMessage("Command " + cmdSearch + " not found.")
-				   .queue();
-			return;
+			channel.sendMessage(DataBaseManager.get(ctx.getGuild().getId(), "PREFIX") +
+					"youtube\n" +
+					"`Youtube [Search Query] : Search youtube for a song. Then adds it to the queue`\\n\" + \"`Youtube -[search|s] : Provides a list of songs. Reply with a number to choose.`\\n" +
+					"play\n" +
+					"`Play/Pause : Play or pause the player.`\n" + "`Play [url] : Adds the specified song/playlist to queue.`\n" + "`Play -[next|n] [url] : Adds the specified song/playlist to next in queue`")
+					.queue();
 		}
-		channel.sendMessage(command.getHelp())
-			   .queue();
+		else
+		{
+			String cmdSearch = args.get(0);
+			Command command = CommandManager.getCommand(cmdSearch);
+
+			if (command == null)
+			{
+				channel.sendMessage("Command " + cmdSearch + " not found.")
+						.queue();
+				return;
+			}
+			channel.sendMessage(command.getHelp())
+					.queue();
+		}
 	}
 }
