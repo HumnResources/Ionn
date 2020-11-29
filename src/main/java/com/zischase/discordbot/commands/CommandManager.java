@@ -43,7 +43,6 @@ public final class CommandManager
 		addCommand(new Playlist());
 		addCommand(new Lyrics());
 		addCommand(new Clear());
-		addCommand(new Spam());
 		addCommand(new Queue());
 		addCommand(new Join());
 		addCommand(new Shuffle());
