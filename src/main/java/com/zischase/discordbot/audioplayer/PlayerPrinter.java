@@ -3,7 +3,6 @@ package com.zischase.discordbot.audioplayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
-import com.zischase.discordbot.Config;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
@@ -60,7 +59,7 @@ public class PlayerPrinter
 			LOGGER.info(String.valueOf(info.length));
 
 
-			embed.setThumbnail(Config.get("MEDIA_PLAYER_ICON"));
+//			embed.setThumbnail(Config.get("MEDIA_PLAYER_ICON"));
 			embed.setTitle("Now Playing");
 			embed.appendDescription(info.title + "\n\n");
 			
