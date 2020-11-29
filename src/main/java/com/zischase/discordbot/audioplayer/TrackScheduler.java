@@ -139,7 +139,7 @@ public class TrackScheduler extends AudioEventAdapter
 	{
 		GuildManager.getContext(textChannel.getGuild())
 					.playerPrinter()
-					.printNowPlaying(textChannel);
+					.printNowPlaying(GuildManager.getContext(textChannel.getGuild()).audioManager(), textChannel);
 	}
 	
 	@Override
@@ -147,7 +147,7 @@ public class TrackScheduler extends AudioEventAdapter
 	{
 		GuildManager.getContext(textChannel.getGuild())
 					.playerPrinter()
-					.printNowPlaying(textChannel);
+					.printNowPlaying(GuildManager.getContext(textChannel.getGuild()).audioManager(), textChannel);
 	}
 	
 	@Override
@@ -157,12 +157,12 @@ public class TrackScheduler extends AudioEventAdapter
 		{
 			GuildManager.getContext(textChannel.getGuild())
 						.playerPrinter()
-						.printQueue(textChannel);
+						.printQueue(GuildManager.getContext(textChannel.getGuild()).audioManager(), textChannel);
 		}
 		
 		GuildManager.getContext(textChannel.getGuild())
 					.playerPrinter()
-					.printNowPlaying(textChannel);
+					.printNowPlaying(GuildManager.getContext(textChannel.getGuild()).audioManager(), textChannel);
 	}
 	
 	@Override

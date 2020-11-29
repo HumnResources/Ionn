@@ -123,11 +123,11 @@ public class Play extends Command
 		
 		GuildManager.getContext(event.getGuild())
 					.playerPrinter()
-					.printQueue(event.getChannel());
+					.printQueue(GuildManager.getContext(event.getGuild()).audioManager(), event.getChannel());
 		
 		GuildManager.getContext(event.getGuild())
 					.playerPrinter()
-					.printNowPlaying(event.getChannel());
+					.printNowPlaying(GuildManager.getContext(event.getGuild()).audioManager(), event.getChannel());
 	}
 	
 //	private void jumpPosition()
