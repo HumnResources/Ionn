@@ -1,1 +1,1 @@
-web: java -jar target/discordbot-$VERSION.jar --port $PORT
+web: java -jar target/discordbot-$VERSION.jar -Dserver.port=$PORT
