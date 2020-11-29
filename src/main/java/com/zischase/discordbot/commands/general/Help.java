@@ -68,7 +68,7 @@ public class Help extends Command
 				   .queue();
 			return;
 		}
-		else if (args.size() > 1 && args.get(1).matches("(?i)audio | media | music"))
+		else if (args.size() >= 1 && args.get(0).matches("(?i)audio | media | music"))
 		{
 			channel.sendMessage(DataBaseManager.get(ctx.getGuild().getId(), "PREFIX") +
 					"youtube\n" +
