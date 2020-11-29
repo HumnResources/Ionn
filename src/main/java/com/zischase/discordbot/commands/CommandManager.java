@@ -7,6 +7,7 @@ import com.zischase.discordbot.commands.general.Clear;
 import com.zischase.discordbot.commands.general.Help;
 import com.zischase.discordbot.commands.general.Prefix;
 import com.zischase.discordbot.guildcontrol.PremiumManager;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +66,7 @@ public final class CommandManager
 		{
 			THREAD_POOL_EXECUTOR = (ThreadPoolExecutor) Executors.newFixedThreadPool(defaultPoolCount);
 		}
-		THREAD_POOL_EXECUTOR.setKeepAliveTime(5000, TimeUnit.MILLISECONDS);
+		THREAD_POOL_EXECUTOR.setKeepAliveTime(3000, TimeUnit.MILLISECONDS);
 		THREAD_POOL_EXECUTOR.allowsCoreThreadTimeOut();
 		THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount());
 	}
@@ -86,27 +87,36 @@ public final class CommandManager
 		
 		String invoke = argsArr[0].toLowerCase();
 		Command cmd = getCommand(invoke);
-		
+
 		if (cmd != null)
 		{
 			new CompletableFuture<>().completeAsync(() ->
 			{
 			List<String> args = Arrays.asList(argsArr)
 									  .subList(1, argsArr.length);
+
 			CommandContext ctx = new CommandContext(event, args);
 			
 			boolean isGuildPremium = PremiumManager.getPremium(event.getGuild());
-			
-			if (cmd.premiumCommand && ! isGuildPremium)
+			Message lastMessage = event.getChannel()
+										.getIterableHistory().getLast();
+
+			boolean messageSent = event.getChannel()
+					.getHistory()
+					.retrievePast(1)
+					.complete()
+					.get(0)
+					.getContentDisplay()
+					.matches(lastMessage.getContentDisplay());
+
+			if (cmd.premiumCommand && ! isGuildPremium && ! messageSent)
 			{
 				event.getChannel()
 					 .sendMessage("Sorry, this feature is for premium guilds only :c")
 					 .complete();
 				return null;
 			}
-
 				cmd.handle(ctx);
-				
 				return null;
 			}, THREAD_POOL_EXECUTOR);
 			
