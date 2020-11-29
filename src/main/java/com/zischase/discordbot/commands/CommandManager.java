@@ -7,6 +7,7 @@ import com.zischase.discordbot.commands.general.Clear;
 import com.zischase.discordbot.commands.general.Help;
 import com.zischase.discordbot.commands.general.Prefix;
 import com.zischase.discordbot.guildcontrol.PremiumManager;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,10 +109,19 @@ public final class CommandManager
 
 			if (cmd.premiumCommand && ! isGuildPremium)
 			{
-				event.getChannel()
-					 .sendMessage("Sorry, this feature is for premium guilds only :c")
-					 .complete();
-				return;
+				Message last = event.getChannel()
+						.getIterableHistory()
+						.getLast();
+
+				String premiumCMDMessage = "Sorry, this feature is for premium guilds only :c";
+
+				if (!last.getContentRaw().equalsIgnoreCase(premiumCMDMessage))
+				{
+					event.getChannel()
+							.sendMessage(premiumCMDMessage)
+							.complete();
+					return;
+				}
 			}
 			new CompletableFuture<>().completeAsync(() ->
 				{
