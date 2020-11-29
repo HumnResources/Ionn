@@ -96,16 +96,6 @@ public final class CommandManager
 			CommandContext ctx = new CommandContext(event, args);
 			
 			boolean isGuildPremium = PremiumManager.getPremium(event.getGuild());
-//			Message lastMessage = event.getChannel()
-//										.getIterableHistory().getLast();
-
-//			boolean messageSent = event.getChannel()
-//					.getHistory()
-//					.retrievePast(1)
-//					.complete()
-//					.get(0)
-//					.getContentDisplay()
-//					.matches(lastMessage.getContentDisplay());
 
 			if (cmd.premiumCommand && ! isGuildPremium)
 			{
@@ -119,7 +109,9 @@ public final class CommandManager
 				{
 					event.getChannel()
 							.sendMessage(premiumCMDMessage)
-							.complete();
+							.queue(
+									s -> s.delete().completeAfter(5000, TimeUnit.MILLISECONDS)
+							);
 					return;
 				}
 			}
