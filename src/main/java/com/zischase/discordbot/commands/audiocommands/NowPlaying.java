@@ -31,7 +31,7 @@ public class NowPlaying extends Command
 	{
 		GuildManager.getContext(ctx.getGuild())
 					.playerPrinter()
-					.printNowPlaying(ctx.getChannel());
+					.printNowPlaying(GuildManager.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
 		
 	}
 	

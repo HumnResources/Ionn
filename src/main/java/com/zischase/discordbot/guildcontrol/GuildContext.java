@@ -17,7 +17,7 @@ public class GuildContext implements IGuildContext
 		this.guild = guild;
 		this.premium = false;
 		this.audioManager = new AudioManager(guild);
-		this.playerPrinter = new PlayerPrinter(audioManager);
+		this.playerPrinter = new PlayerPrinter();
 		
 		GuildManager.setGuild(this);
 	}
