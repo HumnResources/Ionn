@@ -89,6 +89,8 @@ public final class CommandManager
 		
 		if (cmd != null)
 		{
+			new CompletableFuture<>().completeAsync(() ->
+			{
 			List<String> args = Arrays.asList(argsArr)
 									  .subList(1, argsArr.length);
 			CommandContext ctx = new CommandContext(event, args);
@@ -99,12 +101,10 @@ public final class CommandManager
 			{
 				event.getChannel()
 					 .sendMessage("Sorry, this feature is for premium guilds only :c")
-					 .queue();
-				return;
+					 .complete();
+				return null;
 			}
-			
-			new CompletableFuture<>().completeAsync(() ->
-			{
+
 				cmd.handle(ctx);
 				
 				return null;
