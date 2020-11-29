@@ -80,7 +80,7 @@ public final class SQLConnectionHandler
 		{
 			LOGGER.warn("Error Connecting to DataBase !!");
 			e.printStackTrace();
-//			System.exit(1);
+			System.exit(1);
 		}
 		return null;
 	}

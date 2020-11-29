@@ -80,49 +80,49 @@ public class PlayerPrinter
 											  .build();
 		
 		long finalDelayMS = delayMS;
-		channel.getHistory()
-			   .retrievePast(100)
-			   .queue(messages ->
-			   {
-				   List<Message> deleteList = messages.stream()
-													  .filter(msg -> msg.getAuthor().isBot())
-													  .filter(msg -> ! msg.getEmbeds().isEmpty())
-													  .filter(msg ->
-													  {
-														  if (msg.getEmbeds().get(0).getTitle() != null)
-														  {
-															  String title = msg.getEmbeds().get(0).getTitle();
-															  assert title != null;
-															  return title.equalsIgnoreCase("Now Playing");
-														  }
-														  return false;
-													  })
-													  .collect(Collectors.toList());
-			
-				   if (! deleteList.isEmpty())
-				   {
-					   if (deleteList.size() == 1)
-					   {
-						   channel.deleteMessageById(deleteList.get(0).getId())
-								  .queue(null, Throwable::getSuppressed);
-					   }
-					   else
-					   {
-						   channel.deleteMessages(deleteList)
-								  .queue(null, Throwable::getSuppressed);
-					   }
-				   }
-				   
-				   channel.sendMessage(message)
-						  .queue(msg ->
-						  {
-							  if (channel.getHistory().getRetrievedHistory().contains(msg))
-							  {
-								  msg.delete()
-									 .queueAfter(finalDelayMS, TimeUnit.MILLISECONDS);
-							  }
-						  });
-			   });
+//		channel.getHistory()
+//			   .retrievePast(100)
+//			   .queue(messages ->
+//			   {
+//				   List<Message> deleteList = messages.stream()
+//													  .filter(msg -> msg.getAuthor().isBot())
+//													  .filter(msg -> ! msg.getEmbeds().isEmpty())
+//													  .filter(msg ->
+//													  {
+//														  if (msg.getEmbeds().get(0).getTitle() != null)
+//														  {
+//															  String title = msg.getEmbeds().get(0).getTitle();
+//															  assert title != null;
+//															  return title.equalsIgnoreCase("Now Playing");
+//														  }
+//														  return false;
+//													  })
+//													  .collect(Collectors.toList());
+//
+//				   if (! deleteList.isEmpty())
+//				   {
+//					   if (deleteList.size() == 1)
+//					   {
+//						   channel.deleteMessageById(deleteList.get(0).getId())
+//								  .queue(null, Throwable::getSuppressed);
+//					   }
+//					   else
+//					   {
+//						   channel.deleteMessages(deleteList)
+//								  .queue(null, Throwable::getSuppressed);
+//					   }
+//				   }
+//
+//				   channel.sendMessage(message)
+//						  .queue(msg ->
+//						  {
+//							  if (channel.getHistory().getRetrievedHistory().contains(msg))
+//							  {
+//								  msg.delete()
+//									 .queueAfter(finalDelayMS, TimeUnit.MILLISECONDS);
+//							  }
+//						  });
+//			   });
 	}
 	
 	public void printQueue(TextChannel channel)
