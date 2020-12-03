@@ -1,7 +1,5 @@
 package com.zischase.discordbot;
 
-import com.zischase.discordbot.commands.CommandManager;
-import me.duncte123.botcommons.BotCommons;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -22,8 +20,8 @@ public class Bot
 
 					LOGGER.warn("SHUTTING DOWN . . .");
 
-					CommandManager.shutdown();
-					BotCommons.shutdown(jda);
+//					CommandManager.shutdown();
+//					BotCommons.shutdown(jda);
 					jda.shutdownNow();
 
 					LOGGER.info("Successful Shutdown");
