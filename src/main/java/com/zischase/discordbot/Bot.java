@@ -17,6 +17,8 @@ public class Bot
 	
 	static
 	{
+		final Thread mainThread = Thread.currentThread();
+
 		Runtime.getRuntime()
 				.addShutdownHook(new Thread(() -> {
 
@@ -37,7 +39,15 @@ public class Bot
 					}
 
 					LOGGER.info("Successful Shutdown");
-					System.exit(0);
+
+
+					try
+					{
+						mainThread.join();
+					} catch (InterruptedException e)
+					{
+						e.printStackTrace();
+					}
 				}));
 
 		//Operating system sends SIGFPE to the JVM
