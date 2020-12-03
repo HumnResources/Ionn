@@ -33,18 +33,15 @@ public class Listener extends ListenerAdapter
 										.getSelfUser()
 										.getAsTag());
 
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				LOGGER.warn("SHUTTING DOWN . . .");
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			LOGGER.warn("SHUTTING DOWN . . .");
 
-				CommandManager.shutdown();
-				BotCommons.shutdown(event.getJDA());
-				event.getJDA().shutdownNow();
+			CommandManager.shutdown();
+			BotCommons.shutdown(event.getJDA());
+			event.getJDA().shutdownNow();
 
-				LOGGER.info("Successful Shutdown");
-			}
-		});
+			LOGGER.info("Successful Shutdown");
+		}));
 		//Operating system sends SIGFPE to the JVM
 		//the JVM catches it and constructs a
 		//ArithmeticException class, and since you
