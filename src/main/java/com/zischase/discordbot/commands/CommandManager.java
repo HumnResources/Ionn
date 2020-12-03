@@ -156,7 +156,8 @@ public final class CommandManager
 	
 	public static void shutdown()
 	{
-		LOGGER.info(CommandManager.shutdownThreads());
+		CommandManager.shutdownThreads();
+		LOGGER.info(getReport());
 	}
 	
 	
@@ -189,27 +190,22 @@ public final class CommandManager
 		commands.add(command);
 	}
 	
-	private static String shutdownThreads()
+	private static void shutdownThreads()
 	{
-		THREAD_POOL_EXECUTOR.getQueue()
-							.clear();
 		THREAD_POOL_EXECUTOR.shutdown();
+
 		try
 		{
-			Thread.sleep(2000);
+			THREAD_POOL_EXECUTOR.awaitTermination(5000, TimeUnit.MILLISECONDS);
 		}
 		catch (InterruptedException e)
 		{
 			e.printStackTrace();
 		}
-		finally
+
+		if (! THREAD_POOL_EXECUTOR.isShutdown())
 		{
-			if (! THREAD_POOL_EXECUTOR.isShutdown())
-			{
-				THREAD_POOL_EXECUTOR.shutdownNow();
-			}
+			THREAD_POOL_EXECUTOR.shutdownNow();
 		}
-		
-		return getReport() + "Shutting Down . . .\n";
 	}
 }
