@@ -17,46 +17,6 @@ public class Bot
 	
 	static
 	{
-		final Thread mainThread = Thread.currentThread();
-
-		Runtime.getRuntime()
-				.addShutdownHook(new Thread(() -> {
-
-					LOGGER.warn("SHUTTING DOWN . . .");
-
-					CommandManager.shutdown();
-					BotCommons.shutdown(jda);
-//					jda.shutdownNow();
-					jda.shutdown();
-
-					try
-					{
-						jda.awaitStatus(JDA.Status.SHUTDOWN);
-					}
-					catch (InterruptedException e)
-					{
-						e.printStackTrace();
-					}
-
-					LOGGER.info("Successful Shutdown");
-
-
-					try
-					{
-						mainThread.join();
-					} catch (InterruptedException e)
-					{
-						e.printStackTrace();
-					}
-				}));
-
-		//Operating system sends SIGFPE to the JVM
-		//the JVM catches it and constructs a
-		//ArithmeticException class, and since you
-		//don't catch this with a try/catch, dumps
-		//it to screen and terminates.  The shutdown
-		//hook is triggered, doing final cleanup.
-
 		SQLConnectionHandler.getConnection();
 		try
 		{
@@ -77,6 +37,36 @@ public class Bot
 	
 	public static void main(String[] args)
 	{
+		final Thread mainThread = Thread.currentThread();
+
+		Runtime.getRuntime().addShutdownHook(new Thread(() ->
+		{
+			LOGGER.warn("SHUTTING DOWN . . .");
+
+			CommandManager.shutdown();
+			BotCommons.shutdown(jda);
+			jda.shutdown();
+
+//			try
+//			{
+//				jda.awaitStatus(JDA.Status.SHUTDOWN);
+//			}
+//			catch (InterruptedException e)
+//			{
+//				e.printStackTrace();
+//			}
+
+			try
+			{
+				mainThread.join();
+				LOGGER.info("Successful Shutdown");
+			} catch (InterruptedException e)
+			{
+				e.printStackTrace();
+			}
+
+		}));
+
 		jda.getPresence()
 				.setActivity(Activity.listening("For Music"));
 	}
