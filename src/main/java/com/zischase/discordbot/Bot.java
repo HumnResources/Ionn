@@ -37,24 +37,7 @@ public class Bot
 	public static void main(String[] args) throws LoginException
 	{
 
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				LOGGER.warn("SHUTTING DOWN . . .");
 
-				jda.shutdownNow();
-				CommandManager.shutdown();
-				BotCommons.shutdown(jda);
-
-				LOGGER.info("Successful Shutdown");
-			}
-		});
-		//Operating system sends SIGFPE to the JVM
-		//the JVM catches it and constructs a
-		//ArithmeticException class, and since you
-		//don't catch this with a try/catch, dumps
-		//it to screen and terminates.  The shutdown
-		//hook is triggered, doing final cleanup.
 
 
 		jda.getPresence()
