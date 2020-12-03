@@ -25,7 +25,6 @@ public class Bot
 				.addEventListeners(new Listener())
 				.build();
 			// DEV_TOKEN = TESTING PURPOSES ONLY
-			
 
 		}
 		catch (LoginException e)
@@ -33,19 +32,30 @@ public class Bot
 			e.printStackTrace();
 			System.exit(1);
 		}
+
+		setShutdownHook();
 	}
 	
 	public static void main(String[] args)
 	{
+		jda.getPresence()
+				.setActivity(Activity.listening("For Music"));
+	}
+
+	private static void setShutdownHook()
+	{
 		final Thread mainThread = Thread.currentThread();
 
-		Runtime.getRuntime().addShutdownHook(new Thread(() ->
+		Runtime.getRuntime().addShutdownHook(new Thread()
 		{
-			LOGGER.warn("SHUTTING DOWN . . .");
+			@Override
+			public void run()
+			{
+				LOGGER.warn("SHUTTING DOWN . . .");
 
-			CommandManager.shutdown();
-			BotCommons.shutdown(jda);
-			jda.shutdown();
+				CommandManager.shutdown();
+				BotCommons.shutdown(jda);
+				jda.shutdown();
 
 //			try
 //			{
@@ -56,19 +66,15 @@ public class Bot
 //				e.printStackTrace();
 //			}
 
-			try
-			{
-				mainThread.join();
-				LOGGER.info("Successful Shutdown");
-			} catch (InterruptedException e)
-			{
-				e.printStackTrace();
+				try {
+					mainThread.join();
+					LOGGER.info("Successful Shutdown");
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+
 			}
-
-		}));
-
-		jda.getPresence()
-				.setActivity(Activity.listening("For Music"));
+		});
 	}
 	
 	public static int guildCount()
