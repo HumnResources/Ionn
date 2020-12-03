@@ -42,7 +42,7 @@ public final class CommandManager
 		addCommand(new Youtube());
 		addCommand(new Prefix());
 		addCommand(new Playlist());
-		addCommand(new Lyrics());
+//  addCommandmand(new Lyrics());
 		addCommand(new Clear());
 		addCommand(new Queue());
 		addCommand(new Join());
