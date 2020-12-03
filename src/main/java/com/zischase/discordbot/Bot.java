@@ -27,6 +27,7 @@ public class Bot
 					jda.shutdownNow();
 
 					LOGGER.info("Successful Shutdown");
+					System.exit(0);
 				}));
 		//Operating system sends SIGFPE to the JVM
 		//the JVM catches it and constructs a
