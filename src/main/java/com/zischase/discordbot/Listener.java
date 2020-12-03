@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import java.io.IOException;
 
 public class Listener extends ListenerAdapter
 {
@@ -55,12 +54,12 @@ public class Listener extends ListenerAdapter
 				shutdown(event.getJDA());
 				return;
 			}
-			else if (raw.equalsIgnoreCase(prefix + "restart"))
-			{
-				LOGGER.info("Restarting...");
-				restart(event);
-				return;
-			}
+//			else if (raw.equalsIgnoreCase(prefix + "restart"))
+//			{
+//				LOGGER.info("Restarting...");
+//				restart(event);
+//				return;
+//			}
 			else if (raw.equalsIgnoreCase(prefix + "threadreport"))
 			{
 				event.getChannel()
@@ -75,20 +74,20 @@ public class Listener extends ListenerAdapter
 		}
 	}
 	
-	private static void restart(GuildMessageReceivedEvent event)
-	{
-		shutdown(event.getJDA());
-		
-		try
-		{
-			Runtime.getRuntime().exec("java -jar discordbot-" + Config.get("VERSION") + ".jar");
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-		
-	}
+//	private static void restart(GuildMessageReceivedEvent event)
+//	{
+//		shutdown(event.getJDA());
+//
+//		try
+//		{
+//			Runtime.getRuntime().exec("java -jar discordbot-" + Config.get("VERSION") + ".jar");
+//		}
+//		catch (IOException e)
+//		{
+//			e.printStackTrace();
+//		}
+//
+//	}
 	
 	private static void shutdown(JDA jda)
 	{
