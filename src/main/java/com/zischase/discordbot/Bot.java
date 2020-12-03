@@ -17,31 +17,46 @@ public class Bot
 	
 	static
 	{
+		Runtime.getRuntime()
+				.addShutdownHook(new Thread(() -> {
+
+					LOGGER.warn("SHUTTING DOWN . . .");
+
+					CommandManager.shutdown();
+					BotCommons.shutdown(jda);
+					jda.shutdownNow();
+
+					LOGGER.info("Successful Shutdown");
+				}));
+		//Operating system sends SIGFPE to the JVM
+		//the JVM catches it and constructs a
+		//ArithmeticException class, and since you
+		//don't catch this with a try/catch, dumps
+		//it to screen and terminates.  The shutdown
+		//hook is triggered, doing final cleanup.
+
 		SQLConnectionHandler.getConnection();
-		
 		try
 		{
+			jda = JDABuilder.createDefault(Config.get("TOKEN"))
+				.setActivity(Activity.watching("Starting..."))
+				.addEventListeners(new Listener())
+				.build();
 			// DEV_TOKEN = TESTING PURPOSES ONLY
 			
-			jda = JDABuilder.createDefault(Config.get("TOKEN"))
-							.setActivity(Activity.watching("Starting..."))
-							.addEventListeners(new Listener())
-							.build();
+
 		}
 		catch (LoginException e)
 		{
 			e.printStackTrace();
+			System.exit(1);
 		}
 	}
 	
-	public static void main(String[] args) throws LoginException
+	public static void main(String[] args)
 	{
-
-
-
-
 		jda.getPresence()
-		   .setActivity(Activity.watching("Everything"));
+				.setActivity(Activity.listening("For Music"));
 	}
 	
 	public static int guildCount()
