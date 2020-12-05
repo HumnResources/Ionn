@@ -53,22 +53,22 @@ public class Bot
 			BotCommons.shutdown(jda);
 			jda.shutdown();
 
-//			try
-//			{
-//				jda.awaitStatus(JDA.Status.SHUTDOWN);
-//			}
-//			catch (InterruptedException e)
-//			{
-//				e.printStackTrace();
-//			}
-
-			try {
-				mainThread.join();
-				LOGGER.info("Successful Shutdown");
-				System.exit(0);
-			} catch (InterruptedException e) {
+			try
+			{
+				jda.awaitStatus(JDA.Status.SHUTDOWN);
+			}
+			catch (InterruptedException e)
+			{
 				e.printStackTrace();
 			}
+
+//			try {
+//				mainThread.join();
+				LOGGER.info("Successful Shutdown");
+				System.exit(0);
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
 
 		}));
 	}
