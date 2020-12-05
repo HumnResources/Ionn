@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands.audiocommands;
 
+import com.zischase.discordbot.Config;
 import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import de.sfuhrm.radiobrowser4j.Paging;
@@ -12,8 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 
@@ -126,15 +126,16 @@ public class Radio extends Command
 
 		try
 		{
-			ISearchable result = new ResultSelector(results).getChoice(event)
-															.get();
-			
+			Future<ISearchable> result = new ResultSelector(results).getChoice(event);
+
+			long timeoutDelayMS = Long.parseLong(Config.get("SEARCH_RESULT_DELAY_MS"));
+
 			GuildManager.getContext(event.getGuild())
 						.audioManager()
 						.getTrackLoader()
-						.load(event.getChannel(), event.getMember(), result.getUrl());
+						.load(event.getChannel(), event.getMember(), result.get(timeoutDelayMS, TimeUnit.MILLISECONDS).getUrl());
 		}
-		catch (InterruptedException | ExecutionException e)
+		catch (TimeoutException | InterruptedException | ExecutionException e)
 		{
 			LOGGER.warn("Radio result exception: \n" + e.getCause()
 														.getLocalizedMessage());
