@@ -27,13 +27,17 @@ public class TrackScheduler extends AudioEventAdapter
 	private boolean     repeat      = false;
 	private AudioTrack  lastTrack;
 	private TextChannel textChannel = null;
-	
+
+	static
+	{
+		LOGGER.info("TrackSchedulers initialized.");
+	}
+
 	public TrackScheduler(AudioPlayer player)
 	{
 		this.player = player;
 		this.queue = new LinkedBlockingQueue<>();
-		
-		LOGGER.info("TrackScheduler created.");
+
 	}
 	
 	public void setRepeat(boolean repeat)
