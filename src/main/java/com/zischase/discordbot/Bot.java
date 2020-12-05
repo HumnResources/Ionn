@@ -52,6 +52,8 @@ public class Bot
 			CommandManager.shutdown();
 			BotCommons.shutdown(jda);
 			jda.shutdownNow();
+			jda.getCallbackPool()
+					.shutdownNow();
 
 			LOGGER.info("Successful Shutdown");
 			System.exit(0);

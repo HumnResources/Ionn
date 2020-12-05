@@ -156,8 +156,8 @@ public final class CommandManager
 	
 	public static void shutdown()
 	{
-		shutdownThreads();
 		LOGGER.info(getReport());
+		shutdownThreads();
 	}
 	
 	
@@ -192,8 +192,14 @@ public final class CommandManager
 	
 	private static void shutdownThreads()
 	{
-		THREAD_POOL_EXECUTOR.shutdownNow();
+		THREAD_POOL_EXECUTOR.purge();
+		THREAD_POOL_EXECUTOR.shutdown();
 
+		try {
+			THREAD_POOL_EXECUTOR.awaitTermination(2000, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
 		if (! THREAD_POOL_EXECUTOR.isShutdown())
 		{
