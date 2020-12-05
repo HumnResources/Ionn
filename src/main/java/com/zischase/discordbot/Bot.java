@@ -46,16 +46,12 @@ public class Bot
 	{
 		final Thread mainThread = Thread.currentThread();
 
-		Runtime.getRuntime().addShutdownHook(new Thread()
-		{
-			@Override
-			public void run()
-			{
-				LOGGER.warn("SHUTTING DOWN . . .");
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			LOGGER.warn("SHUTTING DOWN . . .");
 
-				CommandManager.shutdown();
-				BotCommons.shutdown(jda);
-				jda.shutdown();
+			CommandManager.shutdown();
+			BotCommons.shutdown(jda);
+			jda.shutdown();
 
 //			try
 //			{
@@ -66,15 +62,14 @@ public class Bot
 //				e.printStackTrace();
 //			}
 
-				try {
-					mainThread.join();
-					LOGGER.info("Successful Shutdown");
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-
+			try {
+				mainThread.join();
+				LOGGER.info("Successful Shutdown");
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
-		});
+
+		}));
 	}
 	
 	public static int guildCount()
