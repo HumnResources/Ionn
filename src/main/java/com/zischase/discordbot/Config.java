@@ -9,6 +9,9 @@ public class Config
 	
 	public static String get(String key)
 	{
+		if (System.getenv().isEmpty() || ! System.getenv().containsKey(key))
+			return dotEnv.get(key);
+
 		return System.getenv(key.toUpperCase());
 	}
 	
