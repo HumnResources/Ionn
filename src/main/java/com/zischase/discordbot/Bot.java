@@ -44,16 +44,13 @@ public class Bot
 
 	private static void setShutdownHook()
 	{
-		final Thread mainThread = Thread.currentThread();
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			LOGGER.warn("SHUTTING DOWN . . .");
 
 			CommandManager.shutdown();
 			BotCommons.shutdown(jda);
-			jda.shutdownNow();
-			jda.getCallbackPool()
-					.shutdownNow();
+			jda.shutdown();
 
 			LOGGER.info("Successful Shutdown");
 			System.exit(0);
