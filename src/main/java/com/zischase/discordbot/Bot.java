@@ -39,7 +39,7 @@ public class Bot
 	public static void main(String[] args)
 	{
 		jda.getPresence()
-				.setActivity(Activity.listening("For Music"));
+				.setActivity(Activity.listening(" music"));
 	}
 
 	private static void setShutdownHook()
