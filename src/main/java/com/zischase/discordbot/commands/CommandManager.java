@@ -192,7 +192,7 @@ public final class CommandManager
 	
 	private static void shutdownThreads()
 	{
-		THREAD_POOL_EXECUTOR.shutdown();
+		THREAD_POOL_EXECUTOR.shutdownNow();
 
 
 		if (! THREAD_POOL_EXECUTOR.isShutdown())
