@@ -49,6 +49,8 @@ public class Bot
 			CommandManager.shutdown();
 			BotCommons.shutdown(jda);
 			jda.shutdown();
+
+			Runtime.getRuntime().halt(0);
 		}));
 	}
 	
