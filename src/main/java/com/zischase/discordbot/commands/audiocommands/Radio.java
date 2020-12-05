@@ -25,6 +25,7 @@ public class Radio extends Command
 	
 	static
 	{
+		LOGGER.info("Loading Radio stations.");
 		new CompletableFuture<>().completeAsync(() ->
 		{
 			STATION_LIST = RADIO_BROWSER.listStations(Paging.at(0, 25000));
@@ -104,11 +105,13 @@ public class Radio extends Command
 		// RegEx for negative lookahead searching for only non word characters.
 		String finalQuery = query.replaceAll("(?!\\w|\\s)(\\W)", "")
 								 .toLowerCase();
-		
+
+
+
 		List<Station> stations = STATION_LIST.stream()
 											 .filter(stn -> stn.getName()
-															   .toLowerCase()
-															   .contains(finalQuery))
+													 .toLowerCase()
+													 .matches("(?i)("+finalQuery+")"))
 											 .limit(50)
 											 .collect(Collectors.toList());
 		
