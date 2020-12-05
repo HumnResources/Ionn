@@ -26,7 +26,9 @@ public final class SQLConnectionHandler
 			e.printStackTrace();
 		}
 
-		if (uri != null)
+
+
+		if (uri != null && uri.getHost() != null)
 		{
 			USER = uri.getUserInfo().split(":")[0];
 			PASS = uri.getUserInfo().split(":")[1];
@@ -34,9 +36,9 @@ public final class SQLConnectionHandler
 		}
 		else
 		{
-			USER = null;
-			PASS = null;
-			URL = null;
+			USER = Config.get("DB_USER");
+			PASS = Config.get("DB_PASSWORD");
+			URL = Config.get("DATABASE_URL");
 		}
 		
 		Jdbi.create(SQLConnectionHandler::connect)

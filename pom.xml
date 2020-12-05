@@ -6,7 +6,7 @@
 
     <groupId>com.zischase</groupId>
     <artifactId>discordbot</artifactId>
-    <version>0.9.8.7</version>
+    <version>0.9.8.8</version>
     <build>
         <plugins>
             <plugin>

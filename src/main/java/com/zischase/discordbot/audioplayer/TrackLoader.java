@@ -42,10 +42,7 @@ public class TrackLoader implements AudioLoadResultHandler
 							.audioManager()
 							.getScheduler()
 							.queueAudio(CACHE.get(uri)
-											 .makeClone(), textChannel);
-				LOGGER.info("Cache: {} - {}", CACHE.get(uri)
-												   .getInfo().title, CACHE.get(uri)
-																		  .getInfo().uri);
+									.makeClone(), textChannel);
 			}
 			else
 			{
@@ -53,8 +50,6 @@ public class TrackLoader implements AudioLoadResultHandler
 							.audioManager()
 							.getPlayerManager()
 							.loadItem(uri, this);
-				
-				LOGGER.info("Loading: {}", uri);
 			}
 		}
 		else
@@ -86,7 +81,7 @@ public class TrackLoader implements AudioLoadResultHandler
 	{
 		CACHE.putIfAbsent(audioTrack.getInfo().uri, audioTrack);
 		
-		if (CACHE.size() >= 250)
+		if (CACHE.size() >= 100)
 		{
 			CACHE.remove(0);
 		}
