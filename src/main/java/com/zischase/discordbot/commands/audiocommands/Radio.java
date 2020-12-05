@@ -62,11 +62,10 @@ public class Radio extends Command
 			String query = String.join(" ", args)
 								 .toLowerCase();
 			
-			if (args.get(0)
-					.matches("(i?)(-search|-s)"))
+			if (args.get(0).matches("(?i)(-search|-s)"))
 			{
 				
-				query = query.replaceFirst("(i?)(search|s)", "")
+				query = query.replaceFirst("(?i)(-search|-s)", "")
 							 .trim();
 				
 				searchByString(event, query);
@@ -111,7 +110,8 @@ public class Radio extends Command
 		List<Station> stations = STATION_LIST.stream()
 											 .filter(stn -> stn.getName()
 													 .toLowerCase()
-													 .matches("(?is)("+finalQuery+")"))
+													 .replaceAll("\\W", "")
+													 .contains(finalQuery))
 											 .limit(50)
 											 .collect(Collectors.toList());
 
