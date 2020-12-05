@@ -111,16 +111,19 @@ public class Radio extends Command
 		List<Station> stations = STATION_LIST.stream()
 											 .filter(stn -> stn.getName()
 													 .toLowerCase()
-													 .matches("(?i)("+finalQuery+")"))
+													 .matches("(?is)("+finalQuery+")"))
 											 .limit(50)
 											 .collect(Collectors.toList());
+
+		if (stations.isEmpty())
+			return;
 		
 		List<ISearchable> results = new ArrayList<>();
 		for (Station s : stations)
 		{
 			results.add(new SearchInfo(s));
 		}
-		
+
 		try
 		{
 			ISearchable result = new ResultSelector(results).getChoice(event)
