@@ -51,16 +51,7 @@ public class Bot
 
 			CommandManager.shutdown();
 			BotCommons.shutdown(jda);
-			jda.shutdown();
-
-			try
-			{
-				jda.awaitStatus(JDA.Status.SHUTDOWN);
-			}
-			catch (InterruptedException e)
-			{
-				e.printStackTrace();
-			}
+			jda.shutdownNow();
 
 //			try {
 //				mainThread.join();
