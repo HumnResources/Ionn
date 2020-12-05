@@ -156,7 +156,7 @@ public final class CommandManager
 	
 	public static void shutdown()
 	{
-		CommandManager.shutdownThreads();
+		shutdownThreads();
 		LOGGER.info(getReport());
 	}
 	
