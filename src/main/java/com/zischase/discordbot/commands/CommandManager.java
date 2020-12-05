@@ -194,14 +194,6 @@ public final class CommandManager
 	{
 		THREAD_POOL_EXECUTOR.shutdown();
 
-		try
-		{
-			THREAD_POOL_EXECUTOR.awaitTermination(5000, TimeUnit.MILLISECONDS);
-		}
-		catch (InterruptedException e)
-		{
-			e.printStackTrace();
-		}
 
 		if (! THREAD_POOL_EXECUTOR.isShutdown())
 		{
