@@ -30,7 +30,7 @@ public class TrackScheduler extends AudioEventAdapter
 
 	static
 	{
-		LOGGER.info("TrackSchedulers initialized.");
+		LOGGER.info("TrackSchedulers Initialized");
 	}
 
 	public TrackScheduler(AudioPlayer player)

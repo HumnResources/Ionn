@@ -25,11 +25,11 @@ public class Radio extends Command
 	
 	static
 	{
-		LOGGER.info("Loading Radio stations.");
+		LOGGER.info("Loading Radio Stations");
 		new CompletableFuture<>().completeAsync(() ->
 		{
 			STATION_LIST = RADIO_BROWSER.listStations(Paging.at(0, 25000));
-			LOGGER.info("Stations Loaded!");
+			LOGGER.info("Stations Loaded");
 			return STATION_LIST;
 		});
 	}

@@ -57,7 +57,7 @@ public final class SQLConnectionHandler
 								"volume VARCHAR NOT NULL DEFAULT '"+Config.get("DEFAULT_VOLUME")+"')");
 			});
 		
-		LOGGER.info("Connection established!");
+		LOGGER.info("DataBase Connection Established");
 	}
 	
 	private SQLConnectionHandler()
