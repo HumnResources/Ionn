@@ -163,7 +163,7 @@ public final class CommandManager
 	
 	public static String getReport()
 	{
-		return "=======================\n" +
+		return "\n=======================\n" +
 				"Bot version: " + Config.get("VERSION") + "\n" +
 				"Tasks completed: " + THREAD_POOL_EXECUTOR.getCompletedTaskCount() + "\n" +
 				"Tasks in queue: " + THREAD_POOL_EXECUTOR.getQueue()

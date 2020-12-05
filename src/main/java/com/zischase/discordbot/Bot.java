@@ -65,6 +65,7 @@ public class Bot
 			try {
 				mainThread.join();
 				LOGGER.info("Successful Shutdown");
+				System.exit(0);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
