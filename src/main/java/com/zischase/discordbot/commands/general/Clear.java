@@ -63,9 +63,10 @@ public class Clear extends Command
 										.complete();
 			
 			messages.removeIf(message -> message.getTimeCreated()
-												.isBefore(OffsetDateTime.now()
-																		.minusDays(14)));
-			
+					.isBefore(OffsetDateTime.now().minusDays(14)));
+
+			messages.removeIf(Message::isPinned);
+
 			if (messages.size() == 1)
 			{
 				ctx.getChannel()
