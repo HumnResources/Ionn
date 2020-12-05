@@ -1,5 +1,6 @@
 package com.zischase.discordbot;
 
+import com.zischase.discordbot.commands.CommandManager;
 import me.duncte123.botcommons.BotCommons;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -45,11 +46,10 @@ public class Bot
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			LOGGER.warn("SHUTTING DOWN . . .");
 
-//			CommandManager.shutdown();
+			CommandManager.shutdown();
 			BotCommons.shutdown(jda);
-			jda.shutdown();
+			jda.shutdownNow();
 
-			LOGGER.info("Successful Shutdown");
 			System.exit(0);
 		}));
 	}

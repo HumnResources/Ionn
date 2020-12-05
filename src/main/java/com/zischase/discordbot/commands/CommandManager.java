@@ -42,7 +42,7 @@ public final class CommandManager
 		addCommand(new Youtube());
 		addCommand(new Prefix());
 		addCommand(new Playlist());
-//  addCommandmand(new Lyrics());
+//  addCommand(new Lyrics());
 		addCommand(new Clear());
 		addCommand(new Queue());
 		addCommand(new Join());
@@ -57,7 +57,7 @@ public final class CommandManager
 		
 		int defaultPoolCount = Integer.parseInt(Config.get("DEFAULT_COMMAND_THREADS"));
 		POOL_COUNT = Bot.guildCount() * (CommandManager.getCommandCount() / 4);
-		
+
 		if (POOL_COUNT > defaultPoolCount)
 		{
 			THREAD_POOL_EXECUTOR = (ThreadPoolExecutor) Executors.newFixedThreadPool(POOL_COUNT);
@@ -73,7 +73,7 @@ public final class CommandManager
 	
 	public static List<Command> getCommandList()
 	{
-		return commands;
+		return List.copyOf(commands);
 	}
 	
 	public static void invoke(GuildMessageReceivedEvent event)
@@ -116,7 +116,7 @@ public final class CommandManager
 
 					ACTIVE_COMMAND_GUILDS.remove(event.getGuild().getIdLong());
 					return;
-//				}
+
 			}
 			new CompletableFuture<>().completeAsync(() ->
 			{
@@ -124,7 +124,7 @@ public final class CommandManager
 				ACTIVE_COMMAND_GUILDS.remove(event.getGuild().getIdLong());
 				return true;
 			}, THREAD_POOL_EXECUTOR);
-//
+
 			THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount() + 1);
 		}
 	}
@@ -156,8 +156,8 @@ public final class CommandManager
 	
 	public static void shutdown()
 	{
-		LOGGER.info(getReport());
 		shutdownThreads();
+		LOGGER.info(getReport());
 	}
 	
 	
@@ -166,8 +166,7 @@ public final class CommandManager
 		return "\n=======================\n" +
 				"Bot version: " + Config.get("VERSION") + "\n" +
 				"Tasks completed: " + THREAD_POOL_EXECUTOR.getCompletedTaskCount() + "\n" +
-				"Tasks in queue: " + THREAD_POOL_EXECUTOR.getQueue()
-														 .size() + "\n" +
+				"Tasks in queue: " + THREAD_POOL_EXECUTOR.getQueue().size() + "\n" +
 				"=======================\n" +
 				"Active Thread Count: " + THREAD_POOL_EXECUTOR.getActiveCount() + "\n" +
 				"Current Thread Count: " + THREAD_POOL_EXECUTOR.getCorePoolSize() + "\n" +
@@ -195,11 +194,6 @@ public final class CommandManager
 		THREAD_POOL_EXECUTOR.purge();
 		THREAD_POOL_EXECUTOR.shutdown();
 
-		try {
-			THREAD_POOL_EXECUTOR.awaitTermination(2000, TimeUnit.MILLISECONDS);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 
 		if (! THREAD_POOL_EXECUTOR.isShutdown())
 		{

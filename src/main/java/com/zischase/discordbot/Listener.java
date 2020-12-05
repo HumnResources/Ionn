@@ -43,7 +43,7 @@ public class Listener extends ListenerAdapter
 		{
 			return;
 		}
-		
+
 		String prefix = Prefix.getPrefix(event.getGuild());
 		String raw = event.getMessage()
 						  .getContentRaw();
@@ -56,12 +56,6 @@ public class Listener extends ListenerAdapter
 				shutdown(event.getJDA());
 				return;
 			}
-//			else if (raw.equalsIgnoreCase(prefix + "restart"))
-//			{
-//				LOGGER.info("Restarting...");
-//				restart(event);
-//				return;
-//			}
 			else if (raw.equalsIgnoreCase(prefix + "threadreport"))
 			{
 				event.getChannel()
@@ -75,21 +69,7 @@ public class Listener extends ListenerAdapter
 			CommandManager.invoke(event);
 		}
 	}
-	
-//	private static void restart(GuildMessageReceivedEvent event)
-//	{
-//		shutdown(event.getJDA());
-//
-//		try
-//		{
-//			Runtime.getRuntime().exec("java -jar discordbot-" + Config.get("VERSION") + ".jar");
-//		}
-//		catch (IOException e)
-//		{
-//			e.printStackTrace();
-//		}
-//
-//	}
+
 	
 	private static void shutdown(JDA jda)
 	{

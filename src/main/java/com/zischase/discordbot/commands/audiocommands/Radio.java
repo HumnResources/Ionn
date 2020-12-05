@@ -26,16 +26,8 @@ public class Radio extends Command
 	static
 	{
 		LOGGER.info("Loading Radio Stations");
-		
-
-
-	
-
-			STATION_LIST = RADIO_BROWSER.listStations(Paging.at(0, 25000));
-			LOGGER.info("Stations Loaded");
-			
-		
-		
+		STATION_LIST = RADIO_BROWSER.listStations(Paging.at(0, 25000));
+		LOGGER.info("Stations Loaded");
 	}
 	
 	public Radio()

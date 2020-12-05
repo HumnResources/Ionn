@@ -66,8 +66,12 @@ public class Volume extends Command
 		if (args.get(0).matches("\\d+"))
 		{
 			int num = Integer.parseInt(args.get(0));
-			
-			boolean validNum = (num >= 0 && num <= maxVolume);
+			int max = maxVolume;
+
+			if (GuildManager.getContext(guild).isPremium())
+				max = 100;
+
+			boolean validNum = (num >= 0 && num <= max);
 			
 			if (validNum)
 			{
@@ -98,7 +102,6 @@ public class Volume extends Command
 	
 	private String getVolume(Guild guild)
 	{
-//		return DataBaseManager.get(guild.getId(), "volume");
 		return String.valueOf(GuildManager.getContext(guild)
 										  .audioManager()
 										  .getPlayer()
