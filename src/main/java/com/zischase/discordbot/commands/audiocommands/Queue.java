@@ -77,7 +77,7 @@ public class Queue extends Command
 				}
 				else if (args.get(0).matches("(?i)-(jump|jumpto|j)"))
 				{
-					queue.addAll(queue.subList(0, index - 1));
+					queue.addAll(queue.subList(0, index));
 					
 					ArrayList<AudioTrack> newQueue = new ArrayList<>(queue.subList(index, queue.size()));
 					
