@@ -192,7 +192,7 @@ public class PlayerPrinter
 
 						String title = msg.getEmbeds().get(0).getTitle();
 						assert title != null;
-						return title.equalsIgnoreCase(titleSearch);
+						return title.matches("(?i)("+titleSearch+"|Nothing Playing)");
 					}
 					return false;
 				})
