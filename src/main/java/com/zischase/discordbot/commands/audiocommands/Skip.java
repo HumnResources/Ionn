@@ -5,6 +5,8 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 
+import java.util.List;
+
 public class Skip extends Command
 {
 	
@@ -18,7 +20,12 @@ public class Skip extends Command
 	{
 		return "Skip ~ Skip current track and play next in queue.";
 	}
-	
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("next", "n", "s");
+	}
+
 	@Override
 	public void handle(CommandContext ctx)
 	{

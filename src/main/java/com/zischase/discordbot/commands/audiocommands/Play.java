@@ -49,7 +49,7 @@ public class Play extends Command
 				.audioManager()
 				.getTrackLoader();
 		
-		if (args.isEmpty())
+		if (args.isEmpty() || args.get(0).matches("(?i)-(pause)"))
 		{
 			AudioPlayer player = GuildManager.getContext(guild)
 											 .audioManager()
@@ -57,7 +57,7 @@ public class Play extends Command
 			boolean isPaused = player.isPaused();
 			player.setPaused(! isPaused);
 		}
-		else if (args.get(0).matches("(?i)(-next|-n)"))
+		else if (args.get(0).matches("(?i)-(next|n)"))
 		{
 			String song = String.join(" ", args.subList(1, args.size()));
 			playNext(song, ctx.getEvent(), trackLoader);

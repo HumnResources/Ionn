@@ -33,7 +33,14 @@ public class Playlist extends Command
 	@Override
 	public String getHelp()
 	{
-		return null;
+		return """
+         	`Playlist/Pl/Plist` : Displays a list of currently made playlists.
+     		`Playlist [-Current | -C | -Queue | -Q]` : Creates a playlist of the current queue.
+     		`Playlist [-Delete | -D | -Remove | -R] [Name...] : Deletes the playlist with the specified name.
+     		`Playlist [-add | -new] [Name...]` : Adds a new playlist with the specified name.
+     		`Playlist [-Play | -P] [Name...]` : Loads the prefix with the specified name.
+     				Note: Active development and the playlists are currently not persistent. Use at your own risk.
+			""";
 	}
 	
 	@Override
@@ -47,13 +54,12 @@ public class Playlist extends Command
 			return;
 		}
 		
-		
 		String cmd = args.get(0);
-		String playlist = String.join(" ", args.subList(1, args.size()));
+		String playlistName = String.join(" ", args.subList(1, args.size()));
 		
-		if (cmd.matches("(?i)(-play|-p)") || playlists.containsKey(cmd))
+		if (cmd.matches("(?i)-(play|p)") || playlists.containsKey(cmd))
 		{
-			if (! playlists.containsKey(playlist.toLowerCase()))
+			if (! playlists.containsKey(playlistName.toLowerCase()))
 			{
 				ctx.getChannel()
 				   .sendMessage("Sorry, playlist not found.")
@@ -62,17 +68,17 @@ public class Playlist extends Command
 			}
 			
 			ctx.getChannel()
-			   .sendMessage("Loading playlist `" + playlist + "`")
+			   .sendMessage("Loading playlist `" + playlistName + "`")
 			   .queue();
 			
 			GuildManager.getContext(ctx.getGuild())
 						.audioManager()
 						.getScheduler()
-						.queueList(getPlaylist(playlist), ctx.getChannel());
+						.queueList(getPlaylist(playlistName), ctx.getChannel());
 			
 			return;
 		}
-		else if (cmd.matches("(?i)(-current|-c|-np|-nowplaying)"))
+		else if (cmd.matches("(?i)-(current|c|q|queue)"))
 		{
 			ArrayList<AudioTrack> queue = GuildManager.getContext(ctx.getGuild())
 													  .audioManager()
@@ -92,17 +98,17 @@ public class Playlist extends Command
 			   .queue();
 		}
 		
-		else if (cmd.matches("(?i)(-add|-new)"))
+		else if (cmd.matches("(?i)-(add|new)"))
 		{
 			ArrayList<AudioTrack> q = GuildManager.getContext(ctx.getGuild())
 												  .audioManager()
 												  .getScheduler()
 												  .getQueue();
 			
-			addPlaylist(playlist, q);
+			addPlaylist(playlistName, q);
 			printPlaylists(ctx.getChannel());
 		}
-		else if (cmd.matches("(?i)(-delete|-d|-remove|-r)"))
+		else if (cmd.matches("(?i)-(delete|d|remove|r)"))
 		{
 			playlists.remove(args.get(1)
 								 .toLowerCase());
