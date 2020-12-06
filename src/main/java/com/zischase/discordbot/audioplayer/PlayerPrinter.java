@@ -132,6 +132,14 @@ public class PlayerPrinter
 	public void printQueue(AudioManager audioManager, TextChannel channel)
 	{
 		deletePrevious(channel);
+
+		// Commands are run asynchronously so this **should** be thread safe.
+		try
+		{
+			Thread.currentThread().wait(600);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		
 		ArrayList<AudioTrack> queue = audioManager.getScheduler()
 												  .getQueue();
@@ -192,13 +200,7 @@ public class PlayerPrinter
 		embed.appendDescription(" ```fix\nUp Next: " + queue.get(queue.size() - 1).getInfo().title + "```");
 
 
-		// Commands are run asynchronously so this **should** be thread safe.
-		try
-		{
-			Thread.currentThread().wait(600);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+
 
 
 		channel.sendMessage(embed.build())
