@@ -37,14 +37,13 @@ public class Help extends Command
 
 		cmdList.appendDescription(String.format("The current prefix is set to: `%s`\n", prefix));
 		
-		CommandManager.getCommandList()
-					  .forEach(command ->
+		CommandManager.getCommandList().forEach(command ->
 					  {
-						  if ((! command.premiumCommand) || (GuildManager.getContext(guild)
-																		 .isPremium()))
+						  if (! command.premiumCommand || GuildManager.getContext(guild).isPremium())
 						  {
 							  cmdList.appendDescription(String.format("`%s%s`\n", prefix, command.getName()));
 						  }
+
 					  });
 		
 		return cmdList.build();
@@ -66,9 +65,8 @@ public class Help extends Command
 		{
 			channel.sendMessage(printCommandList(ctx.getGuild()))
 				   .queue();
-			return;
 		}
-		else if (args.size() >= 1 && args.get(0).matches("(?i)audio | media | music"))
+		else if (args.get(0).matches("(?i)audio | media | music"))
 		{
 			channel.sendMessage(DataBaseManager.get(ctx.getGuild().getId(), "PREFIX") +
 					"youtube\n" +

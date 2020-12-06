@@ -68,7 +68,7 @@ public class Volume extends Command
 			int num = Integer.parseInt(args.get(0));
 			int max = maxVolume;
 
-			if (DataBaseManager.get(guild.getId(), "ispremium").equalsIgnoreCase("true"))
+			if (GuildManager.getContext(guild).isPremium())
 				max = 100;
 
 			boolean validNum = (num >= 0 && num <= max);

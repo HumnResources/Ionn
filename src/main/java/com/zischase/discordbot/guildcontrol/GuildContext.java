@@ -1,5 +1,6 @@
 package com.zischase.discordbot.guildcontrol;
 
+import com.zischase.discordbot.DataBaseManager;
 import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.audioplayer.PlayerPrinter;
 import net.dv8tion.jda.api.entities.Guild;
@@ -15,7 +16,7 @@ public class GuildContext implements IGuildContext
 	public GuildContext(Guild guild)
 	{
 		this.guild = guild;
-		this.premium = false;
+		this.premium = Boolean.parseBoolean(DataBaseManager.get(this.guild.getId(), "ispremium"));
 		this.audioManager = new AudioManager(guild);
 		this.playerPrinter = new PlayerPrinter();
 		
@@ -43,6 +44,6 @@ public class GuildContext implements IGuildContext
 	@Override
 	public boolean isPremium()
 	{
-		return premium;
+		return this.premium;
 	}
 }
