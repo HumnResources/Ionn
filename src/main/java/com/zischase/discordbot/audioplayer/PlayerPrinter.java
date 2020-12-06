@@ -199,12 +199,13 @@ public class PlayerPrinter
 	{
 		
 		textChannel.getHistory()
-				   .retrievePast(100)
+				   .retrievePast(10)
 				   .queue(messages ->
 				   {
 					   List<Message> msgList = messages.stream()
 													   .filter(msg -> msg.getAuthor().isBot())
 													   .filter(msg -> ! msg.getEmbeds().isEmpty())
+							   						   .filter(msg -> ! msg.isPinned())
 													   .filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
 													   .collect(Collectors.toList());
 					   if (msgList.size() == 1)
