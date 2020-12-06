@@ -66,8 +66,8 @@ public final class CommandManager
 		{
 			THREAD_POOL_EXECUTOR = (ThreadPoolExecutor) Executors.newFixedThreadPool(defaultPoolCount);
 		}
-		THREAD_POOL_EXECUTOR.setKeepAliveTime(3000, TimeUnit.MILLISECONDS);
-		THREAD_POOL_EXECUTOR.allowsCoreThreadTimeOut();
+
+		THREAD_POOL_EXECUTOR.setKeepAliveTime(30000, TimeUnit.MILLISECONDS);
 		THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount());
 	}
 	
@@ -118,6 +118,7 @@ public final class CommandManager
 					return;
 
 			}
+			THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount() + 1);
 			new CompletableFuture<>().completeAsync(() ->
 			{
 				cmd.handle(ctx);
@@ -125,7 +126,6 @@ public final class CommandManager
 				return true;
 			}, THREAD_POOL_EXECUTOR);
 
-			THREAD_POOL_EXECUTOR.setCorePoolSize(THREAD_POOL_EXECUTOR.getActiveCount() + 1);
 		}
 	}
 	

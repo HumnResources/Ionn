@@ -1,6 +1,5 @@
 package com.zischase.discordbot.commands.general;
 
-import com.zischase.discordbot.DataBaseManager;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.commands.CommandManager;
@@ -52,34 +51,11 @@ public class Help extends Command
 	@Override
 	public String getHelp()
 	{
-		return """
-				Help [command] : Get help about a specific command.
-				Help [-Audio | -Media | -Music] : Displays a list of media commands.
-				""";
-	}
-	
-	@Override
-	public void handle(CommandContext ctx)
-	{
-		TextChannel channel = ctx.getChannel();
-		List<String> args = ctx.getArgs();
-		
-		if (args.isEmpty())
-		{
-			channel.sendMessage(printCommandList(ctx.getGuild()))
-				   .queue();
-		}
-
-		boolean audioHelp = args.get(0).matches("(?i)-(audio|media|music)");
-
-		if (audioHelp)
-		{
-			EmbedBuilder embedBuilder = new EmbedBuilder();
-
-			String prefix = DataBaseManager.get(ctx.getGuild().getId(), "prefix");
-			String audioHelpText = String.format("""
-     		
-		  !! Use the prefix `%s` with the command !!
+		return String.format("""     		
+		  !! Use the prefix with the command !!
+		  
+`Help [command]` : Get help about a specific command.
+`Help [-Audio | -Media | -Music]` : Displays a list of media commands.
      		
 `YouTube [Search...]` : Searches YouTube for the song and adds it to the queue.
 `YouTube [-search | -s] [Search...]` : Searches YouTube for song and displays a list to choose.
@@ -112,9 +88,24 @@ public class Help extends Command
     Note: Active development and the playlists are currently not persistent. Use at your own risk.
      				
 	*Premium Features.
-""", prefix);
-
-			embedBuilder.appendDescription(audioHelpText);
+""");
+	}
+	
+	@Override
+	public void handle(CommandContext ctx)
+	{
+		TextChannel channel = ctx.getChannel();
+		List<String> args = ctx.getArgs();
+		
+		if (args.isEmpty())
+		{
+			channel.sendMessage(printCommandList(ctx.getGuild()))
+				   .queue();
+		}
+		else if (args.get(0).matches("(?i)-(audio|media|music)"))
+		{
+			EmbedBuilder embedBuilder = new EmbedBuilder();
+			embedBuilder.appendDescription(getHelp());
 			embedBuilder.setColor(Color.magenta);
 
 			channel.sendMessage(embedBuilder.build()).queue();
@@ -128,10 +119,12 @@ public class Help extends Command
 			{
 				channel.sendMessage("Command " + cmdSearch + " not found.")
 						.queue();
-				return;
 			}
-			channel.sendMessage(command.getHelp())
-					.queue();
+			else
+			{
+				channel.sendMessage(command.getHelp())
+						.queue();
+			}
 		}
 	}
 }

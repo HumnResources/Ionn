@@ -7,8 +7,6 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.time.OffsetDateTime;
@@ -20,16 +18,14 @@ import java.util.stream.Collectors;
 
 public class PlayerPrinter
 {
-	private static final Logger LOGGER = LoggerFactory.getLogger(PlayerPrinter.class);
-//	private final AudioManager audioManager;
-	
 	public PlayerPrinter()
 	{
-//		this.audioManager = audioManager;
 	}
 	
 	public void printNowPlaying(AudioManager audioManager, TextChannel channel)
 	{
+		deletePrevious(channel, "Now Playing");
+
 		AudioPlayer player = audioManager.getPlayer();
 		
 		EmbedBuilder embed = new EmbedBuilder();
@@ -84,38 +80,7 @@ public class PlayerPrinter
 											  .build();
 		
 		long finalDelayMS = delayMS;
-		channel.getHistory()
-			   .retrievePast(10)
-			   .queue(messages ->
-			   {
-				   List<Message> deleteList = messages.stream()
-													  .filter(msg -> msg.getAuthor().isBot())
-													  .filter(msg -> ! msg.getEmbeds().isEmpty())
-													  .filter(msg ->
-													  {
-														  if (msg.getEmbeds().get(0).getTitle() != null)
-														  {
-															  String title = msg.getEmbeds().get(0).getTitle();
-															  assert title != null;
-															  return title.equalsIgnoreCase("Now Playing");
-														  }
-														  return false;
-													  })
-													  .collect(Collectors.toList());
 
-				   if (! deleteList.isEmpty())
-				   {
-					   if (deleteList.size() == 1)
-					   {
-						   channel.deleteMessageById(deleteList.get(0).getId())
-								  .queue(null, Throwable::getSuppressed);
-					   }
-					   else
-					   {
-						   channel.deleteMessages(deleteList)
-								  .queue(null, Throwable::getSuppressed);
-					   }
-				   }
 
 				   channel.sendMessage(message)
 						  .queue(msg ->
@@ -123,30 +88,23 @@ public class PlayerPrinter
 							  if (channel.getHistory().getRetrievedHistory().contains(msg))
 							  {
 								  msg.delete()
-									 .queueAfter(finalDelayMS, TimeUnit.MILLISECONDS);
+										  .queueAfter(finalDelayMS, TimeUnit.MILLISECONDS);
 							  }
 						  });
-			   });
 	}
 	
 	public void printQueue(AudioManager audioManager, TextChannel channel)
 	{
-		deletePrevious(channel);
-
-		// Commands are run asynchronously so this **should** be thread safe.
-		try
-		{
-			Thread.currentThread().wait(600);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		
 		ArrayList<AudioTrack> queue = audioManager.getScheduler()
 												  .getQueue();
 		
 		EmbedBuilder embed = new EmbedBuilder();
 		embed.setColor(Color.BLUE);
-		
+		embed.setTitle("Queue");
+
+		deletePrevious(channel, "Queue");
+
 		if (queue.isEmpty())
 		{
 			embed.appendDescription("Nothing in the queue.");
@@ -162,7 +120,8 @@ public class PlayerPrinter
 				   });
 			return;
 		}
-		
+
+
 		if (queue.size() > 1)
 		{
 			Collections.reverse(queue);
@@ -191,6 +150,7 @@ public class PlayerPrinter
 					
 					embed = new EmbedBuilder();
 					embed.setColor(Color.BLUE);
+					embed.setTitle("Queue");
 					embed.appendDescription("```\n");
 				}
 			}
@@ -199,39 +159,56 @@ public class PlayerPrinter
 		
 		embed.appendDescription(" ```fix\nUp Next: " + queue.get(queue.size() - 1).getInfo().title + "```");
 
-
-
-
-
 		channel.sendMessage(embed.build())
-			   .queue();
+			   .queue(msg ->
+			   {
+				   if (channel.getHistory().getRetrievedHistory().contains(msg))
+				   {
+					   msg.delete()
+							   .queueAfter(5000, TimeUnit.MILLISECONDS);
+				   }
+			   });
 	}
 	
-	private void deletePrevious(TextChannel textChannel)
+	private void deletePrevious(TextChannel textChannel, String titleSearch)
 	{
-		
-		textChannel.getHistory()
-				   .retrievePast(10)
-				   .queue(messages ->
-				   {
-					   List<Message> msgList = messages.stream()
-													   .filter(msg -> msg.getAuthor().isBot())
-													   .filter(msg -> ! msg.getEmbeds().isEmpty())
-							   						   .filter(msg -> ! msg.isPinned())
-													   .filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
-													   .collect(Collectors.toList());
-					   if (msgList.size() == 1)
-					   {
-						   textChannel.deleteMessageById(msgList.get(0).getId())
-									  .queue(null, Throwable::getSuppressed);
-					   }
-					   else if (msgList.size() > 1)
-					   {
-						   textChannel.deleteMessages(msgList)
-									  .queue(null, Throwable::getSuppressed);
-					   }
-				   });
-		
+
+		if (titleSearch == null)
+		{
+			return;
+		}
+
+		List<Message> msgList = textChannel.getHistory()
+				.retrievePast(25)
+				.complete()
+				.stream()
+				.filter(msg -> msg.getAuthor().isBot())
+				.filter(msg -> ! msg.getEmbeds().isEmpty())
+				.filter(msg -> ! msg.isPinned())
+				.filter(msg ->
+				{
+					if (msg.getEmbeds().get(0).getTitle() != null)
+					{
+
+						String title = msg.getEmbeds().get(0).getTitle();
+						assert title != null;
+						return title.equalsIgnoreCase(titleSearch);
+					}
+					return false;
+				})
+				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
+				.collect(Collectors.toList());
+
+		if (msgList.size() == 1)
+		{
+			textChannel.deleteMessageById(msgList.get(0).getId())
+					.complete();
+		}
+		else if (msgList.size() > 1)
+		{
+			textChannel.deleteMessages(msgList)
+					.complete();
+		}
 	}
 	
 }
