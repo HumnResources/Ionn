@@ -1,6 +1,7 @@
 package com.zischase.discordbot.commands;
 
 import com.zischase.discordbot.commands.audiocommands.*;
+import com.zischase.discordbot.commands.dev.Spam;
 import com.zischase.discordbot.commands.general.Clear;
 import com.zischase.discordbot.commands.general.Help;
 import com.zischase.discordbot.commands.general.Prefix;
@@ -34,6 +35,7 @@ public final class CommandManager
 		addCommand(new Prefix());
 		addCommand(new Playlist());
 //  addCommand(new Lyrics());
+		addCommand(new Spam());
 		addCommand(new Clear());
 		addCommand(new Queue());
 		addCommand(new Join());

@@ -52,6 +52,16 @@ public class CommandThreadManager {
             }
         };
 
+        int activeThreads = poolExecutor.getActiveCount();
+
+        while (activeThreads >= poolExecutor.getMaximumPoolSize())
+        {
+            activeThreads = poolExecutor.getActiveCount();
+        }
+
+
+
+        poolExecutor.setCorePoolSize(poolExecutor.getActiveCount() + 1);
         poolExecutor.execute(runnable);
 
         LOGGER.info("Guild: {} Executed Command: {} On Thread: Command-Thread-{}",event.getGuild(), runnable.toString(), poolExecutor.getActiveCount());

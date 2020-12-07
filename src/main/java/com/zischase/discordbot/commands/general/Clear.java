@@ -48,13 +48,13 @@ public class Clear extends Command
 		
 		
 		int delete = numOfMsgs;
-		
+		OffsetDateTime start = OffsetDateTime.now();
+
 		while (numOfMsgs > 0)
 		{
 			if (delete >= 100)
 			{
-				delete = delete / 10;
-				continue;
+				delete = 100;
 			}
 			
 			List<Message> messages = ctx.getChannel()
@@ -62,10 +62,11 @@ public class Clear extends Command
 										.retrievePast(delete)
 										.complete();
 			
-			messages.removeIf(message -> message.getTimeCreated()
-					.isBefore(OffsetDateTime.now().minusDays(14)));
-
+			messages.removeIf(message -> message.getTimeCreated().isBefore(OffsetDateTime.now().minusDays(14)));
 			messages.removeIf(Message::isPinned);
+			messages.removeIf(message -> message.getTimeCreated().isAfter(start));
+
+
 
 			if (messages.size() == 1)
 			{
@@ -84,6 +85,7 @@ public class Clear extends Command
 			   .deleteMessages(messages)
 			   .complete();
 			numOfMsgs = numOfMsgs - delete;
+			delete = numOfMsgs;
 		}
 		
 		ctx.getChannel()

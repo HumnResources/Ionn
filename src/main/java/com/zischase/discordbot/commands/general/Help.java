@@ -44,51 +44,16 @@ public class Help extends Command
 						  }
 
 					  });
-		
+		cmdList.appendDescription("\nUse `[Audio | Media | Music]` for more help.");
+
+
 		return cmdList.build();
 	}
 	
 	@Override
 	public String getHelp()
 	{
-		return String.format("""     		
-		  !! Use the prefix with the command !!
-		  
-`Help [command]` : Get help about a specific command.
-`Help [-Audio | -Media | -Music]` : Displays a list of media commands.
-     		
-`YouTube [Search...]` : Searches YouTube for the song and adds it to the queue.
-`YouTube [-search | -s] [Search...]` : Searches YouTube for song and displays a list to choose.
-     				
-`Shuffle` : Shuffles the current queue.*
-`Repeat` : Displays current repeat state.*
-`Repeat [-on | -off]` : Toggles repeat for the current queue.*
-`Stop` : Clears the queue and has the bot leave the channel.
-`Join` : Summons the bot to the channel.
-`skip/next` : Plays the next song in the queue.
-`NowPlaying/np` : Shows currently playing track.
-`Pause/P` : Pauses/Resumes the currently playing track. 
-     				
-`Queue/Q` : Displays the currently playing song and remaining queue.
-`Queue [-JumpTo | -Jump | -J] [queue position]` : Skips the queue to specified position. Maintaining play order.
-`Queue [-Next | -N] [queue position]` : Moves the specified song to the next in queue.
-     				
-`Play` [url] : Adds the specified song/playlist to the queue from a provided link.
-`Play [-next | -n] [url]` : Adds the specified song/playlist to the next in queue. 
-	Note: Currently playlist support is limited to YouTube playlist links only.
-     					
-`Volume/V` : Displays the current volume.
-`Volume [0-25]` : Sets the volume to the specified level. Premium Users: `[0-100]`*
-     				
-`Playlist/Pl/Plist` : Displays a list of currently made playlists.*
-`Playlist [-Current | -C | -Queue | -Q]` : Creates a playlist of the current queue.*
-`Playlist [-Delete | -D | -Remove | -R] [Name...]` : Deletes the playlist with the specified name.*
-`Playlist [-add | -new] [Name...]` : Adds a new playlist with the specified name.*
-`Playlist [-Play | -P] [Name...]` : Loads the prefix with the specified name.*
-    Note: Active development and the playlists are currently not persistent. Use at your own risk.
-     				
-	*Premium Features.
-""");
+		return null;
 	}
 	
 	@Override
@@ -102,10 +67,10 @@ public class Help extends Command
 			channel.sendMessage(printCommandList(ctx.getGuild()))
 				   .queue();
 		}
-		else if (args.get(0).matches("(?i)-(audio|media|music)"))
+		else if (args.get(0).matches("(?i)(audio|media|music)"))
 		{
 			EmbedBuilder embedBuilder = new EmbedBuilder();
-			embedBuilder.appendDescription(getHelp());
+			embedBuilder.appendDescription(getAudioHelp());
 			embedBuilder.setColor(Color.magenta);
 
 			channel.sendMessage(embedBuilder.build()).queue();
@@ -126,5 +91,46 @@ public class Help extends Command
 						.queue();
 			}
 		}
+	}
+
+	private String getAudioHelp()
+	{
+		return """     		
+		  !! Use the prefix with the command !!
+		  
+`Help [command]`				  : Get help about a specific command.
+`Help [-Audio | -Media | -Music]` : Displays a list of media commands.
+     		
+`YouTube [Search...]` 				 : Searches YouTube for the song and adds it to the queue.
+`YouTube [-search | -s] [Search...]` : Searches YouTube for song and displays a list to choose.
+     				
+`Shuffle`			  : Shuffles the current queue.*
+`Repeat` 			  : Displays current repeat state.*
+`Repeat [-on | -off]` : Toggles repeat for the current queue.*
+`Stop` 				  : Clears the queue and has the bot leave the channel.
+`Join` 				  : Summons the bot to the channel.
+`skip/next` 		  : Plays the next song in the queue.
+`NowPlaying/np` 	  : Shows currently playing track.
+`Pause/P` 			  : Pauses/Resumes the currently playing track. 
+     				
+`Queue/Q` : Displays the currently playing song and remaining queue.
+`Queue [-JumpTo | -Jump | -J] [queue position]` : Skips the queue to specified position. Maintaining play order.
+`Queue [-Next | -N] [queue position]` : Moves the specified song to the next in queue.
+     				
+`Play` [url] : Adds the specified song/playlist to the queue from a provided link.
+`Play [-next | -n] [url]` : Adds the specified song/playlist to the next in queue. 
+	Note: Currently playlist support is limited to YouTube playlist links only.
+     					
+`Volume/V` : Displays the current volume.
+`Volume [0-25]` : Sets the volume to the specified level. Premium Users: `[0-100]`*
+     				
+`Playlist/Pl/Plist` : Displays a list of currently made playlists.*
+`Playlist [-Current | -C | -Queue | -Q]` : Creates a playlist of the current queue.*
+`Playlist [-Delete | -D | -Remove | -R] [Name...]` : Deletes the playlist with the specified name.*
+`Playlist [-add | -new] [Name...]` : Adds a new playlist with the specified name.*
+`Playlist [-Play | -P] [Name...]` : Loads the prefix with the specified name.*
+     				
+	*Premium Features.
+""";
 	}
 }

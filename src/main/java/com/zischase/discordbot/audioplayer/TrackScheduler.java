@@ -79,12 +79,8 @@ public class TrackScheduler extends AudioEventAdapter
 		this.textChannel = channel;
 		
 		this.queue.addAll(tracks);
-		
-		if (player.isPaused())
-		{
-			this.player.setPaused(false);
-		}
-		else if (player.getPlayingTrack() == null)
+
+		if (player.getPlayingTrack() == null)
 		{
 			this.player.startTrack(queue.poll(), false);
 		}
