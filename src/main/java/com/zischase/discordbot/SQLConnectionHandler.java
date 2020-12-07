@@ -62,8 +62,8 @@ public final class SQLConnectionHandler
 						" CREATE TABLE IF NOT EXISTS youtube_playlists( " +
 								"id SERIAL PRIMARY KEY," +
 								"guild_id VARCHAR(20) NOT NULL," +
-								"playlist_name VARCHAR, " +
-								"playlist_link VARCHAR)");
+								"playlist_name VARCHAR NOT NULL," +
+								"playlist_url VARCHAR NOT NULL)");
 			});
 		
 		LOGGER.info("DataBase Connection Established");

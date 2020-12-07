@@ -29,18 +29,18 @@ public final class DataBaseManager
 		}
 		
 		Jdbi.create(SQLConnectionHandler::getConnection)
-				.withHandle(handle ->
+				.useHandle(handle ->
 				{
 					if (checkTable(handle, "guild_settings", setting))
 					{
 						handle.execute("UPDATE guild_settings SET " + setting + " = ? WHERE guild_id = ?", value, guildID);
 					}
-					if (checkTable(handle, "media_settings", setting))
+					else if (checkTable(handle, "media_settings", setting))
 					{
 						handle.execute("UPDATE media_settings SET " + setting + " = ? WHERE guild_id = ?", value, guildID);
 					}
-					handle.close();
-					return null;
+//					handle.close();
+//					return null;
 				});
 			
 	}
