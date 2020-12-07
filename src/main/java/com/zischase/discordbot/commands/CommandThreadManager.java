@@ -1,6 +1,7 @@
 package com.zischase.discordbot.commands;
 
 import com.zischase.discordbot.Config;
+import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
@@ -16,12 +17,15 @@ public class CommandThreadManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandThreadManager.class);
     private final ThreadPoolExecutor poolExecutor;
+    private final JDA jda;
 
 
     public CommandThreadManager(JDA jda) {
 
+        this.jda = jda;
+
         int defaultPoolCount = Integer.parseInt(Config.get("DEFAULT_COMMAND_THREADS"));
-        int POOL_COUNT = jda.getGuilds().size() * (CommandManager.getCommandCount() / 4);
+        int POOL_COUNT = jda.getGuilds().size() * 2;
 
         if (POOL_COUNT > defaultPoolCount)
         {
@@ -48,7 +52,9 @@ public class CommandThreadManager {
 
             @Override
             public void run() {
-                CommandManager.invoke(event);
+                GuildManager.getContext(event.getGuild())
+                        .commandManager()
+                        .invoke(event);
             }
         };
 

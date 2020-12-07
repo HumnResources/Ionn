@@ -3,7 +3,7 @@ package com.zischase.discordbot.commands.audiocommands;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.commands.CommandManager;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 
 import java.util.ArrayList;
@@ -22,25 +22,23 @@ public class Shuffle extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
-		
-		ArrayList<AudioTrack> currentQueue = GuildManager.getContext(ctx.getGuild())
-														 .audioManager()
+		GuildContext guildContext = GuildManager.getContext(ctx.getGuild());
+
+		ArrayList<AudioTrack> currentQueue = guildContext.audioManager()
 														 .getScheduler()
 														 .getQueue();
 		
 		Collections.shuffle(currentQueue);
 		
-		GuildManager.getContext(ctx.getGuild())
-					.audioManager()
+		guildContext.audioManager()
 					.getScheduler()
 					.clearQueue();
 		
-		GuildManager.getContext(ctx.getGuild())
-					.audioManager()
+		guildContext.audioManager()
 					.getScheduler()
 					.queueList(currentQueue, ctx.getChannel());
 		
-		Objects.requireNonNull(CommandManager.getCommand("Queue"))
+		Objects.requireNonNull(guildContext.commandManager().getCommand("Queue"))
 			   .handle(ctx);
 		
 	}

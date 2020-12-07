@@ -18,10 +18,9 @@ import java.util.stream.Collectors;
 
 public final class CommandManager
 {
-	private static final List<Command>      commands = new ArrayList<>();
 	private static final Logger             LOGGER   = LoggerFactory.getLogger(CommandManager.class);
-	
-	static
+	private final List<Command>      commands = new ArrayList<>();
+
 	{
 		addCommand(new Help());
 		addCommand(new Radio());
@@ -50,12 +49,12 @@ public final class CommandManager
 
 	}
 	
-	public static List<Command> getCommandList()
+	public List<Command> getCommandList()
 	{
 		return List.copyOf(commands);
 	}
 	
-	public static void invoke(GuildMessageReceivedEvent event)
+	public void invoke(GuildMessageReceivedEvent event)
 	{
 		String prefix = Prefix.getPrefix(event.getGuild());
 		
@@ -92,13 +91,13 @@ public final class CommandManager
 		cmd.handle(ctx);
 	}
 	
-	public static int getCommandCount()
+	public int getCommandCount()
 	{
 		return commands.size();
 	}
 	
 	
-	public static Command getCommand(String search)
+	public Command getCommand(String search)
 	{
 		for (Command cmd : commands)
 		{
@@ -120,7 +119,7 @@ public final class CommandManager
 
 	
 
-	private static void addCommand(Command command)
+	private void addCommand(Command command)
 	{
 		boolean commandFound = commands.stream()
 									   .anyMatch(cmd -> cmd.getName()

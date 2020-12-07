@@ -65,10 +65,10 @@ public class Playlist extends Command
 					});
 
 			for (String playlist : dbPlaylists) {
-				playlists.put(playlist, dbRetrieve(ctx.getGuild().getId(), playlist));
+				this.playlists.put(playlist, dbRetrieve(ctx.getGuild().getId(), playlist));
 			}
 
-			playlistsInitialized = true;
+			this.playlistsInitialized = true;
 		}
 
 		List<String> args = ctx.getArgs();
@@ -160,7 +160,7 @@ public class Playlist extends Command
 		}
 		else if (cmd.matches("(?i)-(delete|d|remove|r)"))
 		{
-			playlists.remove(playlistName);
+			this.playlists.remove(playlistName);
 			deleteDBEntry(ctx.getGuild().getId(), playlistName);
 		}
 
@@ -170,13 +170,13 @@ public class Playlist extends Command
 	
 	private void addPlaylist(String guildID, String name, String playlistURL)
 	{
-		playlists.putIfAbsent(name.toLowerCase(), playlistURL);
+		this.playlists.putIfAbsent(name.toLowerCase(), playlistURL);
 		dbUpdate(guildID, name, playlistURL);
 	}
 	
 	private String getPlaylistURL(String guildID, String name)
 	{
-		if (playlists.containsKey(name.toLowerCase()))
+		if (this.playlists.containsKey(name.toLowerCase()))
 		{
 			return playlists.get(name.toLowerCase());
 		}
@@ -190,7 +190,7 @@ public class Playlist extends Command
 	
 	private void printPlaylists(TextChannel textChannel)
 	{
-		if (playlists.isEmpty())
+		if (this.playlists.isEmpty())
 		{
 			textChannel.sendMessage("Sorry, no available playlists! :c")
 					   .queue();
