@@ -57,6 +57,13 @@ public final class SQLConnectionHandler
 								"id SERIAL PRIMARY KEY," +
 								"guild_id VARCHAR(20) NOT NULL," +
 								"volume VARCHAR NOT NULL DEFAULT '"+Config.get("DEFAULT_VOLUME")+"')");
+				handle.execute(
+						/* language=PostgreSQL */
+						" CREATE TABLE IF NOT EXISTS youtube_playlists( " +
+								"id SERIAL PRIMARY KEY," +
+								"guild_id VARCHAR(20) NOT NULL," +
+								"playlist_name VARCHAR, " +
+								"playlist_link VARCHAR)");
 			});
 		
 		LOGGER.info("DataBase Connection Established");
