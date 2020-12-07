@@ -1,22 +1,24 @@
 package com.zischase.discordbot;
 
-import com.zischase.discordbot.commands.CommandManager;
+import com.zischase.discordbot.commands.CommandThreadManager;
 import com.zischase.discordbot.commands.general.Prefix;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import me.duncte123.botcommons.BotCommons;
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.ReadyEvent;
+import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.time.OffsetDateTime;
 
 public class Listener extends ListenerAdapter
 {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Listener.class);
-	
+	private CommandThreadManager commandThreadManager = null;
+
 	public Listener()
 	{
 	
@@ -28,12 +30,12 @@ public class Listener extends ListenerAdapter
 		event.getJDA()
 			 .getGuilds()
 			 .forEach(GuildContext::new);
-		
+
+		this.commandThreadManager = new CommandThreadManager(event.getJDA());
+
 		LOGGER.info("{} is ready", event.getJDA()
-										.getSelfUser()
-										.getAsTag());
-
-
+				.getSelfUser()
+				.getAsTag());
 	}
 	
 	@Override
@@ -53,29 +55,18 @@ public class Listener extends ListenerAdapter
 			if (raw.equalsIgnoreCase(prefix + "shutdown"))
 			{
 				LOGGER.info("Shutting down...");
-				shutdown(event.getJDA());
-				return;
-			}
-			else if (raw.equalsIgnoreCase(prefix + "threadreport"))
-			{
-				event.getChannel()
-					 .sendMessage(CommandManager.getReport())
-					 .queue();
+				onShutdown(new ShutdownEvent(event.getJDA(), OffsetDateTime.now(), 0));
 				return;
 			}
 		}
 		if (raw.startsWith(prefix))
 		{
-			CommandManager.invoke(event);
+			commandThreadManager.asyncCommand(event);
 		}
 	}
 
-	
-	private static void shutdown(JDA jda)
-	{
-		CommandManager.shutdown();
-		
-		BotCommons.shutdown(jda);
-		jda.shutdown();
+	@Override
+	public void onShutdown(@NotNull ShutdownEvent event) {
+		commandThreadManager.shutdown(event);
 	}
 }

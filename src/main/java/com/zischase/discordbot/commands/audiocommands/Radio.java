@@ -13,7 +13,11 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 
@@ -21,13 +25,29 @@ public class Radio extends Command
 {
 	private static final Logger        LOGGER        = LoggerFactory.getLogger(Radio.class);
 	private static final RadioBrowser  RADIO_BROWSER = new RadioBrowser(5000, "Beta");
-	private static       List<Station> STATION_LIST;
+	private static final List<Station> STATION_LIST;
 	
 	static
 	{
+		AtomicInteger i = new AtomicInteger();
 		LOGGER.info("Loading Radio Stations");
 		STATION_LIST = RADIO_BROWSER.listStations(Paging.at(0, 25000));
-		LOGGER.info("Stations Loaded");
+		STATION_LIST.removeIf(station -> {
+
+			boolean nullState = station.getState() == null || station.getState().matches("null");
+			boolean noBitRate = station.getBitrate() <= 0;
+			boolean noURL = station.getUrl().isEmpty();
+			boolean noCodec = station.getCodec().isEmpty();
+
+			if (nullState || noBitRate || noURL || noCodec)
+			{
+				i.getAndIncrement();
+//				LOGGER.info("Station Removed: " + station.getUrl());
+				return true;
+			}
+			return false;
+		});
+		LOGGER.info("Stations Loaded - {} Stations Removed", i);
 	}
 	
 	public Radio()
@@ -44,7 +64,11 @@ public class Radio extends Command
 	@Override
 	public String getHelp()
 	{
-		return String.format(" Radio [genre] \n" + "Radio -[search|s] [search term] \n" + "Aliases: %s", getAliases());
+		return String.format(""" 
+				Radio [genre] 
+				Radio [-search|-s] [search term] 
+				Aliases: %s
+				""", getAliases());
 	}
 	
 	@Override
@@ -55,19 +79,21 @@ public class Radio extends Command
 		
 		if (! args.isEmpty())
 		{
-			String query = String.join(" ", args)
-								 .toLowerCase();
+			String query = String.join(" ", args).toLowerCase();
 			
-			if (args.get(0).matches("(?i)(-search|-s)"))
+			if (args.get(0).matches("(?i)-(search|s)"))
 			{
 				
-				query = query.replaceFirst("(?i)(-search|-s)", "")
+				String searchQuery = query.replaceFirst("(?i)-(search|s)", "")
 							 .trim();
 				
-				searchByString(event, query);
+				searchByString(event, searchQuery);
+				return;
 			}
-			else if (RADIO_BROWSER.listTags()
-								  .containsKey(query))
+			boolean tagFound = STATION_LIST.stream()
+					.anyMatch(stn -> stn.getTags().matches("(?i)("+query+")"));
+
+			if (tagFound)
 			{
 				searchByTag(event, query);
 			}
@@ -77,16 +103,14 @@ public class Radio extends Command
 	private void searchByTag(GuildMessageReceivedEvent event, String query)
 	{
 		List<Station> stations = STATION_LIST.stream()
-											 .filter(stn -> stn.getTags()
-															   .equalsIgnoreCase(query))
+											 .filter(stn -> stn.getTags().matches("(?i)("+query+")"))
 											 .collect(Collectors.toList());
-		
-		Collections.shuffle(stations);
-		
 		if (stations.isEmpty())
 		{
 			return;
 		}
+
+		Collections.shuffle(stations);
 		
 		GuildManager.getContext(event.getGuild())
 					.audioManager()
@@ -106,13 +130,17 @@ public class Radio extends Command
 		List<Station> stations = STATION_LIST.stream()
 											 .filter(stn -> stn.getName()
 													 .toLowerCase()
-													 .replaceAll("\\W", "")
+													 .replaceAll("(?!\\w|\\s)(\\W)", " ")
+//													 .matches("(?i)("+finalQuery+")"))
 													 .contains(finalQuery))
 											 .limit(50)
 											 .collect(Collectors.toList());
 
 		if (stations.isEmpty())
+		{
+
 			return;
+		}
 		
 		List<ISearchable> results = new ArrayList<>();
 		for (Station s : stations)
@@ -123,6 +151,7 @@ public class Radio extends Command
 		try
 		{
 			Future<ISearchable> result = new ResultSelector(results).getChoice(event);
+
 
 			long timeoutDelayMS = Long.parseLong(Config.get("SEARCH_RESULT_DELAY_MS"));
 

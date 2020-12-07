@@ -58,6 +58,7 @@ public class ResultSelector
 								 .queue();
 						}
 					}
+
 					jda.removeEventListener(this);
 				}
 				else if (LocalDateTime.now().isAfter(start.plusSeconds(delayMS / 1000)))

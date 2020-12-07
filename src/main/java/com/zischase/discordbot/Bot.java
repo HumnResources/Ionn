@@ -1,14 +1,15 @@
 package com.zischase.discordbot;
 
-import com.zischase.discordbot.commands.CommandManager;
 import me.duncte123.botcommons.BotCommons;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.events.ShutdownEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.LoginException;
+import java.time.OffsetDateTime;
 
 public class Bot
 {
@@ -44,9 +45,10 @@ public class Bot
 	{
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			LOGGER.warn("SHUTTING DOWN . . .");
+			LOGGER.info("SHUTTING DOWN . . .");
 
-			CommandManager.shutdown();
+			Listener listener = (Listener) (jda.getRegisteredListeners().get(0));
+			listener.onShutdown(new ShutdownEvent(jda, OffsetDateTime.now(), 0));
 			BotCommons.shutdown(jda);
 			jda.shutdown();
 

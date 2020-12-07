@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 public class TrackLoader implements AudioLoadResultHandler
 {
 	private static final Logger                        LOGGER = LoggerFactory.getLogger(TrackLoader.class);
-	private static final LinkedMap<String, AudioTrack> CACHE  = new LinkedMap<>(250);
+	private static final LinkedMap<String, AudioTrack> CACHE  = new LinkedMap<>(50);
 	private              Member                        member;
 	private              TextChannel                   textChannel;
 	
@@ -50,6 +50,7 @@ public class TrackLoader implements AudioLoadResultHandler
 							.audioManager()
 							.getPlayerManager()
 							.loadItem(uri, this);
+
 			}
 		}
 		else
@@ -111,6 +112,7 @@ public class TrackLoader implements AudioLoadResultHandler
 	@Override
 	public void loadFailed(FriendlyException e)
 	{
-		e.getSuppressed();
+		textChannel.sendMessage("Loading failed, sorry.").queue();
+
 	}
 }
