@@ -6,6 +6,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.awt.*;
@@ -52,13 +53,26 @@ public class PlayerPrinter
 			
 //			embed.setThumbnail(Config.get("MEDIA_PLAYER_ICON"));
 			embed.setTitle("Now Playing");
-			embed.appendDescription(info.title + "\n\n");
-			
+
+			if (info.title != null && ! info.title.isEmpty())
+			{
+				embed.appendDescription(info.title + "\n\n");
+			}
+			else if (info.author != null && ! info.author.isEmpty())
+			{
+				embed.appendDescription(info.author + "\n\n");
+			}
+			else
+			{
+				embed.appendDescription("-----\n\n");
+			}
+
+
 			if (player.isPaused())
 			{
 				embed.appendDescription("Paused");
 			}
-			else if (player.getPlayingTrack().getInfo().length == Integer.MAX_VALUE)
+			else if (player.getPlayingTrack().getDuration() == Long.MAX_VALUE)
 			{
 				embed.appendDescription("Live");
 			}
@@ -182,32 +196,35 @@ public class PlayerPrinter
 				.retrievePast(25)
 				.complete()
 				.stream()
-				.filter(msg -> msg.getAuthor().isBot())
-				.filter(msg -> ! msg.getEmbeds().isEmpty())
-				.filter(msg -> ! msg.isPinned())
 				.filter(msg ->
 				{
-					if (msg.getEmbeds().get(0).getTitle() != null)
-					{
+					boolean isBot = msg.getAuthor().isBot();
+					boolean hasEmbeds = ! msg.getEmbeds().isEmpty();
+					boolean notPinned = ! msg.isPinned();
+					boolean createdBeforeNow = msg.getTimeCreated().isBefore(OffsetDateTime.now());
+					boolean lessThan2Weeks = msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14));
 
-						String title = msg.getEmbeds().get(0).getTitle();
-						assert title != null;
-						return title.matches("(?i)("+titleSearch+"|Nothing Playing)");
+					if (isBot && hasEmbeds && notPinned && createdBeforeNow && lessThan2Weeks)
+					{
+						MessageEmbed embed = msg.getEmbeds().get(0);
+						if (embed.getTitle() != null)
+						{
+							return embed.getTitle().matches("(?i)("+titleSearch+"|Nothing Playing)");
+						}
 					}
 					return false;
 				})
-				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
 				.collect(Collectors.toList());
 
 		if (msgList.size() == 1)
 		{
 			textChannel.deleteMessageById(msgList.get(0).getId())
-					.complete();
+					.queue(null, null);
 		}
 		else if (msgList.size() > 1)
 		{
 			textChannel.deleteMessages(msgList)
-					.complete();
+					.queue(null, null);
 		}
 	}
 	
