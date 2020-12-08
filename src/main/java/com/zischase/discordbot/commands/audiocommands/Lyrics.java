@@ -52,10 +52,10 @@ public class Lyrics extends Command
 
 		Document doc;
 		try {
-//			doc = Jsoup.parse(new URL(query), 5000);
 			 doc = Jsoup.connect(query)
 					.userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
-					.get();
+					 .referrer("http://www.google.com")
+					 .get();
 		}
 		catch (IOException e)
 		{
@@ -79,9 +79,9 @@ public class Lyrics extends Command
 		String lyricsURL = searchResultElement.attr("href");
 
 		try {
-//			doc = Jsoup.parse(new URL(lyricsURL), 5000);
 			doc = Jsoup.connect(lyricsURL)
 					.userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
+					.referrer("http://www.google.com")
 					.get();
 		}
 		catch (IOException e)
