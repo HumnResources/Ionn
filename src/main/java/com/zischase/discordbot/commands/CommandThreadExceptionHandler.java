@@ -9,7 +9,7 @@ public class CommandThreadExceptionHandler implements Thread.UncaughtExceptionHa
     @Override
     public void uncaughtException(Thread t, Throwable e) {
 
-        LOGGER.warn(e.getLocalizedMessage());
+        LOGGER.warn(e.getMessage());
 
     }
 }
