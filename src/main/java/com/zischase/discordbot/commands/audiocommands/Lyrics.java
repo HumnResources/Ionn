@@ -26,8 +26,6 @@ public class Lyrics extends Command
 	{
 		
 		List<String> args = ctx.getArgs();
-		String songTitle = null;
-		String artist = null;
 		Element lyricsElement = null;
 		String search;
 		
@@ -47,59 +45,73 @@ public class Lyrics extends Command
 		
 		
 		String query = "https://search.azlyrics.com/search.php?q=" + search;
-		
-		try
+
+		Document doc;
+		try {
+			 doc = Jsoup.connect(query)
+					.userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
+					.get();
+		}
+		catch (IOException e)
 		{
-			Document doc = Jsoup.connect(query).get();
+			e.printStackTrace();
+			return;
+		}
 
-			Element searchResultElement = doc.select("a[href]")
-					.stream()
-					.filter(element -> element.attributes().hasKeyIgnoreCase("href"))
-					.filter(element -> element.attr("href").contains("lyrics/"))
-					.findFirst()
-					.orElse(null);
+		Element searchResultElement = doc.select("a[href]")
+				.stream()
+				.filter(element -> element.attributes().hasKeyIgnoreCase("href"))
+				.filter(element -> element.attr("href").contains("lyrics/"))
+				.findFirst()
+				.orElse(null);
 
-			if (searchResultElement == null)
-			{
-				ctx.getChannel().sendMessage("Sorry, could not find any results.").queue();
-				return;
-			}
+		if (searchResultElement == null)
+		{
+			ctx.getChannel().sendMessage("Sorry, could not find any results.").queue();
+			return;
+		}
 
-			String lyricsURL = searchResultElement.attr("href");
+		String lyricsURL = searchResultElement.attr("href");
 
+		try {
 			doc = Jsoup.connect(lyricsURL)
-					   .get();
-			
-			songTitle = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > b")
-						   .first()
-						   .toString()
-						   .replaceAll("(?i)(<.+?>)", "");
-			artist = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div > h2 > a > b")
-						.first()
-						.toString()
-						.replaceAll("(?i)(<.+?>)|(lyrics)", "");
-			
-			// Arbitrarily search up to '20' nodes.
-			for (int i = 0; i < 20; i++)
+					.userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
+					.get();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+			return;
+		}
+
+		String songTitle = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > b")
+				.first()
+				.toString()
+				.replaceAll("(?i)(<.+?>)", "");
+		String artist = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div > h2 > a > b")
+				.first()
+				.toString()
+				.replaceAll("(?i)(<.+?>)|(lyrics)", "");
+
+		// Arbitrarily search up to '20' nodes.
+		for (int i = 0; i < 20; i++)
+		{
+			lyricsElement = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div:nth-child(" + i + ")")
+					.first();
+
+			if (lyricsElement == null)
 			{
-				lyricsElement = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div:nth-child(" + i + ")")
-								   .first();
-				
-				if (lyricsElement == null)
-				{
-					continue;
-				}
-				
-				if (lyricsElement.html()
-								 .contains("<br>"))
-				{
-					break;
-				}
+				continue;
+			}
+
+			if (lyricsElement.html()
+					.contains("<br>"))
+			{
+				break;
 			}
 		}
-		catch (IOException ignored)
-		{
-		}
+
+
 		
 		if (lyricsElement == null)
 		{
