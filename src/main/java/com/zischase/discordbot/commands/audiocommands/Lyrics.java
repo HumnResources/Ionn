@@ -7,6 +7,8 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.IOException;
@@ -16,6 +18,8 @@ import java.util.regex.Pattern;
 
 public class Lyrics extends Command
 {
+	private static final Logger LOGGER = LoggerFactory.getLogger(Lyrics.class);
+
 	public Lyrics()
 	{
 		super(false);
@@ -49,8 +53,9 @@ public class Lyrics extends Command
 		Document doc;
 		try {
 			 doc = Jsoup.connect(query)
-					.userAgent("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
+//					.userAgent("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
 					.get();
+			 LOGGER.warn(doc.outerHtml());
 		}
 		catch (IOException e)
 		{
@@ -75,7 +80,7 @@ public class Lyrics extends Command
 
 		try {
 			doc = Jsoup.connect(lyricsURL)
-					.userAgent("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
+//					.userAgent("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
 					.get();
 		}
 		catch (IOException e)
