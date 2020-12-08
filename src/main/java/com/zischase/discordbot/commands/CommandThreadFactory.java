@@ -17,7 +17,7 @@ public class CommandThreadFactory implements ThreadFactory {
 
     @Override
     public Thread newThread(@NotNull Runnable r) {
-        Thread t = new Thread(r, "");
+        Thread t = new Thread(r, r.toString());
         t.setUncaughtExceptionHandler(UNCAUGHT_EXCEPTION_HANDLER);
         return t;
     }
