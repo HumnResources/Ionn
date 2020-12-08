@@ -33,7 +33,7 @@ public final class CommandManager
 		addCommand(new Youtube());
 		addCommand(new Prefix());
 		addCommand(new Playlist());
-//  addCommand(new Lyrics());
+  		addCommand(new Lyrics());
 		addCommand(new Spam());
 		addCommand(new Clear());
 		addCommand(new Queue());

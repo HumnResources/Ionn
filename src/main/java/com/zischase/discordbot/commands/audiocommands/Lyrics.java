@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
 
 public class Lyrics extends Command
 {
-	
 	public Lyrics()
 	{
 		super(false);
@@ -47,25 +46,27 @@ public class Lyrics extends Command
 		}
 		
 		
-		String query = "https://www.google.com/search?q=www.azlyrics.com+" + search;
+		String query = "https://search.azlyrics.com/search.php?q=" + search;
 		
 		try
 		{
-			Document doc = Jsoup.connect(query)
-								.get();
-			Element result = doc.select("#rso > div:nth-child(1) > div > div.r > a")
-								.first();
-			String lyricsURL;
-			
-			if (result.hasAttr("href"))
+			Document doc = Jsoup.connect(query).get();
+
+			Element searchResultElement = doc.select("a[href]")
+					.stream()
+					.filter(element -> element.attributes().hasKeyIgnoreCase("href"))
+					.filter(element -> element.attr("href").contains("lyrics/"))
+					.findFirst()
+					.orElse(null);
+
+			if (searchResultElement == null)
 			{
-				lyricsURL = result.attr("href");
+				ctx.getChannel().sendMessage("Sorry, could not find any results.").queue();
+				return;
 			}
-			else
-			{
-				throw new IOException();
-			}
-			
+
+			String lyricsURL = searchResultElement.attr("href");
+
 			doc = Jsoup.connect(lyricsURL)
 					   .get();
 			
@@ -73,7 +74,7 @@ public class Lyrics extends Command
 						   .first()
 						   .toString()
 						   .replaceAll("(?i)(<.+?>)", "");
-			artist = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div.lyricsh > h2 > a > b")
+			artist = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div > h2 > a > b")
 						.first()
 						.toString()
 						.replaceAll("(?i)(<.+?>)|(lyrics)", "");
