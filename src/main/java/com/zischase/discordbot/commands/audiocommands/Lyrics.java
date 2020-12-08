@@ -4,6 +4,7 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.EmbedBuilder;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -79,10 +80,19 @@ public class Lyrics extends Command
 		String lyricsURL = searchResultElement.attr("href");
 
 		try {
-			doc = Jsoup.connect(lyricsURL)
+			Connection.Response response = Jsoup.connect(lyricsURL)
 					.userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
 					.referrer("http://www.google.com")
-					.get();
+					.followRedirects(true)
+					.execute();
+
+			if (response.statusCode() == 403)
+			{
+				LOGGER.warn("Response Code - 403 : Forbidden");
+				return;
+			}
+
+			doc = response.parse();
 		}
 		catch (IOException e)
 		{
