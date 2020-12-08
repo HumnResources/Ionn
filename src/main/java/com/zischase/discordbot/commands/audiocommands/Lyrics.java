@@ -56,7 +56,8 @@ public class Lyrics extends Command
 
 			doc = Jsoup.connect(query)
 					.ignoreContentType(true)
-					.userAgent("Chrome")
+					.userAgent("Mozilla")
+					.referrer("http://www.google.com")
 					.followRedirects(true)
 					.post();
 
