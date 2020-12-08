@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.IOException;
+import java.net.URL;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,10 +53,11 @@ public class Lyrics extends Command
 
 		Document doc;
 		try {
-			 doc = Jsoup.connect(query)
+			URL url = new URL(query);
+			doc = Jsoup.parse(url, 5000);
+//			 doc = Jsoup.connect(query).get();
 //					.userAgent("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
-					.get();
-			 LOGGER.warn(doc.outerHtml());
+
 		}
 		catch (IOException e)
 		{
@@ -79,9 +81,10 @@ public class Lyrics extends Command
 		String lyricsURL = searchResultElement.attr("href");
 
 		try {
-			doc = Jsoup.connect(lyricsURL)
+			URL url = new URL(lyricsURL);
+			doc = Jsoup.parse(url, 5000);
+//			doc = Jsoup.connect(lyricsURL).get();
 //					.userAgent("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
-					.get();
 		}
 		catch (IOException e)
 		{
