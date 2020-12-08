@@ -54,7 +54,11 @@ public class Lyrics extends Command
 		Document doc;
 		try {
 
-			doc = Jsoup.connect(query).post();
+			doc = Jsoup.connect(query)
+					.ignoreContentType(true)
+					.userAgent("Chrome")
+					.followRedirects(true)
+					.post();
 
 			LOGGER.info(doc.toString());
 
