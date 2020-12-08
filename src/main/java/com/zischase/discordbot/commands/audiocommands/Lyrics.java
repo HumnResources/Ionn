@@ -49,7 +49,7 @@ public class Lyrics extends Command
 		Document doc;
 		try {
 			 doc = Jsoup.connect(query)
-//					.userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
+					.userAgent("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
 					.get();
 		}
 		catch (IOException e)
@@ -75,7 +75,7 @@ public class Lyrics extends Command
 
 		try {
 			doc = Jsoup.connect(lyricsURL)
-					.userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
+					.userAgent("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
 					.get();
 		}
 		catch (IOException e)
