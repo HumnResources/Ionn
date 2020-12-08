@@ -27,5 +27,5 @@ public abstract class Command
 		return "No description provided.";
 	}
 	
-	public abstract void handle(CommandContext ctx);
+	public abstract void handle(CommandContext ctx) ;
 }

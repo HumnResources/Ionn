@@ -27,8 +27,7 @@ public class Lyrics extends Command
 	}
 	
 	@Override
-	public void handle(CommandContext ctx)
-	{
+	public void handle(CommandContext ctx) {
 		
 		List<String> args = ctx.getArgs();
 		Element lyricsElement = null;
@@ -47,42 +46,29 @@ public class Lyrics extends Command
 		{
 			search = String.join("+", args);
 		}
-		
-		
+
+
 		String query = "https://search.azlyrics.com/search.php?q=" + search;
 
 		Document doc;
 		try {
+			 Connection.Response response = Jsoup.connect(query)
+					 .userAgent("Mozilla")
+					 .referrer("http://www.google.com")
+					 .followRedirects(true)
+					 .execute();
 
-			doc = Jsoup.connect(query)
-					.ignoreContentType(true)
-					.userAgent("Mozilla")
-					.referrer("http://www.google.com")
-					.followRedirects(true)
-					.post();
-
-			LOGGER.info(doc.toString());
-
-			if (! doc.toString().isEmpty())
+			if (response.statusCode() == 403)
+			{
+				LOGGER.warn("Response Code - 403 : Forbidden");
 				return;
+			}
 
-//			 Connection.Response response = Jsoup.connect(query)
-//					 .userAgent("Mozilla")
-//					 .referrer("http://www.google.com")
-//					 .followRedirects(true)
-//					 .execute();
-//
-//			if (response.statusCode() == 403)
-//			{
-//				LOGGER.warn("Response Code - 403 : Forbidden");
-//				return;
-//			}
-//
-//			doc = response.parse();
+			doc = response.parse();
 		}
 		catch (IOException e)
 		{
-			e.printStackTrace();
+			LOGGER.warn("IOException - " + e.getCause().getMessage());
 			return;
 		}
 
@@ -118,7 +104,7 @@ public class Lyrics extends Command
 		}
 		catch (IOException e)
 		{
-			e.printStackTrace();
+			LOGGER.warn("IOException - " + e.getCause().getMessage());
 			return;
 		}
 
