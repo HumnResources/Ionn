@@ -53,10 +53,19 @@ public class Lyrics extends Command
 
 		Document doc;
 		try {
-			 doc = Jsoup.connect(query)
-					.userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
+			 Connection.Response response = Jsoup.connect(query)
+					 .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
 					 .referrer("http://www.google.com")
-					 .get();
+					 .followRedirects(true)
+					 .execute();
+
+			if (response.statusCode() == 403)
+			{
+				LOGGER.warn("Response Code - 403 : Forbidden");
+				return;
+			}
+
+			doc = response.parse();
 		}
 		catch (IOException e)
 		{
