@@ -3,9 +3,7 @@ package com.zischase.discordbot.commands;
 import com.zischase.discordbot.Config;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,46 +34,29 @@ public class CommandThreadManager {
             poolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(defaultPoolCount);
         }
 
-        poolExecutor.setThreadFactory(new CommandThreadFactory());
+        poolExecutor.setThreadFactory(new CommandThreadFactory(this));
         poolExecutor.setKeepAliveTime(30000, TimeUnit.MILLISECONDS);
     }
 
     public void asyncCommand(GuildMessageReceivedEvent event)
     {
-
-        Runnable runnable = new Runnable()
-        {
-            @Override
-            public String toString() {
-                return event.getMessage().getContentRaw();
-            }
-
-            @Override
-            public void run() {
-                GuildManager.getContext(event.getGuild())
-                        .commandManager()
-                        .invoke(event);
-            }
-        };
-
         int activeThreads = poolExecutor.getActiveCount();
 
-        while (activeThreads >= poolExecutor.getMaximumPoolSize())
-        {
-            activeThreads = poolExecutor.getActiveCount();
-        }
+        Runnable runnable = () -> {
+            GuildManager.getContext(event.getGuild())
+                    .commandManager()
+                    .invoke(event);
+            LOGGER.info("{} | {}",event.getGuild().getName(), event.getMessage().getContentDisplay());
+        };
 
-
-
-        poolExecutor.setCorePoolSize(poolExecutor.getActiveCount() + 1);
+        poolExecutor.setCorePoolSize(activeThreads + 1);
         poolExecutor.execute(runnable);
 
-        LOGGER.info("Guild: {} Executed Command: {} On Thread: Command-Thread-{}",event.getGuild(), runnable.toString(), poolExecutor.getActiveCount());
 
     }
 
 
-    public void shutdown(@NotNull ShutdownEvent event) {
+    public void shutdown() {
 
         LOGGER.info("Terminating Command Threads");
 
@@ -113,5 +94,10 @@ public class CommandThreadManager {
         }
 
         LOGGER.info("Successfully Closed Threads");
+    }
+
+    public int getActiveThreadCount()
+    {
+        return poolExecutor.getActiveCount();
     }
 }

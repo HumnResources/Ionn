@@ -3,6 +3,7 @@ package com.zischase.discordbot;
 import com.zischase.discordbot.commands.CommandThreadManager;
 import com.zischase.discordbot.commands.general.Prefix;
 import com.zischase.discordbot.guildcontrol.GuildContext;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
@@ -17,11 +18,13 @@ import java.time.OffsetDateTime;
 public class Listener extends ListenerAdapter
 {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Listener.class);
-	private CommandThreadManager commandThreadManager = null;
+	private final CommandThreadManager commandThreadManager;
 
-	public Listener()
+	public Listener(JDA jda)
 	{
-	
+
+		this.commandThreadManager = new CommandThreadManager(jda);
+
 	}
 	
 	@Override
@@ -30,8 +33,6 @@ public class Listener extends ListenerAdapter
 		event.getJDA()
 			 .getGuilds()
 			 .forEach(GuildContext::new);
-
-		this.commandThreadManager = new CommandThreadManager(event.getJDA());
 
 		LOGGER.info("{} is ready", event.getJDA()
 				.getSelfUser()
@@ -61,12 +62,12 @@ public class Listener extends ListenerAdapter
 		}
 		if (raw.startsWith(prefix))
 		{
-			commandThreadManager.asyncCommand(event);
+			this.commandThreadManager.asyncCommand(event);
 		}
 	}
 
 	@Override
 	public void onShutdown(@NotNull ShutdownEvent event) {
-		commandThreadManager.shutdown(event);
+		this.commandThreadManager.shutdown();
 	}
 }

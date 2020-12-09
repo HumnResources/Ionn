@@ -9,15 +9,17 @@ import java.util.concurrent.ThreadFactory;
 public class CommandThreadFactory implements ThreadFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandThreadFactory.class);
     private final Thread.UncaughtExceptionHandler UNCAUGHT_EXCEPTION_HANDLER = new CommandThreadExceptionHandler();
+    private final CommandThreadManager threadManager;
 
-    private int threadCount = 0;
-
-    public CommandThreadFactory() {
+    public CommandThreadFactory(CommandThreadManager threadManager) {
+        this.threadManager = threadManager;
     }
 
     @Override
     public Thread newThread(@NotNull Runnable r) {
-        Thread t = new Thread(r, r.toString());
+        int threadNumber = threadManager.getActiveThreadCount() + 1;
+
+        Thread t = new Thread(r, "Command Pool | Thread#" + threadNumber);
         t.setUncaughtExceptionHandler(UNCAUGHT_EXCEPTION_HANDLER);
         return t;
     }

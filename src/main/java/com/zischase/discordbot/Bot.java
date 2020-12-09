@@ -13,37 +13,34 @@ import java.time.OffsetDateTime;
 
 public class Bot
 {
-	private static JDA jda = null;
 	private static final Logger LOGGER = LoggerFactory.getLogger(Bot.class);
-	
+
 	static
 	{
 		SQLConnectionHandler.getConnection();
-		try
-		{
-			jda = JDABuilder.createDefault(Config.get("TOKEN"))
-				.setActivity(Activity.watching("Starting..."))
-				.addEventListeners(new Listener())
-				.build();
-		}
-		catch (LoginException e)
-		{
-			e.printStackTrace();
-			System.exit(1);
-		}
-
-		setShutdownHook();
 	}
 	
 	public static void main(String[] args)
 	{
+		JDA jda = null;
+		try {
+			jda = JDABuilder.createDefault(Config.get("TOKEN")).build();
+		} catch (LoginException e) {
+			e.printStackTrace();
+		}
+		if (jda == null)
+		{
+			throw new RuntimeException();
+		}
+
+		setShutdownHook(jda);
+		jda.addEventListener(new Listener(jda));
 		jda.getPresence()
 				.setActivity(Activity.listening(" music"));
 	}
 
-	private static void setShutdownHook()
+	private static void setShutdownHook(JDA jda)
 	{
-
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			LOGGER.info("SHUTTING DOWN . . .");
 
@@ -54,11 +51,5 @@ public class Bot
 
 			Runtime.getRuntime().halt(0);
 		}));
-	}
-	
-	public static int guildCount()
-	{
-		return jda.getGuilds()
-				  .size();
 	}
 }
