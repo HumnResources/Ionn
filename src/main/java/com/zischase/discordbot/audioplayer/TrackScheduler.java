@@ -57,12 +57,7 @@ public class TrackScheduler extends AudioEventAdapter
 											  .audioManager()
 											  .getPlayer()
 											  .getPlayingTrack() != null;
-		
-		if (hasPlayingTrack)
-		{
-			textChannel.sendMessage("Added `" + track.getInfo().title + "` to the queue.")
-					   .queue();
-		}
+
 		
 		if (! player.startTrack(track, true))
 		{ // noInterrupt: True == add to queue; Returns true if added
