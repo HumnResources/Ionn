@@ -70,9 +70,9 @@
             <type>pom</type>
         </dependency>
         <dependency>
-            <groupId>com.github.Devoxin</groupId>
+            <groupId>com.sedmelluq</groupId>
             <artifactId>lavaplayer</artifactId>
-            <version>1.3.61</version>
+            <version>1.3.63</version>
         </dependency>
         <dependency>
             <groupId>me.duncte123</groupId>
