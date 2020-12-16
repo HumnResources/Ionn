@@ -80,6 +80,7 @@ public class TrackLoader implements AudioLoadResultHandler
 	@Override
 	public void trackLoaded(AudioTrack audioTrack)
 	{
+		textChannel.sendMessage("Added: " + audioTrack.getInfo().title).queue();
 		CACHE.putIfAbsent(audioTrack.getInfo().uri, audioTrack);
 		
 		if (CACHE.size() >= 100)
