@@ -256,30 +256,6 @@ public class PlayerPrinter
 		bar.append(iconRightBoundary);
 
 		return bar.toString();
-//
-//		if (this.message.getEmbeds().get(0) != null) {
-//
-//			MessageEmbed currentMessageEmbed = message.getEmbeds().get(0);
-//
-//			String newDescription = currentMessageEmbed.getDescription();
-//			newDescription = newDescription + System.lineSeparator() + bar;
-//
-//			MessageEmbed newMessageEmbed = new EmbedBuilder()
-//					.setTitle(currentMessageEmbed.getTitle())
-//					.setAuthor(Objects.requireNonNull(currentMessageEmbed.getAuthor()).getName())
-//					.setColor(currentMessageEmbed.getColor())
-//					.setDescription(newDescription)
-//					.build();
-//
-//
-//
-//
-//			this.message.editMessage(newMessageEmbed).queue();
-//		}
-//		System.out.print("\r" + bar + " " + donePercents + "%");
-//		if (done == total) {
-//			System.out.print("\n");
-//		}
 	}
 	
 }
