@@ -81,7 +81,7 @@ public class PlayerPrinter
 			else
 			{
 				embed.appendDescription(timeCurrent + " - " + timeTotal);
-				String progressBar = progressPercentage(Integer.parseInt(timeCurrent), Integer.parseInt(timeTotal));
+				String progressBar = progressPercentage((int) position, (int) info.length);
 				embed.appendDescription(progressBar);
 			}
 			
