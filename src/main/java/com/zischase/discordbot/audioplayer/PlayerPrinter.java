@@ -233,7 +233,7 @@ public class PlayerPrinter
 	}
 
 	private String progressPercentage(int done, int total) {
-		int size = 70;
+		int size = 25;
 		String iconLeftBoundary = "[";
 		String iconDone = "=";
 		String iconRemain = ".";
