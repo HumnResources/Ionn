@@ -3,7 +3,6 @@ package com.zischase.discordbot.audioplayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
-import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
@@ -30,10 +29,17 @@ public class PlayerPrinter
 	{
 		AudioPlayer player = audioManager.getPlayer();
 
-		if (GuildManager.getContext(channel.getGuild()).isPremium() && ! player.isPaused())
-		{
-			player.addListener(audioEvent -> printNowPlaying(audioManager, channel));
-		}
+//		if (GuildManager.getContext(channel.getGuild()).isPremium() && ! player.isPaused())
+//		{
+//			AudioEventListener trackWatcherEventListener = new AudioEventListener() {
+//				@Override
+//				public void onEvent(AudioEvent audioEvent) {
+//					printNowPlaying(audioManager, channel);
+//				}
+//			};
+//
+//			player.addListener(trackWatcherEventListener);
+//		}
 
 		deletePrevious(channel, "Now Playing");
 
@@ -239,9 +245,9 @@ public class PlayerPrinter
 	}
 
 	private String progressPercentage(int done, int total) {
-		int size = 25;
+		int size = 30;
 		String iconLeftBoundary = "|";
-		String iconDone = "~";
+		String iconDone = "=";
 		String iconRemain = ".";
 		String iconRightBoundary = "|";
 
