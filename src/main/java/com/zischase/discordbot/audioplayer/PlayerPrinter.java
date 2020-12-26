@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
 
 public class PlayerPrinter
 {
+	private Message message = null;
+
 	public PlayerPrinter()
 	{
 	}
@@ -79,6 +81,8 @@ public class PlayerPrinter
 			else
 			{
 				embed.appendDescription(timeCurrent + " - " + timeTotal);
+				String progressBar = progressPercentage(Integer.parseInt(timeCurrent), Integer.parseInt(timeTotal));
+				embed.appendDescription(progressBar);
 			}
 			
 			embed.setFooter(info.uri);
@@ -90,7 +94,7 @@ public class PlayerPrinter
 			delayMS = player.getPlayingTrack().getDuration() - player.getPlayingTrack().getPosition();
 		}
 		
-		Message message = new MessageBuilder().setEmbed(embed.build())
+		this.message = new MessageBuilder().setEmbed(embed.build())
 											  .build();
 		
 		long finalDelayMS = delayMS;
@@ -226,6 +230,56 @@ public class PlayerPrinter
 			textChannel.deleteMessages(msgList)
 					.queue(null, null);
 		}
+	}
+
+	private String progressPercentage(int done, int total) {
+		int size = 5;
+		String iconLeftBoundary = "[";
+		String iconDone = "=";
+		String iconRemain = ".";
+		String iconRightBoundary = "]";
+
+		if (done > total) {
+			throw new IllegalArgumentException();
+		}
+		int donePercents = (100 * done) / total;
+		int doneLength = size * donePercents / 100;
+
+		StringBuilder bar = new StringBuilder(iconLeftBoundary);
+		for (int i = 0; i < size; i++) {
+			if (i < doneLength) {
+				bar.append(iconDone);
+			} else {
+				bar.append(iconRemain);
+			}
+		}
+		bar.append(iconRightBoundary);
+
+		return bar.toString();
+//
+//		if (this.message.getEmbeds().get(0) != null) {
+//
+//			MessageEmbed currentMessageEmbed = message.getEmbeds().get(0);
+//
+//			String newDescription = currentMessageEmbed.getDescription();
+//			newDescription = newDescription + System.lineSeparator() + bar;
+//
+//			MessageEmbed newMessageEmbed = new EmbedBuilder()
+//					.setTitle(currentMessageEmbed.getTitle())
+//					.setAuthor(Objects.requireNonNull(currentMessageEmbed.getAuthor()).getName())
+//					.setColor(currentMessageEmbed.getColor())
+//					.setDescription(newDescription)
+//					.build();
+//
+//
+//
+//
+//			this.message.editMessage(newMessageEmbed).queue();
+//		}
+//		System.out.print("\r" + bar + " " + donePercents + "%");
+//		if (done == total) {
+//			System.out.print("\n");
+//		}
 	}
 	
 }
