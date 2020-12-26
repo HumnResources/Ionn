@@ -3,6 +3,7 @@ package com.zischase.discordbot.audioplayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
+import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
@@ -27,10 +28,15 @@ public class PlayerPrinter
 	
 	public void printNowPlaying(AudioManager audioManager, TextChannel channel)
 	{
+		AudioPlayer player = audioManager.getPlayer();
+
+		if (GuildManager.getContext(channel.getGuild()).isPremium() && ! player.isPaused())
+		{
+			player.addListener(audioEvent -> printNowPlaying(audioManager, channel));
+		}
+
 		deletePrevious(channel, "Now Playing");
 
-		AudioPlayer player = audioManager.getPlayer();
-		
 		EmbedBuilder embed = new EmbedBuilder();
 		embed.setColor(Color.CYAN);
 		
@@ -47,7 +53,7 @@ public class PlayerPrinter
 
 			long duration = info.length / 1000;
 			long position = player.getPlayingTrack().getPosition() / 1000;
-			
+
 			String timeTotal = String.format("%d:%02d:%02d", duration / 3600, (duration % 3600) / 60, (duration % 60));
 			
 			String timeCurrent = String.format("%d:%02d:%02d", position / 3600, (position % 3600) / 60, (position % 60));
