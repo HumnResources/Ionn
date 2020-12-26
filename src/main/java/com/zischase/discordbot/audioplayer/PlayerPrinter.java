@@ -82,7 +82,7 @@ public class PlayerPrinter
 			{
 				embed.appendDescription(timeCurrent + " - " + timeTotal);
 				String progressBar = progressPercentage((int) position, (int) info.length);
-				embed.appendDescription(progressBar);
+				embed.appendDescription(System.lineSeparator() + progressBar);
 			}
 			
 			embed.setFooter(info.uri);
@@ -233,7 +233,7 @@ public class PlayerPrinter
 	}
 
 	private String progressPercentage(int done, int total) {
-		int size = 5;
+		int size = 100;
 		String iconLeftBoundary = "[";
 		String iconDone = "=";
 		String iconRemain = ".";
