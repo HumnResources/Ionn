@@ -242,7 +242,7 @@ public class PlayerPrinter
 		int size = 25;
 		String iconLeftBoundary = "|";
 		String iconDone = "~";
-		String iconRemain = "_";
+		String iconRemain = ".";
 		String iconRightBoundary = "|";
 
 		if (done > total) {
