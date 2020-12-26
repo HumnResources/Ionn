@@ -234,10 +234,10 @@ public class PlayerPrinter
 
 	private String progressPercentage(int done, int total) {
 		int size = 25;
-		String iconLeftBoundary = "[";
-		String iconDone = "=";
-		String iconRemain = ".";
-		String iconRightBoundary = "]";
+		String iconLeftBoundary = "|";
+		String iconDone = "~";
+		String iconRemain = "_";
+		String iconRightBoundary = "|";
 
 		if (done > total) {
 			throw new IllegalArgumentException();
