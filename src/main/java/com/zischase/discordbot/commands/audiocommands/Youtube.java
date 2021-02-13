@@ -44,14 +44,16 @@ public class Youtube extends Command
 	public void handle(CommandContext ctx)
 	{
 		List<String> args = ctx.getArgs();
-		if (ctx.getArgs()
-			   .isEmpty())
+		if (args.isEmpty())
 		{
 			return;
 		}
 		
 		boolean doSearch = args.stream().anyMatch(arg -> arg.matches("(?i)(-s|-search)"));
-		String query = String.join(" ", args).replaceAll("(?i)(-(s|search|n|next))", "").replaceAll("\\w", "+");
+		String query = String.join("-", args)
+							 .replaceAll("(?i)-(s|search|n|next)", "")
+							 .trim()
+							 .replaceAll("-", "+");
 		String url = "http://youtube.com/results?search_query=" + query;
 		TrackLoader trackLoader = GuildManager.getContext(ctx.getGuild())
 											  .audioManager()
@@ -155,13 +157,12 @@ public class Youtube extends Command
 				
 				scheduler.clearQueue();
 				scheduler.queueList(queue, ctx.getChannel());
+				
+				GuildManager.getContext(ctx.getGuild())
+							.playerPrinter()
+							.printQueue(GuildManager.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
 			}
 		}
-	}
-	
-	private void searchAndPlay(CommandContext ctx)
-	{
-	
 	}
 	
 }
