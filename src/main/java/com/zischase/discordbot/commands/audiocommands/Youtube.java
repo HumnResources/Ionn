@@ -1,6 +1,8 @@
 package com.zischase.discordbot.commands.audiocommands;
 
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.audioplayer.TrackLoader;
+import com.zischase.discordbot.audioplayer.TrackScheduler;
 import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import org.jsoup.Jsoup;
@@ -41,16 +43,15 @@ public class Youtube extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
+		List<String> args = ctx.getArgs();
 		if (ctx.getArgs()
 			   .isEmpty())
 		{
 			return;
 		}
 		
-		boolean doSearch = ctx.getArgs()
-							  .get(0)
-							  .matches("(?i)(-s|-search)");
-		String query = String.join("+", ctx.getArgs());
+		boolean doSearch = args.stream().anyMatch(arg -> arg.matches("(?i)(-s|-search)"));
+		String query = String.join(" ", args).replaceAll("(?i)(-(s|search|n|next))", "").replaceAll("\\w", "+");
 		String url = "http://youtube.com/results?search_query=" + query;
 		TrackLoader trackLoader = GuildManager.getContext(ctx.getGuild())
 											  .audioManager()
@@ -136,7 +137,31 @@ public class Youtube extends Command
 				}
 			}
 		}
+		if (ctx.getArgs().size() <= 2)
+		{
+			boolean hasNextFlag = args.stream().anyMatch(arg -> arg.matches("(?i)-(n|next)"));
+			
+			if (hasNextFlag) {
+				TrackScheduler scheduler = GuildManager.getContext(ctx.getGuild())
+													   .audioManager()
+													   .getScheduler();
+				
+				ArrayList<AudioTrack> queue = scheduler.getQueue();
+				
+				int index = queue.size() - 1; // Subtract 1 for '0' based numeration.
+				
+				queue.add(0, queue.get(index));
+				queue.remove(index + 1); // Adding one to account for -> shift of list
+				
+				scheduler.clearQueue();
+				scheduler.queueList(queue, ctx.getChannel());
+			}
+		}
 	}
 	
+	private void searchAndPlay(CommandContext ctx)
+	{
+	
+	}
 	
 }

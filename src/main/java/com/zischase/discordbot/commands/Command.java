@@ -28,4 +28,7 @@ public abstract class Command
 	}
 	
 	public abstract void handle(CommandContext ctx) ;
+ 
+ //   protected abstract void handle(GuildMessageReceivedEvent event, List<String> strings);
+ 
 }
