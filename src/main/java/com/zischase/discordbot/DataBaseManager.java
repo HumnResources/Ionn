@@ -5,8 +5,6 @@ import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
 
 public final class DataBaseManager
 {
@@ -28,60 +26,63 @@ public final class DataBaseManager
 			}
 		}
 		
-		Jdbi.create(SQLConnectionHandler::getConnection)
-				.useHandle(handle ->
+		Jdbi.create(SQLConnectionHandler::getConnection).useHandle(handle ->
 				{
 					if (checkTable(handle, "guild_settings", setting))
 					{
-						handle.execute("UPDATE guild_settings SET " + setting + " = ? WHERE guild_id = ?", value, guildID);
+						handle.createUpdate("UPDATE guild_settings SET <setting> = :value WHERE guild_id = :guildID")
+							  .define("setting", setting)
+							  .bind("value", value)
+							  .bind("guildID", guildID)
+							  .execute();
 					}
 					else if (checkTable(handle, "media_settings", setting))
 					{
-						handle.execute("UPDATE media_settings SET " + setting + " = ? WHERE guild_id = ?", value, guildID);
+						handle.createUpdate("UPDATE media_settings SET <setting> = :value WHERE guild_id = :guildID")
+							  .define("setting", setting)
+							  .bind("value", value)
+							  .bind("guildID", guildID)
+							  .execute();
 					}
-//					handle.close();
-//					return null;
 				});
-			
 	}
 	
 	public static String get(String guildID, String setting)
 	{
-		return Jdbi.create(SQLConnectionHandler::getConnection)
-				   .withHandle(handle ->
+		return Jdbi.create(SQLConnectionHandler::getConnection).withHandle(handle ->
 				   {
 				   		String r = "";
 				   		if (checkTable(handle, "guild_settings", setting))
 						{
-							r = handle.createQuery("SELECT "+setting+" FROM guild_settings WHERE guild_id = :guildID")
-									  .bind("guildID", guildID)
+							r = handle.createQuery("SELECT <setting> FROM guild_settings WHERE guild_id = :id")
+									  .define("setting", setting)
+									  .bind("id", guildID)
 									  .mapTo(String.class)
 									  .findFirst()
-									  .orElse("");
+									  .orElse(null);
 						}
 				   		else if (checkTable(handle, "media_settings", setting))
 						{
-							r = handle.createQuery("SELECT "+setting+" FROM media_settings WHERE guild_id = :guildID")
+							r = handle.createQuery("SELECT <setting> FROM media_settings WHERE guild_id = :guildID")
+									  .define("setting", setting)
 									  .bind("guildID", guildID)
 									  .mapTo(String.class)
 									  .findFirst()
-									  .orElse("");
+									  .orElse(null);
 						}
 				   	
 					   handle.close();
 					   return r;
 				   });
 	}
+	
 	private static boolean checkTable(Handle handle, String table, String setting)
 	{
-		List<String> settings = handle.createQuery( /* Language=PostgreSQL */
-				"SELECT column_name" +
-						" FROM information_schema.columns" +
-						" WHERE table_schema = 'public'" +
-						" AND table_name     = '"+table+"'")
-									  .mapTo(String.class)
-									  .list();
-		
-		return settings.contains(setting);
+		/* Language=PostgreSQL */
+		return handle.createQuery("SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = :table")
+			  		 .bind("table", table)
+			  		 .mapTo(String.class)
+			  		 .list()
+					 .contains(setting);
 	}
 }

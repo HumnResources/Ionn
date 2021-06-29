@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands.general;
 
+import com.zischase.discordbot.DataBaseManager;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
@@ -31,7 +32,7 @@ public class Help extends Command
 		EmbedBuilder cmdList = new EmbedBuilder();
 		cmdList.setColor(Color.ORANGE);
 		cmdList.setTitle("Commands");
-		String prefix = Prefix.getPrefix(guild);
+		String prefix = DataBaseManager.get(guild.getId(), "prefix");
 
 		cmdList.appendDescription(String.format("The current prefix is set to: `%s`\n", prefix));
 		

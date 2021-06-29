@@ -1,7 +1,6 @@
 package com.zischase.discordbot;
 
 import com.zischase.discordbot.commands.CommandThreadManager;
-import com.zischase.discordbot.commands.general.Prefix;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.ReadyEvent;
@@ -39,6 +38,8 @@ public class Listener extends ListenerAdapter
 				.getAsTag());
 	}
 	
+	
+	
 	@Override
 	public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent event)
 	{
@@ -47,7 +48,12 @@ public class Listener extends ListenerAdapter
 			return;
 		}
 
-		String prefix = Prefix.getPrefix(event.getGuild());
+		String prefix = DataBaseManager.get(event.getGuild().getId(), "prefix");
+		
+		if (prefix == null) {
+			return;
+		}
+		
 		String raw = event.getMessage()
 						  .getContentRaw();
 		

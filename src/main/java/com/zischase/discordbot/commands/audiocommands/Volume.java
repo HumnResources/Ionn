@@ -14,26 +14,9 @@ public class Volume extends Command
 {
 	private final int maxVolume     = Integer.parseInt(Config.get("MAX_VOLUME"));
 	
-	
 	public Volume()
 	{
 		super(false);
-	}
-	
-	public static void init(Guild guild)
-	{
-		String guildVol = DataBaseManager.get(guild.getId(), "volume");
-		
-		if (guildVol == null)
-		{
-			guildVol = Config.get("DEFAULT_VOLUME");
-			DataBaseManager.update(guild.getId(), "volume", guildVol);
-		}
-		
-		GuildManager.getContext(guild)
-					.audioManager()
-					.getPlayer()
-					.setVolume(Integer.parseInt(guildVol));
 	}
 	
 	@Override

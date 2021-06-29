@@ -6,18 +6,15 @@ import com.zischase.discordbot.commands.CommandContext;
 import net.dv8tion.jda.api.entities.Guild;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Prefix extends Command
 {
+	private final AtomicReference<String> prefix = new AtomicReference<>();
 	
 	public Prefix()
 	{
 		super(false);
-	}
-	
-	public static String getPrefix(Guild guild)
-	{
-		return DataBaseManager.get(guild.getId(), "prefix");
 	}
 	
 	@Override
@@ -36,16 +33,17 @@ public class Prefix extends Command
 		{
 			ctx.getEvent()
 			   .getChannel()
-			   .sendMessage("The current prefix is `" + getPrefix(guild) + "`")
+			   .sendMessage("The current prefix is `" + prefix.get() + "`")
 			   .queue();
 			return;
 		}
 		
 		DataBaseManager.update(guild.getId(), "prefix", args.get(0));
+		prefix.set(args.get(0));
 
 		ctx.getEvent()
 		   .getChannel()
-		   .sendMessage("The new prefix has been set to `" + getPrefix(guild) + "`")
+		   .sendMessage("The new prefix has been set to `" + prefix.get() + "`")
 		   .queue();
 	}
 }

@@ -9,7 +9,6 @@ import net.dv8tion.jda.api.entities.Guild;
 public class GuildContext implements IGuildContext
 {
 	private final Guild         guild;
-	private final boolean       premium;
 	private final AudioManager  audioManager;
 	private final PlayerPrinter playerPrinter;
 	private final CommandManager commandManager;
@@ -17,7 +16,6 @@ public class GuildContext implements IGuildContext
 	public GuildContext(Guild guild)
 	{
 		this.guild = guild;
-		this.premium = Boolean.parseBoolean(DataBaseManager.get(this.guild.getId(), "ispremium"));
 		this.audioManager = new AudioManager(guild);
 		this.playerPrinter = new PlayerPrinter();
 		this.commandManager = new CommandManager();
@@ -50,6 +48,6 @@ public class GuildContext implements IGuildContext
 	@Override
 	public boolean isPremium()
 	{
-		return this.premium;
+		return Boolean.parseBoolean(DataBaseManager.get(this.guild.getId(), "ispremium"));
 	}
 }

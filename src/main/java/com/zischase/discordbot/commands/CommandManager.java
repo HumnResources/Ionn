@@ -1,11 +1,11 @@
 package com.zischase.discordbot.commands;
 
+import com.zischase.discordbot.DataBaseManager;
 import com.zischase.discordbot.commands.audiocommands.*;
 import com.zischase.discordbot.commands.dev.Spam;
 import com.zischase.discordbot.commands.general.Clear;
 import com.zischase.discordbot.commands.general.Help;
 import com.zischase.discordbot.commands.general.Prefix;
-import com.zischase.discordbot.guildcontrol.PremiumManager;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +23,7 @@ public final class CommandManager
 
 	{
 		addCommand(new Help());
-		addCommand(new Radio());
+//		addCommand(new Radio());
 		addCommand(new Play());
 		addCommand(new Volume());
 		addCommand(new Stop());
@@ -56,7 +56,7 @@ public final class CommandManager
 	
 	public void invoke(GuildMessageReceivedEvent event)
 	{
-		String prefix = Prefix.getPrefix(event.getGuild());
+		String prefix = DataBaseManager.get(event.getGuild().getId(), "prefix");
 		
 		String[] argsArr = event.getMessage()
 								.getContentRaw()
@@ -75,7 +75,7 @@ public final class CommandManager
 
 		CommandContext ctx = new CommandContext(event, args);
 
-		boolean isGuildPremium = PremiumManager.getPremium(event.getGuild());
+		boolean isGuildPremium = Boolean.parseBoolean(DataBaseManager.get(event.getGuild().getId(), "premium"));
 
 		if (cmd.premiumCommand && ! isGuildPremium )
 		{

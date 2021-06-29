@@ -25,9 +25,7 @@ public final class SQLConnectionHandler
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
 		}
-
-
-
+		
 		if (uri != null && uri.getHost() != null)
 		{
 			USER = uri.getUserInfo().split(":")[0];
@@ -41,29 +39,37 @@ public final class SQLConnectionHandler
 			URL = Config.get("DATABASE_URL");
 		}
 		
-		Jdbi.create(SQLConnectionHandler::connect)
-			.useHandle(handle ->
+		Jdbi.create(SQLConnectionHandler::connect).useHandle(handle ->
 			{
-				handle.execute(
-						/* language=PostgreSQL */
-						" CREATE TABLE IF NOT EXISTS guild_settings( " +
-								"id SERIAL PRIMARY KEY," +
-								"guild_id VARCHAR(20) NOT NULL," +
-								"ispremium VARCHAR(10) NOT NULL DEFAULT 'false'," +
-								"prefix VARCHAR(255) NOT NULL DEFAULT '"+Config.get("DEFAULT_PREFIX")+"')");
-				handle.execute(
-						/* language=PostgreSQL */
-						" CREATE TABLE IF NOT EXISTS media_settings( " +
-								"id SERIAL PRIMARY KEY," +
-								"guild_id VARCHAR(20) NOT NULL," +
-								"volume VARCHAR NOT NULL DEFAULT '"+Config.get("DEFAULT_VOLUME")+"')");
-				handle.execute(
-						/* language=PostgreSQL */
-						" CREATE TABLE IF NOT EXISTS youtube_playlists( " +
-								"id SERIAL PRIMARY KEY," +
-								"guild_id VARCHAR(20) NOT NULL," +
-								"playlist_name VARCHAR NOT NULL," +
-								"playlist_url VARCHAR NOT NULL)");
+				handle.createQuery("""
+						CREATE TABLE IF NOT EXISTS guilds(
+							id VARCHAR(20) NOT NULL PRIMARY KEY,
+							name VARCHAR NOT NULL);
+						 
+						CREATE TABLE IF NOT EXISTS guild_settings(
+							guild_id VARCHAR NOT NULL UNIQUE,
+							ispremium VARCHAR(5) NOT NULL DEFAULT 'false',
+							prefix VARCHAR(1) NOT NULL DEFAULT '/',
+							CONSTRAINT fk_guild_id FOREIGN KEY(guild_id) REFERENCES guilds(id)
+								ON UPDATE CASCADE
+								ON DELETE CASCADE);
+								
+						CREATE TABLE IF NOT EXISTS media_settings(
+							guild_id VARCHAR NOT NULL UNIQUE,
+							volume INT NOT NULL DEFAULT 10,
+							CONSTRAINT chk_volume CHECK(volume BETWEEN -1 AND 101),
+							CONSTRAINT fk_guild_id FOREIGN KEY(guild_id) REFERENCES guilds(id)
+								ON UPDATE CASCADE
+								ON DELETE CASCADE);
+								
+						CREATE TABLE IF NOT EXISTS playlists(
+							guild_id VARCHAR NOT NULL,
+							name VARCHAR NOT NULL UNIQUE,
+							url VARCHAR NOT NULL UNIQUE,
+							CONSTRAINT fk_guild_id FOREIGN KEY(guild_id) REFERENCES guilds(id)
+								ON UPDATE CASCADE
+								ON DELETE CASCADE);
+						""");
 			});
 		
 		LOGGER.info("DataBase Connection Established");
