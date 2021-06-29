@@ -18,9 +18,9 @@ public final class GuildManager
 		Guild guild = guildContext.guild();
 		GUILDS.putIfAbsent(guild.getIdLong(), guildContext);
 		
-		boolean hasGuildSettings = DataBaseManager.get(guild.getId(), "prefix") != null;
+		boolean initSettings = DataBaseManager.get(guild.getId(), "prefix").isEmpty();
 		
-		if (!hasGuildSettings)
+		if (initSettings)
 		{
 			Jdbi.create(SQLConnectionHandler::getConnection)
 				.useHandle(handle ->

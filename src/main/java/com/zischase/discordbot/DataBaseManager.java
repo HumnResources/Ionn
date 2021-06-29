@@ -59,7 +59,7 @@ public final class DataBaseManager
 									  .bind("id", guildID)
 									  .mapTo(String.class)
 									  .findFirst()
-									  .orElse(null);
+									  .orElse("");
 						}
 				   		else if (checkTable(handle, "media_settings", setting))
 						{
@@ -68,7 +68,7 @@ public final class DataBaseManager
 									  .bind("guildID", guildID)
 									  .mapTo(String.class)
 									  .findFirst()
-									  .orElse(null);
+									  .orElse("");
 						}
 				   	
 					   handle.close();
