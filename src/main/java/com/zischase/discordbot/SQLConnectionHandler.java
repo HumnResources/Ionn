@@ -41,7 +41,7 @@ public final class SQLConnectionHandler
 		
 		Jdbi.create(SQLConnectionHandler::connect).useHandle(handle ->
 			{
-				handle.createQuery("""
+				handle.execute("""
 						CREATE TABLE IF NOT EXISTS guilds(
 							id VARCHAR(20) NOT NULL PRIMARY KEY,
 							name VARCHAR NOT NULL);
