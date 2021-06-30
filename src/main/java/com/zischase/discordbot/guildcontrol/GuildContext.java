@@ -48,6 +48,6 @@ public class GuildContext implements IGuildContext
 	@Override
 	public boolean isPremium()
 	{
-		return Boolean.parseBoolean(DataBaseManager.get(this.guild.getId(), "ispremium"));
+		return Boolean.parseBoolean(DataBaseManager.get(this.guild.getId(), "premium"));
 	}
 }
