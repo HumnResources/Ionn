@@ -58,7 +58,7 @@ public class Volume extends Command
 			
 			if (validNum)
 			{
-				setVolume(guild, String.valueOf(num));
+				setVolume(guild, num);
 				
 				ctx.getEvent()
 				   .getChannel()
@@ -74,13 +74,13 @@ public class Volume extends Command
 		   .queue();
 	}
 	
-	private void setVolume(Guild guild, String value)
+	private void setVolume(Guild guild, int value)
 	{
 		DataBaseManager.update(guild.getId(), "volume", value);
 		GuildManager.getContext(guild)
 					.audioManager()
 					.getPlayer()
-					.setVolume(Integer.parseInt(value));
+					.setVolume(value);
 	}
 	
 	private String getVolume(Guild guild)

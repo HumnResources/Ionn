@@ -64,8 +64,8 @@ public final class SQLConnectionHandler
 								
 						CREATE TABLE IF NOT EXISTS playlists(
 							guild_id VARCHAR NOT NULL,
-							name VARCHAR NOT NULL UNIQUE,
-							url VARCHAR NOT NULL UNIQUE,
+							name VARCHAR NOT NULL,
+							url VARCHAR NOT NULL,
 							CONSTRAINT fk_guild_id FOREIGN KEY(guild_id) REFERENCES guilds(id)
 								ON UPDATE CASCADE
 								ON DELETE CASCADE);

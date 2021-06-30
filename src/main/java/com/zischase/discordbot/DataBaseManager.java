@@ -10,7 +10,8 @@ public final class DataBaseManager
 {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataBaseManager.class);
 	
-	public static void update(String guildID, String setting, String value)
+	/* Using generic object to pass data types to database - This means you must know the sata type being used however */
+	public static void update(String guildID, String setting, Object value)
 	{
 		if (setting.matches("(?i)(premium|id|guild_id)"))
 		{
