@@ -1,6 +1,6 @@
 package com.zischase.discordbot;
 
-import com.zischase.discordbot.commands.CommandThreadManager;
+import com.zischase.discordbot.commands.CommandThreadHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.ReadyEvent;
@@ -16,13 +16,13 @@ import java.time.OffsetDateTime;
 
 public class Listener extends ListenerAdapter
 {
-	private static final Logger LOGGER = LoggerFactory.getLogger(Listener.class);
-	private final CommandThreadManager commandThreadManager;
+	private static final Logger               LOGGER = LoggerFactory.getLogger(Listener.class);
+	private final        CommandThreadHandler commandThreadHandler;
 
 	public Listener(JDA jda)
 	{
 
-		this.commandThreadManager = new CommandThreadManager(jda);
+		this.commandThreadHandler = new CommandThreadHandler(jda);
 
 	}
 	
@@ -68,12 +68,12 @@ public class Listener extends ListenerAdapter
 		}
 		if (raw.startsWith(prefix))
 		{
-			this.commandThreadManager.asyncCommand(event);
+			this.commandThreadHandler.asyncCommand(event);
 		}
 	}
 
 	@Override
 	public void onShutdown(@NotNull ShutdownEvent event) {
-		this.commandThreadManager.shutdown();
+		this.commandThreadHandler.shutdown();
 	}
 }

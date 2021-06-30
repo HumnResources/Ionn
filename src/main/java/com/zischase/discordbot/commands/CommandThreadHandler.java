@@ -11,14 +11,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class CommandThreadManager {
+public class CommandThreadHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CommandThreadManager.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CommandThreadHandler.class);
     private final ThreadPoolExecutor poolExecutor;
     private final JDA jda;
 
 
-    public CommandThreadManager(JDA jda) {
+    public CommandThreadHandler(JDA jda) {
 
         this.jda = jda;
 

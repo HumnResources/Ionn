@@ -9,9 +9,9 @@ import java.util.concurrent.ThreadFactory;
 public class CommandThreadFactory implements ThreadFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandThreadFactory.class);
     private final Thread.UncaughtExceptionHandler UNCAUGHT_EXCEPTION_HANDLER = new CommandThreadExceptionHandler();
-    private final CommandThreadManager threadManager;
+    private final CommandThreadHandler            threadManager;
 
-    public CommandThreadFactory(CommandThreadManager threadManager) {
+    public CommandThreadFactory(CommandThreadHandler threadManager) {
         this.threadManager = threadManager;
     }
 
