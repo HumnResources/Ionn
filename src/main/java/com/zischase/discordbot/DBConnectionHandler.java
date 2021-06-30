@@ -34,9 +34,9 @@ public final class DBConnectionHandler
 		}
 		else
 		{
-			USER = Config.get("DB_USER");
-			PASS = Config.get("DB_PASSWORD");
-			URL = Config.get("DATABASE_URL");
+			USER = Config.get("DEV_DB_USER");
+			PASS = Config.get("DEV_DB_PASSWORD");
+			URL = Config.get("DEV_DATABASE_URL");
 		}
 		
 		Jdbi.create(DBConnectionHandler::connect).useHandle(handle ->

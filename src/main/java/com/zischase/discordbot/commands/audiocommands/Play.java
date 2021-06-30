@@ -8,6 +8,7 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 import java.util.ArrayList;
@@ -54,8 +55,7 @@ public class Play extends Command
 			AudioPlayer player = GuildManager.getContext(guild)
 											 .audioManager()
 											 .getPlayer();
-			boolean isPaused = player.isPaused();
-			player.setPaused(! isPaused);
+			player.setPaused(! player.isPaused());
 		}
 		else if (args.get(0).matches("(?i)-(next|n)"))
 		{
@@ -64,7 +64,18 @@ public class Play extends Command
 		}
 		else
 		{
-			trackLoader.load(ctx.getChannel(), ctx.getMember(), args.get(0));
+			List<Message.Attachment> attachments = ctx.getEvent()
+													  .getMessage()
+													  .getAttachments();
+			
+			/* Checks to see if we have a potential link in the message */
+			if (!attachments.isEmpty()) {
+				trackLoader.load(ctx.getChannel(), ctx.getMember(), attachments.get(0).getProxyUrl());
+			}
+			/* Otherwise we check to see if they input a string, process using YT */
+			else if (!args.isEmpty()) {
+				new Youtube().handle(ctx);
+			}
 		}
 	}
 	
