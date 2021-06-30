@@ -1,6 +1,6 @@
 package com.zischase.discordbot.commands;
 
-import com.zischase.discordbot.DataBaseManager;
+import com.zischase.discordbot.DatabaseHandler;
 import com.zischase.discordbot.commands.audiocommands.*;
 import com.zischase.discordbot.commands.dev.Spam;
 import com.zischase.discordbot.commands.general.Clear;
@@ -16,9 +16,9 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public final class CommandManager
+public final class CommandHandler
 {
-	private static final Logger             LOGGER   = LoggerFactory.getLogger(CommandManager.class);
+	private static final Logger             LOGGER   = LoggerFactory.getLogger(CommandHandler.class);
 	private final List<Command>      commands = new ArrayList<>();
 
 	{
@@ -56,7 +56,7 @@ public final class CommandManager
 	
 	public void invoke(GuildMessageReceivedEvent event)
 	{
-		String prefix = DataBaseManager.get(event.getGuild().getId(), "prefix");
+		String prefix = DatabaseHandler.get(event.getGuild().getId(), "prefix");
 		
 		String[] argsArr = event.getMessage()
 								.getContentRaw()
@@ -75,7 +75,7 @@ public final class CommandManager
 
 		CommandContext ctx = new CommandContext(event, args);
 
-		boolean isGuildPremium = Boolean.parseBoolean(DataBaseManager.get(event.getGuild().getId(), "premium"));
+		boolean isGuildPremium = Boolean.parseBoolean(DatabaseHandler.get(event.getGuild().getId(), "premium"));
 
 		if (cmd.premiumCommand && ! isGuildPremium )
 		{

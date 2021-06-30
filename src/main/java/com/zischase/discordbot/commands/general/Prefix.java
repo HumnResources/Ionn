@@ -1,6 +1,6 @@
 package com.zischase.discordbot.commands.general;
 
-import com.zischase.discordbot.DataBaseManager;
+import com.zischase.discordbot.DatabaseHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import net.dv8tion.jda.api.entities.Guild;
@@ -38,7 +38,7 @@ public class Prefix extends Command
 			return;
 		}
 		
-		DataBaseManager.update(guild.getId(), "prefix", args.get(0));
+		DatabaseHandler.update(guild.getId(), "prefix", args.get(0));
 		prefix.set(args.get(0));
 
 		ctx.getEvent()

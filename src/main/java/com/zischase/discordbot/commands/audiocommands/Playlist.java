@@ -1,7 +1,7 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.zischase.discordbot.SQLConnectionHandler;
+import com.zischase.discordbot.DBConnectionHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
@@ -52,7 +52,7 @@ public class Playlist extends Command
 	{
 		if (!playlistsInitialized)
 		{
-			List<String> dbPlaylists = Jdbi.create(SQLConnectionHandler.getConnection())
+			List<String> dbPlaylists = Jdbi.create(DBConnectionHandler.getConnection())
 					.withHandle(handle -> {
 
 						List<String> pls = handle.createQuery("SELECT playlist_name FROM youtube_playlists WHERE guild_id = :id")
@@ -239,7 +239,7 @@ public class Playlist extends Command
 
 		if (hasTableEntry)
 		{
-			Jdbi.create(SQLConnectionHandler.getConnection())
+			Jdbi.create(DBConnectionHandler.getConnection())
 					.useHandle(handle -> handle.execute("UPDATE youtube_playlists SET playlist_url = ? WHERE guild_id = ? AND playlist_name = ?", playlistURL, guildID, finalName));
 		}
 		else
@@ -252,13 +252,13 @@ public class Playlist extends Command
 	{
 		String finalName = name.toLowerCase().trim();
 
-		Jdbi.create(SQLConnectionHandler.getConnection())
+		Jdbi.create(DBConnectionHandler.getConnection())
 				.useHandle(handle -> handle.execute("INSERT INTO youtube_playlists(guild_id, playlist_name, playlist_url) VALUES (?, ?, ?)", guildID, finalName, playlistURL));
 	}
 
 	private static boolean checkTable(String guildID, String name)
 	{
-		return Jdbi.create(SQLConnectionHandler.getConnection())
+		return Jdbi.create(DBConnectionHandler.getConnection())
 				.withHandle(handle -> {
 					List<String> settings = handle.createQuery( /* Language=PostgreSQL */
 							"SELECT playlist_name FROM youtube_playlists WHERE guild_id = :guildID")
@@ -277,7 +277,7 @@ public class Playlist extends Command
 	{
 		String finalName = name.toLowerCase().trim();
 
-		return Jdbi.create(SQLConnectionHandler.getConnection())
+		return Jdbi.create(DBConnectionHandler.getConnection())
 				.withHandle(handle -> {
 					String r;
 					r = handle.createQuery("SELECT playlist_url FROM youtube_playlists WHERE guild_id = :guildID AND playlist_name = :name")
@@ -295,7 +295,7 @@ public class Playlist extends Command
 	{
 		String finalName = name.toLowerCase().trim();
 
-		Jdbi.create(SQLConnectionHandler.getConnection())
+		Jdbi.create(DBConnectionHandler.getConnection())
 				.useHandle(handle -> handle.execute("DELETE FROM youtube_playlists WHERE guild_id = ? AND playlist_name = ?", guildID, finalName));
 	}
 	

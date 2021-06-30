@@ -9,10 +9,10 @@ import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
-public final class SQLConnectionHandler
+public final class DBConnectionHandler
 {
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(SQLConnectionHandler.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DBConnectionHandler.class);
 	private static final String URL;
 	private static final String USER;
 	private static final String PASS;
@@ -39,7 +39,7 @@ public final class SQLConnectionHandler
 			URL = Config.get("DATABASE_URL");
 		}
 		
-		Jdbi.create(SQLConnectionHandler::connect).useHandle(handle ->
+		Jdbi.create(DBConnectionHandler::connect).useHandle(handle ->
 			{
 				handle.execute("""
 						CREATE TABLE IF NOT EXISTS guilds(
@@ -75,7 +75,7 @@ public final class SQLConnectionHandler
 		LOGGER.info("DataBase Connection Established");
 	}
 	
-	private SQLConnectionHandler()
+	private DBConnectionHandler()
 	{
 	}
 	

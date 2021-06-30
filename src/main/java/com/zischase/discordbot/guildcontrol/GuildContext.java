@@ -1,24 +1,24 @@
 package com.zischase.discordbot.guildcontrol;
 
-import com.zischase.discordbot.DataBaseManager;
+import com.zischase.discordbot.DatabaseHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.audioplayer.PlayerPrinter;
-import com.zischase.discordbot.commands.CommandManager;
+import com.zischase.discordbot.commands.CommandHandler;
 import net.dv8tion.jda.api.entities.Guild;
 
 public class GuildContext implements IGuildContext
 {
-	private final Guild         guild;
-	private final AudioManager  audioManager;
-	private final PlayerPrinter playerPrinter;
-	private final CommandManager commandManager;
+	private final Guild          guild;
+	private final AudioManager   audioManager;
+	private final PlayerPrinter  playerPrinter;
+	private final CommandHandler commandHandler;
 	
 	public GuildContext(Guild guild)
 	{
-		this.guild = guild;
-		this.audioManager = new AudioManager(guild);
-		this.playerPrinter = new PlayerPrinter();
-		this.commandManager = new CommandManager();
+		this.guild          = guild;
+		this.audioManager   = new AudioManager(guild);
+		this.playerPrinter  = new PlayerPrinter();
+		this.commandHandler = new CommandHandler();
 		GuildManager.setGuild(this);
 	}
 	
@@ -41,13 +41,13 @@ public class GuildContext implements IGuildContext
 	}
 
 	@Override
-	public CommandManager commandManager() {
-		return this.commandManager;
+	public CommandHandler commandManager() {
+		return this.commandHandler;
 	}
 
 	@Override
 	public boolean isPremium()
 	{
-		return Boolean.parseBoolean(DataBaseManager.get(this.guild.getId(), "premium"));
+		return Boolean.parseBoolean(DatabaseHandler.get(this.guild.getId(), "premium"));
 	}
 }

@@ -6,9 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public final class DataBaseManager
+public final class DatabaseHandler
 {
-	private static final Logger LOGGER = LoggerFactory.getLogger(DataBaseManager.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseHandler.class);
 	
 	/* Using generic object to pass data types to database - This means you must know the sata type being used however */
 	public static void update(String guildID, String setting, Object value)
@@ -27,7 +27,7 @@ public final class DataBaseManager
 			}
 		}
 		
-		Jdbi.create(SQLConnectionHandler::getConnection).useHandle(handle ->
+		Jdbi.create(DBConnectionHandler::getConnection).useHandle(handle ->
 				{
 					if (checkTable(handle, "guild_settings", setting))
 					{
@@ -50,7 +50,7 @@ public final class DataBaseManager
 	
 	public static String get(String guildID, String setting)
 	{
-		return Jdbi.create(SQLConnectionHandler::getConnection).withHandle(handle ->
+		return Jdbi.create(DBConnectionHandler::getConnection).withHandle(handle ->
 				   {
 				   		String r = "";
 				   		if (checkTable(handle, "guild_settings", setting))

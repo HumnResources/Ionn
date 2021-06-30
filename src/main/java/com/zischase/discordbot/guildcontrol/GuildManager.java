@@ -1,7 +1,7 @@
 package com.zischase.discordbot.guildcontrol;
 
-import com.zischase.discordbot.DataBaseManager;
-import com.zischase.discordbot.SQLConnectionHandler;
+import com.zischase.discordbot.DatabaseHandler;
+import com.zischase.discordbot.DBConnectionHandler;
 import net.dv8tion.jda.api.entities.Guild;
 import org.jdbi.v3.core.Jdbi;
 
@@ -18,11 +18,11 @@ public final class GuildManager
 		Guild guild = guildContext.guild();
 		GUILDS.putIfAbsent(guild.getIdLong(), guildContext);
 		
-		boolean initSettings = DataBaseManager.get(guild.getId(), "prefix").isEmpty();
+		boolean initSettings = DatabaseHandler.get(guild.getId(), "prefix").isEmpty();
 		
 		if (initSettings)
 		{
-			Jdbi.create(SQLConnectionHandler::getConnection)
+			Jdbi.create(DBConnectionHandler::getConnection)
 				.useHandle(handle ->
 						handle.createUpdate("""
 								INSERT INTO guilds(id, name) VALUES (:guildID, :name);
@@ -33,7 +33,7 @@ public final class GuildManager
 							  .bind("guildID", guild.getId())
 							  .execute());
 		}
-		int v = Integer.parseInt(DataBaseManager.get(guild.getId(), "volume"));
+		int v = Integer.parseInt(DatabaseHandler.get(guild.getId(), "volume"));
 		guildContext.audioManager()
 					.getPlayer()
 					.setVolume(v);

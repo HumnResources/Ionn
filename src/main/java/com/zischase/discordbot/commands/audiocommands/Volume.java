@@ -1,7 +1,7 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.zischase.discordbot.Config;
-import com.zischase.discordbot.DataBaseManager;
+import com.zischase.discordbot.DatabaseHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildManager;
@@ -76,7 +76,7 @@ public class Volume extends Command
 	
 	private void setVolume(Guild guild, int value)
 	{
-		DataBaseManager.update(guild.getId(), "volume", value);
+		DatabaseHandler.update(guild.getId(), "volume", value);
 		GuildManager.getContext(guild)
 					.audioManager()
 					.getPlayer()

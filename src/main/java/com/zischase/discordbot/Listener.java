@@ -48,7 +48,7 @@ public class Listener extends ListenerAdapter
 			return;
 		}
 
-		String prefix = DataBaseManager.get(event.getGuild().getId(), "prefix");
+		String prefix = DatabaseHandler.get(event.getGuild().getId(), "prefix");
 		
 		if (prefix == null) {
 			return;

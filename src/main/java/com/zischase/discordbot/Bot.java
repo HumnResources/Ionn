@@ -17,7 +17,7 @@ public class Bot
 
 	static
 	{
-		SQLConnectionHandler.getConnection();
+		DBConnectionHandler.getConnection();
 	}
 	
 	public static void main(String[] args)
