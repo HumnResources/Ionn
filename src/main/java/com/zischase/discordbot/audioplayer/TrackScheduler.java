@@ -6,9 +6,10 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
-import com.zischase.discordbot.guildcontrol.GuildManager;
+import com.zischase.discordbot.guildcontrol.GuildHandler;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,10 +54,10 @@ public class TrackScheduler extends AudioEventAdapter
 	public void queueAudio(AudioTrack track, TextChannel textChannel)
 	{
 		this.textChannel = textChannel;
-		boolean hasPlayingTrack = GuildManager.getContext(textChannel.getGuild())
-											  .audioManager()
-											  .getPlayer()
-											  .getPlayingTrack() != null;
+		boolean hasPlayingTrack = GuildHandler.getContext(textChannel.getGuild())
+                                              .audioManager()
+                                              .getPlayer()
+                                              .getPlayingTrack() != null;
 
 		
 		if (! player.startTrack(track, true))
@@ -132,17 +133,17 @@ public class TrackScheduler extends AudioEventAdapter
 	@Override
 	public void onPlayerPause(AudioPlayer player)
 	{
-		GuildManager.getContext(textChannel.getGuild())
-					.playerPrinter()
-					.printNowPlaying(GuildManager.getContext(textChannel.getGuild()).audioManager(), textChannel);
+		GuildHandler.getContext(textChannel.getGuild())
+                    .playerPrinter()
+                    .printNowPlaying(GuildHandler.getContext(textChannel.getGuild()).audioManager(), textChannel);
 	}
 	
 	@Override
 	public void onPlayerResume(AudioPlayer player)
 	{
-		GuildManager.getContext(textChannel.getGuild())
-					.playerPrinter()
-					.printNowPlaying(GuildManager.getContext(textChannel.getGuild()).audioManager(), textChannel);
+		GuildHandler.getContext(textChannel.getGuild())
+                    .playerPrinter()
+                    .printNowPlaying(GuildHandler.getContext(textChannel.getGuild()).audioManager(), textChannel);
 	}
 	
 	@Override
@@ -150,14 +151,14 @@ public class TrackScheduler extends AudioEventAdapter
 	{
 		if (! queue.isEmpty())
 		{
-			GuildManager.getContext(textChannel.getGuild())
-						.playerPrinter()
-						.printQueue(GuildManager.getContext(textChannel.getGuild()).audioManager(), textChannel);
+			GuildHandler.getContext(textChannel.getGuild())
+                        .playerPrinter()
+                        .printQueue(GuildHandler.getContext(textChannel.getGuild()).audioManager(), textChannel);
 		}
 		
-		GuildManager.getContext(textChannel.getGuild())
-					.playerPrinter()
-					.printNowPlaying(GuildManager.getContext(textChannel.getGuild()).audioManager(), textChannel);
+		GuildHandler.getContext(textChannel.getGuild())
+                    .playerPrinter()
+                    .printNowPlaying(GuildHandler.getContext(textChannel.getGuild()).audioManager(), textChannel);
 	}
 	
 	@Override
@@ -186,13 +187,15 @@ public class TrackScheduler extends AudioEventAdapter
 						   .queueAfter(5000, TimeUnit.MILLISECONDS);
 				
 				Member member = textChannel.getGuild()
-										   .getMember(textChannel.getJDA()
-																 .getSelfUser());
+										   .getMember(textChannel.getJDA().getSelfUser());
 				
-				GuildManager.getContext(textChannel.getGuild())
-							.audioManager()
-							.getTrackLoader()
-							.load(textChannel, member, track.getInfo().identifier);
+				VoiceChannel voiceChannel = member != null && member.getVoiceState() != null ?
+											member.getVoiceState().getChannel() : null;
+				
+				GuildHandler.getContext(textChannel.getGuild())
+                            .audioManager()
+                            .getTrackLoader()
+                            .load(textChannel, voiceChannel, track.getInfo().identifier);
 			}
 		}
 		lastTrack = track;
@@ -202,6 +205,11 @@ public class TrackScheduler extends AudioEventAdapter
 			nextTrack();
 		}
 		
+		else if (queue.isEmpty()) {
+			textChannel.getJDA()
+					   .getDirectAudioController()
+					   .disconnect(textChannel.getGuild());
+		}
 	}
 	
 	@Override
