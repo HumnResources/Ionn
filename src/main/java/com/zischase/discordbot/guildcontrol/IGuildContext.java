@@ -13,7 +13,7 @@ public interface IGuildContext
 	
 	AudioManager audioManager();
 
-	CommandHandler commandManager();
+	CommandHandler commandHandler();
 	
 	boolean isPremium();
 }

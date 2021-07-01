@@ -19,7 +19,7 @@ public class GuildContext implements IGuildContext
 		this.audioManager   = new AudioManager(guild);
 		this.playerPrinter  = new PlayerPrinter();
 		this.commandHandler = new CommandHandler();
-		GuildManager.setGuild(this);
+		GuildHandler.setGuild(this);
 	}
 	
 	@Override
@@ -41,7 +41,7 @@ public class GuildContext implements IGuildContext
 	}
 
 	@Override
-	public CommandHandler commandManager() {
+	public CommandHandler commandHandler() {
 		return this.commandHandler;
 	}
 

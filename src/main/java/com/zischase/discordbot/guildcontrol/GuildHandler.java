@@ -8,7 +8,7 @@ import org.jdbi.v3.core.Jdbi;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class GuildManager
+public final class GuildHandler
 {
 	
 	private static final Map<Long, GuildContext> GUILDS = new HashMap<>();
