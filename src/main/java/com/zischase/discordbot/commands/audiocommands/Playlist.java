@@ -4,7 +4,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.DBConnectionHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
@@ -122,10 +122,10 @@ public class Playlist extends Command
 						.sendMessage("Loading playlist `" + playlistName + "`")
 						.queue();
 
-				GuildHandler.getContext(ctx.getGuild())
-                            .audioManager()
-                            .getTrackLoader()
-                            .load(ctx.getChannel(), voiceChannel, getPlaylistURL(ctx.getGuild().getId(), playlistName));
+				GuildContext.get(ctx.getGuild())
+							.audioManager()
+							.getTrackLoader()
+							.load(ctx.getChannel(), voiceChannel, getPlaylistURL(ctx.getGuild().getId(), playlistName));
 			}
 			return;
 		}
@@ -137,12 +137,12 @@ public class Playlist extends Command
 		}
 		else if (cmd.matches("(?i)-(current|c|q|queue)"))
 		{
-			ArrayList<AudioTrack> queue = GuildHandler.getContext(ctx.getGuild())
+			ArrayList<AudioTrack> queue = GuildContext.get(ctx.getGuild())
                                                       .audioManager()
                                                       .getScheduler()
                                                       .getQueue();
 
-			queue.add(0, GuildHandler.getContext(ctx.getGuild()).audioManager().getPlayer().getPlayingTrack());
+			queue.add(0, GuildContext.get(ctx.getGuild()).audioManager().getPlayer().getPlayingTrack());
 
 			String youtubePlaylistURL = createPlaylistURL(queue);
 
@@ -153,12 +153,12 @@ public class Playlist extends Command
 		}
 		else if (cmd.matches("(?i)-(add|a)"))
 		{
-			ArrayList<AudioTrack> queue = GuildHandler.getContext(ctx.getGuild())
+			ArrayList<AudioTrack> queue = GuildContext.get(ctx.getGuild())
                                                       .audioManager()
                                                       .getScheduler()
                                                       .getQueue();
 
-			queue.add(0, GuildHandler.getContext(ctx.getGuild()).audioManager().getPlayer().getPlayingTrack());
+			queue.add(0, GuildContext.get(ctx.getGuild()).audioManager().getPlayer().getPlayingTrack());
 
 			String youtubePlaylistURL = createPlaylistURL(queue);
 

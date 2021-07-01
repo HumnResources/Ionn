@@ -5,7 +5,7 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sun.istack.Nullable;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.apache.commons.collections4.map.LinkedMap;
@@ -37,7 +37,7 @@ public class TrackLoader implements AudioLoadResultHandler
 		
 		if (CACHE.containsKey(uri))
 		{
-			GuildHandler.getContext(textChannel.getGuild())
+			GuildContext.get(textChannel.getGuild())
 						.audioManager()
 						.getScheduler()
 						.queueAudio(CACHE.get(uri)
@@ -45,7 +45,7 @@ public class TrackLoader implements AudioLoadResultHandler
 		}
 		else
 		{
-			GuildHandler.getContext(textChannel.getGuild())
+			GuildContext.get(textChannel.getGuild())
 						.audioManager()
 						.getPlayerManager()
 						.loadItem(uri, this);
@@ -64,7 +64,7 @@ public class TrackLoader implements AudioLoadResultHandler
 			CACHE.remove(0);
 		}
 		
-		GuildHandler.getContext(textChannel.getGuild())
+		GuildContext.get(textChannel.getGuild())
                     .audioManager()
                     .getScheduler()
                     .queueAudio(audioTrack, textChannel);
@@ -73,7 +73,7 @@ public class TrackLoader implements AudioLoadResultHandler
 	@Override
 	public void playlistLoaded(AudioPlaylist audioPlaylist)
 	{
-		GuildHandler.getContext(textChannel.getGuild())
+		GuildContext.get(textChannel.getGuild())
                     .audioManager()
                     .getScheduler()
                     .queueList(audioPlaylist, textChannel);

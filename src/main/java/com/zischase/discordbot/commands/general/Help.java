@@ -3,7 +3,7 @@ package com.zischase.discordbot.commands.general;
 import com.zischase.discordbot.DatabaseHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -52,7 +52,7 @@ public class Help extends Command
 		else
 		{
 			String cmdSearch = args.get(0);
-			Command command = GuildHandler.getContext(ctx.getGuild()).commandHandler().getCommand(cmdSearch);
+			Command command = GuildContext.get(ctx.getGuild()).commandHandler().getCommand(cmdSearch);
 
 			if (command == null)
 			{
@@ -76,9 +76,12 @@ public class Help extends Command
 		
 		cmdList.appendDescription(String.format("The current prefix is set to: `%s`\n", prefix));
 		
-		GuildHandler.getContext(guild).commandHandler().getCommandList().forEach(command ->
+		GuildContext.get(guild)
+					.commandHandler()
+					.getCommandList()
+					.forEach(command ->
 		{
-			if (! command.isPremium() || GuildHandler.getContext(guild).isPremium())
+			if (! command.isPremium() || GuildContext.get(guild).isPremium())
 			{
 				cmdList.appendDescription(String.format("`%s%s`\n", prefix, command.getName()));
 			}

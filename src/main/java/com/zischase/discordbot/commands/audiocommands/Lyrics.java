@@ -2,7 +2,7 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
@@ -52,11 +52,11 @@ public class Lyrics extends Command
 		
 		if (args.isEmpty())
 		{
-			search = GuildHandler.getContext(ctx.getGuild())
-                                 .audioManager()
-                                 .getPlayer()
-                                 .getPlayingTrack()
-                                 .getInfo().title.strip()
+			search = GuildContext.get(ctx.getGuild())
+								 .audioManager()
+								 .getPlayer()
+								 .getPlayingTrack()
+								 .getInfo().title.strip()
 												 .replaceAll("\\s", "+");
 		}
 		else

@@ -44,7 +44,7 @@ public class Prefix extends Command
 			return;
 		}
 		
-		DatabaseHandler.update(guild.getId(), "prefix", args.get(0));
+		DatabaseHandler.set(guild.getId(), "prefix", args.get(0));
 		prefix.set(args.get(0));
 
 		ctx.getEvent()

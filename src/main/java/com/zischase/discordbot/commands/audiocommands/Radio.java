@@ -2,7 +2,7 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.zischase.discordbot.Config;
 import com.zischase.discordbot.commands.*;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import de.sfuhrm.radiobrowser4j.Paging;
 import de.sfuhrm.radiobrowser4j.RadioBrowser;
 import de.sfuhrm.radiobrowser4j.Station;
@@ -120,10 +120,10 @@ public class Radio extends Command
 		
 		Collections.shuffle(stations);
 		
-		GuildHandler.getContext(ctx.getGuild())
-                    .audioManager()
-                    .getTrackLoader()
-                    .load(ctx.getChannel(), voiceChannel, stations.get(0).getUrl());
+		GuildContext.get(ctx.getGuild())
+					.audioManager()
+					.getTrackLoader()
+					.load(ctx.getChannel(), voiceChannel, stations.get(0).getUrl());
 	}
 	
 	private void searchByString(CommandContext ctx, String query)
@@ -165,7 +165,7 @@ public class Radio extends Command
 
 			long timeoutDelayMS = Long.parseLong(Config.get("SEARCH_RESULT_DELAY_MS"));
 
-			GuildHandler.getContext(ctx.getGuild())
+			GuildContext.get(ctx.getGuild())
                         .audioManager()
                         .getTrackLoader()
                         .load(ctx.getChannel(), voiceChannel, result.get(timeoutDelayMS, TimeUnit.MILLISECONDS).getUrl());

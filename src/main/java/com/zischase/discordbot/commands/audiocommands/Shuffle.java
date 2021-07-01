@@ -4,7 +4,6 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -39,7 +38,7 @@ public class Shuffle extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
-		GuildContext guildContext = GuildHandler.getContext(ctx.getGuild());
+		GuildContext guildContext = GuildContext.get(ctx.getGuild());
 
 		ArrayList<AudioTrack> currentQueue = guildContext.audioManager()
 														 .getScheduler()

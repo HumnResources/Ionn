@@ -4,7 +4,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.audioplayer.TrackScheduler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import org.jetbrains.annotations.NotNull;
 
@@ -49,7 +49,7 @@ public class Queue extends Command
 	public void handle(CommandContext ctx)
 	{
 		List<String> args = ctx.getArgs();
-		TrackScheduler scheduler = GuildHandler.getContext(ctx.getGuild())
+		TrackScheduler scheduler = GuildContext.get(ctx.getGuild())
                                                .audioManager()
                                                .getScheduler();
 		
@@ -107,12 +107,12 @@ public class Queue extends Command
 			}
 		}
 		
-		GuildHandler.getContext(ctx.getGuild())
-                    .playerPrinter()
-                    .printQueue(GuildHandler.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
+		GuildContext.get(ctx.getGuild())
+					.playerPrinter()
+					.printQueue(GuildContext.get(ctx.getGuild()).audioManager(), ctx.getChannel());
 		
-		GuildHandler.getContext(ctx.getGuild())
+		GuildContext.get(ctx.getGuild())
                     .playerPrinter()
-                    .printNowPlaying(GuildHandler.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
+                    .printNowPlaying(GuildContext.get(ctx.getGuild()).audioManager(), ctx.getChannel());
 	}
 }

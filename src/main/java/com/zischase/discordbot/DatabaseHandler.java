@@ -11,7 +11,7 @@ public final class DatabaseHandler
 	private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseHandler.class);
 	
 	/* Using generic object to pass data types to database - This means you must know the sata type being used however */
-	public static void update(String guildID, String setting, Object value)
+	public static void set(String guildID, String setting, Object value)
 	{
 		if (setting.matches("(?i)(premium|id|guild_id)"))
 		{

@@ -4,7 +4,7 @@ import com.zischase.discordbot.Config;
 import com.zischase.discordbot.DatabaseHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Guild;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,7 +57,7 @@ public class Volume extends Command
 			int num = Integer.parseInt(args.get(0));
 			int max = maxVolume;
 
-			if (GuildHandler.getContext(guild).isPremium())
+			if (GuildContext.get(guild).isPremium())
 				max = 100;
 
 			boolean validNum = (num >= 0 && num <= max);
@@ -82,8 +82,8 @@ public class Volume extends Command
 	
 	private void setVolume(Guild guild, int value)
 	{
-		DatabaseHandler.update(guild.getId(), "volume", value);
-		GuildHandler.getContext(guild)
+		DatabaseHandler.set(guild.getId(), "volume", value);
+		GuildContext.get(guild)
                     .audioManager()
                     .getPlayer()
                     .setVolume(value);
@@ -91,7 +91,7 @@ public class Volume extends Command
 	
 	private String getVolume(Guild guild)
 	{
-		return String.valueOf(GuildHandler.getContext(guild)
+		return String.valueOf(GuildContext.get(guild)
                                           .audioManager()
                                           .getPlayer()
                                           .getVolume());

@@ -6,7 +6,7 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
@@ -128,17 +128,17 @@ public class TrackScheduler extends AudioEventAdapter
 	@Override
 	public void onPlayerPause(AudioPlayer player)
 	{
-		GuildHandler.getContext(textChannel.getGuild())
+		GuildContext.get(textChannel.getGuild())
                     .playerPrinter()
-                    .printNowPlaying(GuildHandler.getContext(textChannel.getGuild()).audioManager(), textChannel);
+                    .printNowPlaying(GuildContext.get(textChannel.getGuild()).audioManager(), textChannel);
 	}
 	
 	@Override
 	public void onPlayerResume(AudioPlayer player)
 	{
-		GuildHandler.getContext(textChannel.getGuild())
+		GuildContext.get(textChannel.getGuild())
                     .playerPrinter()
-                    .printNowPlaying(GuildHandler.getContext(textChannel.getGuild()).audioManager(), textChannel);
+                    .printNowPlaying(GuildContext.get(textChannel.getGuild()).audioManager(), textChannel);
 	}
 	
 	@Override
@@ -146,14 +146,14 @@ public class TrackScheduler extends AudioEventAdapter
 	{
 		if (! queue.isEmpty())
 		{
-			GuildHandler.getContext(textChannel.getGuild())
+			GuildContext.get(textChannel.getGuild())
                         .playerPrinter()
-                        .printQueue(GuildHandler.getContext(textChannel.getGuild()).audioManager(), textChannel);
+                        .printQueue(GuildContext.get(textChannel.getGuild()).audioManager(), textChannel);
 		}
 		
-		GuildHandler.getContext(textChannel.getGuild())
+		GuildContext.get(textChannel.getGuild())
                     .playerPrinter()
-                    .printNowPlaying(GuildHandler.getContext(textChannel.getGuild()).audioManager(), textChannel);
+                    .printNowPlaying(GuildContext.get(textChannel.getGuild()).audioManager(), textChannel);
 	}
 	
 	@Override
@@ -187,7 +187,7 @@ public class TrackScheduler extends AudioEventAdapter
 				VoiceChannel voiceChannel = member != null && member.getVoiceState() != null ?
 											member.getVoiceState().getChannel() : null;
 				
-				GuildHandler.getContext(textChannel.getGuild())
+				GuildContext.get(textChannel.getGuild())
                             .audioManager()
                             .getTrackLoader()
                             .load(textChannel, voiceChannel, track.getInfo().identifier);

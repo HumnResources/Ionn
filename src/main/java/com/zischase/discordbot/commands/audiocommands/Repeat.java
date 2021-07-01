@@ -2,7 +2,7 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import org.jetbrains.annotations.NotNull;
 
 public class Repeat extends Command
@@ -32,10 +32,10 @@ public class Repeat extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
-		boolean repeat = GuildHandler.getContext(ctx.getGuild())
-                                     .audioManager()
-                                     .getScheduler()
-                                     .isRepeat();
+		boolean repeat = GuildContext.get(ctx.getGuild())
+									 .audioManager()
+									 .getScheduler()
+									 .isRepeat();
 		
 		if (! ctx.getArgs()
 				 .isEmpty())
@@ -53,7 +53,7 @@ public class Repeat extends Command
 				repeat = false;
 			}
 			
-			GuildHandler.getContext(ctx.getGuild())
+			GuildContext.get(ctx.getGuild())
                         .audioManager()
                         .getScheduler()
                         .setRepeat(repeat);

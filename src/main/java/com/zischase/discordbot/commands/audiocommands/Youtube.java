@@ -4,7 +4,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.audioplayer.TrackScheduler;
 import com.zischase.discordbot.commands.*;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.jetbrains.annotations.NotNull;
@@ -62,15 +62,24 @@ public class Youtube extends Command
 		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
 						   			ctx.getEventInitiator().getVoiceState().getChannel() : null;
 		
-		boolean doSearch = args.stream().anyMatch(arg -> arg.matches("(?i)(-s|-search)"));
+		boolean doSearch = false;
+		if (args.get(0).equalsIgnoreCase("search")) {
+			doSearch = true;
+		}
+		
+//		boolean doSearch = args.stream().anyMatch(arg -> arg.matches("(?i)(-s|-search)"));
+		
 		String query = String.join("-", args)
-							 .replaceAll("(?i)-(s|search|n|next)", "")
+							 .replaceFirst("(?i) (search|url|name)", "")
 							 .trim()
 							 .replaceAll("-", "+");
+		
 		String url = "http://youtube.com/results?search_query=" + query;
-		TrackLoader trackLoader = GuildHandler.getContext(ctx.getGuild())
+		
+		TrackLoader trackLoader = GuildContext.get(ctx.getGuild())
                                               .audioManager()
                                               .getTrackLoader();
+		
 		Document doc = null;
 		
 		try
@@ -158,7 +167,7 @@ public class Youtube extends Command
 			boolean hasNextFlag = args.stream().anyMatch(arg -> arg.matches("(?i)-(n|next)"));
 			
 			if (hasNextFlag) {
-				TrackScheduler scheduler = GuildHandler.getContext(ctx.getGuild())
+				TrackScheduler scheduler = GuildContext.get(ctx.getGuild())
                                                        .audioManager()
                                                        .getScheduler();
 				
@@ -172,9 +181,9 @@ public class Youtube extends Command
 				scheduler.clearQueue();
 				scheduler.queueList(queue, ctx.getChannel());
 				
-				GuildHandler.getContext(ctx.getGuild())
+				GuildContext.get(ctx.getGuild())
                             .playerPrinter()
-                            .printQueue(GuildHandler.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
+                            .printQueue(GuildContext.get(ctx.getGuild()).audioManager(), ctx.getChannel());
 			}
 		}
 	}

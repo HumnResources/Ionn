@@ -2,7 +2,7 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -41,10 +41,10 @@ public class Previous extends Command
 	public void handle(CommandContext ctx)
 	{
 		
-		GuildHandler.getContext(ctx.getGuild())
-                    .audioManager()
-                    .getScheduler()
-                    .prevTrack();
+		GuildContext.get(ctx.getGuild())
+					.audioManager()
+					.getScheduler()
+					.prevTrack();
 		
 	}
 }
