@@ -4,7 +4,10 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.audioplayer.TrackScheduler;
 import com.zischase.discordbot.commands.*;
-import com.zischase.discordbot.guildcontrol.GuildManager;
+import com.zischase.discordbot.guildcontrol.GuildHandler;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.VoiceChannel;
+import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -15,12 +18,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Youtube extends Command
 {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Youtube.class);
+	
+	private final AtomicReference<Member> proxyCallMember = new AtomicReference<>(null);
 	
 	public Youtube()
 	{
@@ -34,7 +40,12 @@ public class Youtube extends Command
 	}
 	
 	@Override
-	public String getHelp()
+	public @NotNull String shortDescription() {
+		return "Plays or searches for, a song from youtube";
+	}
+	
+	@Override
+	public String helpText()
 	{
 		return "`Youtube [Search Query] : Search youtube for a song. Then adds it to the queue`\n" + "`Youtube -[search|s] : Provides a list of songs. Reply with a number to choose.`\n" + "`Aliases: " + String
 				.join(" ", getAliases()) + "`";
@@ -48,6 +59,8 @@ public class Youtube extends Command
 		{
 			return;
 		}
+		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
+						   			ctx.getEventInitiator().getVoiceState().getChannel() : null;
 		
 		boolean doSearch = args.stream().anyMatch(arg -> arg.matches("(?i)(-s|-search)"));
 		String query = String.join("-", args)
@@ -55,9 +68,9 @@ public class Youtube extends Command
 							 .trim()
 							 .replaceAll("-", "+");
 		String url = "http://youtube.com/results?search_query=" + query;
-		TrackLoader trackLoader = GuildManager.getContext(ctx.getGuild())
-											  .audioManager()
-											  .getTrackLoader();
+		TrackLoader trackLoader = GuildHandler.getContext(ctx.getGuild())
+                                              .audioManager()
+                                              .getTrackLoader();
 		Document doc = null;
 		
 		try
@@ -117,10 +130,10 @@ public class Youtube extends Command
 						{
 							try
 							{
-								ISearchable result = new ResultSelector(songList).getChoice(ctx.getEvent())
+								ISearchable result = new ResultSelector(songList).getChoice(ctx)
 																				 .get();
 								
-								trackLoader.load(ctx.getChannel(), ctx.getMember(), result.getUrl());
+								trackLoader.load(ctx.getChannel(), voiceChannel, result.getUrl());
 							}
 							catch (InterruptedException | ExecutionException e)
 							{
@@ -133,7 +146,8 @@ public class Youtube extends Command
 					else
 					{
 						String videoUrl = "https://www.youtube.com/watch?v=" + videoID;
-						trackLoader.load(ctx.getChannel(), ctx.getMember(), videoUrl);
+						
+						trackLoader.load(ctx.getChannel(), voiceChannel, videoUrl);
 						break;
 					}
 				}
@@ -144,9 +158,9 @@ public class Youtube extends Command
 			boolean hasNextFlag = args.stream().anyMatch(arg -> arg.matches("(?i)-(n|next)"));
 			
 			if (hasNextFlag) {
-				TrackScheduler scheduler = GuildManager.getContext(ctx.getGuild())
-													   .audioManager()
-													   .getScheduler();
+				TrackScheduler scheduler = GuildHandler.getContext(ctx.getGuild())
+                                                       .audioManager()
+                                                       .getScheduler();
 				
 				ArrayList<AudioTrack> queue = scheduler.getQueue();
 				
@@ -158,9 +172,9 @@ public class Youtube extends Command
 				scheduler.clearQueue();
 				scheduler.queueList(queue, ctx.getChannel());
 				
-				GuildManager.getContext(ctx.getGuild())
-							.playerPrinter()
-							.printQueue(GuildManager.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
+				GuildHandler.getContext(ctx.getGuild())
+                            .playerPrinter()
+                            .printQueue(GuildHandler.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
 			}
 		}
 	}
