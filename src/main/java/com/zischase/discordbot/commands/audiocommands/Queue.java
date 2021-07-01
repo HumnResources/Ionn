@@ -4,8 +4,9 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.audioplayer.TrackScheduler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildManager;
+import com.zischase.discordbot.guildcontrol.GuildHandler;
 import net.dv8tion.jda.api.EmbedBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -20,25 +21,37 @@ public class Queue extends Command
 	}
 	
 	@Override
+	public @NotNull String shortDescription() {
+		return "Adds audio to the current queue.";
+	}
+	
+	@Override
 	public List<String> getAliases()
 	{
 		return List.of("Q", "Qu");
 	}
 	
 	@Override
-	public String getHelp()
+	public String helpText()
 	{
-		return "`Queue : Show current songs in the queue.`\n" + "`Queue -[clear|c] : Clears the current queue.`\n" + "`Aliases : " + String
-				.join(" ", getAliases()) + "`";
+		return """
+    			%s
+    
+    			Usage:
+    				`Queue 			  # Show current songs in the queue.`
+    				`Queue -[clear|c] # Clears the current queue.`
+				
+				`Aliases : %s`
+				""".formatted(shortDescription(), String.join(" ", getAliases()));
 	}
 	
 	@Override
 	public void handle(CommandContext ctx)
 	{
 		List<String> args = ctx.getArgs();
-		TrackScheduler scheduler = GuildManager.getContext(ctx.getGuild())
-											   .audioManager()
-											   .getScheduler();
+		TrackScheduler scheduler = GuildHandler.getContext(ctx.getGuild())
+                                               .audioManager()
+                                               .getScheduler();
 		
 		if (! args.isEmpty())
 		{
@@ -52,7 +65,7 @@ public class Queue extends Command
 					
 					embed.appendDescription("Queue cleared.");
 					ctx.getChannel()
-					   .sendMessage(embed.build())
+					   .sendMessageEmbeds(embed.build())
 					   .queue();
 				}
 			}
@@ -94,12 +107,12 @@ public class Queue extends Command
 			}
 		}
 		
-		GuildManager.getContext(ctx.getGuild())
-					.playerPrinter()
-					.printQueue(GuildManager.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
+		GuildHandler.getContext(ctx.getGuild())
+                    .playerPrinter()
+                    .printQueue(GuildHandler.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
 		
-		GuildManager.getContext(ctx.getGuild())
-					.playerPrinter()
-					.printNowPlaying(GuildManager.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
+		GuildHandler.getContext(ctx.getGuild())
+                    .playerPrinter()
+                    .printNowPlaying(GuildHandler.getContext(ctx.getGuild()).audioManager(), ctx.getChannel());
 	}
 }

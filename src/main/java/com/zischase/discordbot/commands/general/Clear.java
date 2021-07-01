@@ -3,6 +3,7 @@ package com.zischase.discordbot.commands.general;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import net.dv8tion.jda.api.entities.Message;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -16,7 +17,12 @@ public class Clear extends Command
 	}
 	
 	@Override
-	public String getHelp()
+	public @NotNull String shortDescription() {
+		return "Deletes messages.";
+	}
+	
+	@Override
+	public String helpText()
 	{
 		return "Clear [amount] ~ Deletes the last x messages from this channel. Default will purge";
 	}

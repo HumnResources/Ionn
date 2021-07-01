@@ -3,57 +3,31 @@ package com.zischase.discordbot.commands.general;
 import com.zischase.discordbot.DatabaseHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildManager;
+import com.zischase.discordbot.guildcontrol.GuildHandler;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.TextChannel;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.List;
 
 public class Help extends Command
 {
-	
-	
 	public Help()
 	{
 		super(false);
 	}
 	
 	@Override
-	public String getName()
-	{
-		return "Help [command]";
-	}
-	
-	private MessageEmbed printCommandList(Guild guild)
-	{
-		EmbedBuilder cmdList = new EmbedBuilder();
-		cmdList.setColor(Color.ORANGE);
-		cmdList.setTitle("Commands");
-		String prefix = DatabaseHandler.get(guild.getId(), "prefix");
-
-		cmdList.appendDescription(String.format("The current prefix is set to: `%s`\n", prefix));
-		
-		GuildManager.getContext(guild).commandManager().getCommandList().forEach(command ->
-					  {
-						  if (! command.premiumCommand || GuildManager.getContext(guild).isPremium())
-						  {
-							  cmdList.appendDescription(String.format("`%s%s`\n", prefix, command.getName()));
-						  }
-
-					  });
-		cmdList.appendDescription("\nUse `[Audio | Media | Music]` for more help.");
-
-
-		return cmdList.build();
+	public String helpText() {
+		return null;
 	}
 	
 	@Override
-	public String getHelp()
-	{
-		return null;
+	public @NotNull String shortDescription() {
+		return "Displays list of commands.";
 	}
 	
 	@Override
@@ -64,7 +38,7 @@ public class Help extends Command
 		
 		if (args.isEmpty())
 		{
-			channel.sendMessage(printCommandList(ctx.getGuild()))
+			channel.sendMessageEmbeds(printCommandList(ctx.getGuild()))
 				   .queue();
 		}
 		else if (args.get(0).matches("(?i)(audio|media|music)"))
@@ -73,12 +47,12 @@ public class Help extends Command
 			embedBuilder.appendDescription(getAudioHelp());
 			embedBuilder.setColor(Color.magenta);
 
-			channel.sendMessage(embedBuilder.build()).queue();
+			channel.sendMessageEmbeds(embedBuilder.build()).queue();
 		}
 		else
 		{
 			String cmdSearch = args.get(0);
-			Command command = GuildManager.getContext(ctx.getGuild()).commandManager().getCommand(cmdSearch);
+			Command command = GuildHandler.getContext(ctx.getGuild()).commandHandler().getCommand(cmdSearch);
 
 			if (command == null)
 			{
@@ -87,12 +61,35 @@ public class Help extends Command
 			}
 			else
 			{
-				channel.sendMessage(command.getHelp())
+				channel.sendMessage(command.helpText())
 						.queue();
 			}
 		}
 	}
-
+	
+	private MessageEmbed printCommandList(Guild guild)
+	{
+		EmbedBuilder cmdList = new EmbedBuilder();
+		cmdList.setColor(Color.ORANGE);
+		cmdList.setTitle("Commands");
+		String prefix = DatabaseHandler.get(guild.getId(), "prefix");
+		
+		cmdList.appendDescription(String.format("The current prefix is set to: `%s`\n", prefix));
+		
+		GuildHandler.getContext(guild).commandHandler().getCommandList().forEach(command ->
+		{
+			if (! command.isPremium() || GuildHandler.getContext(guild).isPremium())
+			{
+				cmdList.appendDescription(String.format("`%s%s`\n", prefix, command.getName()));
+			}
+			
+		});
+		cmdList.appendDescription("\nUse `[Audio | Media | Music]` for more help.");
+		
+		
+		return cmdList.build();
+	}
+	
 	private String getAudioHelp()
 	{
 		return """     		

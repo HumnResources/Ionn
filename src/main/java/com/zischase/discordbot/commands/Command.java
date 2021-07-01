@@ -1,10 +1,13 @@
 package com.zischase.discordbot.commands;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 
 public abstract class Command
 {
-	public boolean premiumCommand;
+	private final boolean premiumCommand;
+	
 	
 	public Command(boolean premiumCommand)
 	{
@@ -13,8 +16,11 @@ public abstract class Command
 	
 	public String getName()
 	{
-		return this.getClass()
-				   .getSimpleName();
+		return this.getClass().getSimpleName();
+	}
+	
+	public boolean isPremium() {
+		return premiumCommand;
 	}
 	
 	public List<String> getAliases()
@@ -22,13 +28,10 @@ public abstract class Command
 		return List.of();
 	}
 	
-	public String getHelp()
-	{
-		return "No description provided.";
-	}
+	public abstract String helpText();
 	
-	public abstract void handle(CommandContext ctx) ;
- 
- //   protected abstract void handle(GuildMessageReceivedEvent event, List<String> strings);
- 
+	@NotNull
+	public abstract String shortDescription();
+	
+	public abstract void handle(CommandContext ctx);
 }

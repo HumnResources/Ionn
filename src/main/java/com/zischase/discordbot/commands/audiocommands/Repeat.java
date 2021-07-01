@@ -2,7 +2,8 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildManager;
+import com.zischase.discordbot.guildcontrol.GuildHandler;
+import org.jetbrains.annotations.NotNull;
 
 public class Repeat extends Command
 {
@@ -13,12 +14,28 @@ public class Repeat extends Command
 	}
 	
 	@Override
+	public @NotNull String shortDescription() {
+		return "Sets repeat on/off for the current queue.";
+	}
+	
+	@Override
+	public String helpText() {
+		return """
+				%s
+				
+				Usage:
+					`repeat`
+					`repeat [on|off]`
+				""";
+	}
+	
+	@Override
 	public void handle(CommandContext ctx)
 	{
-		boolean repeat = GuildManager.getContext(ctx.getGuild())
-									 .audioManager()
-									 .getScheduler()
-									 .isRepeat();
+		boolean repeat = GuildHandler.getContext(ctx.getGuild())
+                                     .audioManager()
+                                     .getScheduler()
+                                     .isRepeat();
 		
 		if (! ctx.getArgs()
 				 .isEmpty())
@@ -36,10 +53,10 @@ public class Repeat extends Command
 				repeat = false;
 			}
 			
-			GuildManager.getContext(ctx.getGuild())
-						.audioManager()
-						.getScheduler()
-						.setRepeat(repeat);
+			GuildHandler.getContext(ctx.getGuild())
+                        .audioManager()
+                        .getScheduler()
+                        .setRepeat(repeat);
 		}
 		
 		String message;

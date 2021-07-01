@@ -2,8 +2,9 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildManager;
+import com.zischase.discordbot.guildcontrol.GuildHandler;
 import net.dv8tion.jda.api.EmbedBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -27,6 +28,22 @@ public class Lyrics extends Command
 	}
 	
 	@Override
+	public String helpText() {
+		return """
+				Searches for the lyrics on AZLyrics.
+				
+				Usage:
+					lyrics 				# Search current song
+					lyrics <song name>  # Request search
+				""";
+	}
+	
+	@Override
+	public @NotNull String shortDescription() {
+		return "Gets the lyrics for the current/requested song.";
+	}
+	
+	@Override
 	public void handle(CommandContext ctx) {
 		
 		List<String> args = ctx.getArgs();
@@ -35,11 +52,11 @@ public class Lyrics extends Command
 		
 		if (args.isEmpty())
 		{
-			search = GuildManager.getContext(ctx.getGuild())
-								 .audioManager()
-								 .getPlayer()
-								 .getPlayingTrack()
-								 .getInfo().title.strip()
+			search = GuildHandler.getContext(ctx.getGuild())
+                                 .audioManager()
+                                 .getPlayer()
+                                 .getPlayingTrack()
+                                 .getInfo().title.strip()
 												 .replaceAll("\\s", "+");
 		}
 		else
@@ -174,7 +191,7 @@ public class Lyrics extends Command
 				while (m.find())
 				{
 					ctx.getChannel()
-					   .sendMessage(embed.setDescription(m.group())
+					   .sendMessageEmbeds(embed.setDescription(m.group())
 										 .build())
 					   .queue();
 				}
@@ -182,7 +199,7 @@ public class Lyrics extends Command
 			else
 			{
 				ctx.getChannel()
-				   .sendMessage(embed.setDescription(str)
+				   .sendMessageEmbeds(embed.setDescription(str)
 									 .build())
 				   .queue();
 			}

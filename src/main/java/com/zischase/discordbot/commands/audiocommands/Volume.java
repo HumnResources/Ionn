@@ -4,8 +4,9 @@ import com.zischase.discordbot.Config;
 import com.zischase.discordbot.DatabaseHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildManager;
+import com.zischase.discordbot.guildcontrol.GuildHandler;
 import net.dv8tion.jda.api.entities.Guild;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +27,12 @@ public class Volume extends Command
 	}
 	
 	@Override
-	public String getHelp()
+	public @NotNull String shortDescription() {
+		return "Sets or displays the volume level.";
+	}
+	
+	@Override
+	public String helpText()
 	{
 		return "Volume [amount] ~ Sets the volume. 0-" + maxVolume + " | Leave empty to display current volume.";
 	}
@@ -51,7 +57,7 @@ public class Volume extends Command
 			int num = Integer.parseInt(args.get(0));
 			int max = maxVolume;
 
-			if (GuildManager.getContext(guild).isPremium())
+			if (GuildHandler.getContext(guild).isPremium())
 				max = 100;
 
 			boolean validNum = (num >= 0 && num <= max);
@@ -77,17 +83,17 @@ public class Volume extends Command
 	private void setVolume(Guild guild, int value)
 	{
 		DatabaseHandler.update(guild.getId(), "volume", value);
-		GuildManager.getContext(guild)
-					.audioManager()
-					.getPlayer()
-					.setVolume(value);
+		GuildHandler.getContext(guild)
+                    .audioManager()
+                    .getPlayer()
+                    .setVolume(value);
 	}
 	
 	private String getVolume(Guild guild)
 	{
-		return String.valueOf(GuildManager.getContext(guild)
-										  .audioManager()
-										  .getPlayer()
-										  .getVolume());
+		return String.valueOf(GuildHandler.getContext(guild)
+                                          .audioManager()
+                                          .getPlayer()
+                                          .getVolume());
 	}
 }

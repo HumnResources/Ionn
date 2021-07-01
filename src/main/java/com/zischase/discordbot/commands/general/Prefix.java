@@ -4,6 +4,7 @@ import com.zischase.discordbot.DatabaseHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import net.dv8tion.jda.api.entities.Guild;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -18,7 +19,12 @@ public class Prefix extends Command
 	}
 	
 	@Override
-	public String getHelp()
+	public @NotNull String shortDescription() {
+		return "Sets the prefix to use for commands.";
+	}
+	
+	@Override
+	public String helpText()
 	{
 		return "Prefix [newPrefix] ~ Sets new prefix for commands.";
 	}

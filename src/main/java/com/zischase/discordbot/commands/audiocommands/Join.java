@@ -5,15 +5,27 @@ import com.zischase.discordbot.commands.CommandContext;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 public class Join extends Command
 {
-	
 	public Join()
 	{
 		super(false);
+	}
+	
+	@Override
+	public String helpText() {
+		return """
+				Joins the users current voice channel.
+				""";
+	}
+	
+	@Override
+	public @NotNull String shortDescription() {
+		return "Summons the bot to the channel";
 	}
 	
 	@Override

@@ -4,10 +4,12 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.DBConnectionHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.guildcontrol.GuildManager;
+import com.zischase.discordbot.guildcontrol.GuildHandler;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.jdbi.v3.core.Jdbi;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -29,13 +31,18 @@ public class Playlist extends Command
 	}
 	
 	@Override
+	public @NotNull String shortDescription() {
+		return "Play/Save a playlist of songs from youtube.";
+	}
+	
+	@Override
 	public List<String> getAliases()
 	{
 		return List.of("pl", "plist");
 	}
 	
 	@Override
-	public String getHelp()
+	public String helpText()
 	{
 		return """
          	`Playlist/Pl/Plist` : Displays a list of currently made playlists.
@@ -50,6 +57,9 @@ public class Playlist extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
+		VoiceChannel voiceChannel = ctx.getMember().getVoiceState() != null ?
+									ctx.getMember().getVoiceState().getChannel() : null;
+		
 		if (!playlistsInitialized)
 		{
 			List<String> dbPlaylists = Jdbi.create(DBConnectionHandler.getConnection())
@@ -112,10 +122,10 @@ public class Playlist extends Command
 						.sendMessage("Loading playlist `" + playlistName + "`")
 						.queue();
 
-				GuildManager.getContext(ctx.getGuild())
-						.audioManager()
-						.getTrackLoader()
-						.load(ctx.getChannel(), ctx.getMember(), getPlaylistURL(ctx.getGuild().getId(), playlistName));
+				GuildHandler.getContext(ctx.getGuild())
+                            .audioManager()
+                            .getTrackLoader()
+                            .load(ctx.getChannel(), voiceChannel, getPlaylistURL(ctx.getGuild().getId(), playlistName));
 			}
 			return;
 		}
@@ -127,12 +137,12 @@ public class Playlist extends Command
 		}
 		else if (cmd.matches("(?i)-(current|c|q|queue)"))
 		{
-			ArrayList<AudioTrack> queue = GuildManager.getContext(ctx.getGuild())
-													  .audioManager()
-													  .getScheduler()
-													  .getQueue();
+			ArrayList<AudioTrack> queue = GuildHandler.getContext(ctx.getGuild())
+                                                      .audioManager()
+                                                      .getScheduler()
+                                                      .getQueue();
 
-			queue.add(0, GuildManager.getContext(ctx.getGuild()).audioManager().getPlayer().getPlayingTrack());
+			queue.add(0, GuildHandler.getContext(ctx.getGuild()).audioManager().getPlayer().getPlayingTrack());
 
 			String youtubePlaylistURL = createPlaylistURL(queue);
 
@@ -143,12 +153,12 @@ public class Playlist extends Command
 		}
 		else if (cmd.matches("(?i)-(add|a)"))
 		{
-			ArrayList<AudioTrack> queue = GuildManager.getContext(ctx.getGuild())
-												  .audioManager()
-												  .getScheduler()
-												  .getQueue();
+			ArrayList<AudioTrack> queue = GuildHandler.getContext(ctx.getGuild())
+                                                      .audioManager()
+                                                      .getScheduler()
+                                                      .getQueue();
 
-			queue.add(0, GuildManager.getContext(ctx.getGuild()).audioManager().getPlayer().getPlayingTrack());
+			queue.add(0, GuildHandler.getContext(ctx.getGuild()).audioManager().getPlayer().getPlayingTrack());
 
 			String youtubePlaylistURL = createPlaylistURL(queue);
 
@@ -206,7 +216,7 @@ public class Playlist extends Command
 			embed.appendDescription(key + System.lineSeparator());
 		}
 		
-		textChannel.sendMessage(embed.build())
+		textChannel.sendMessageEmbeds(embed.build())
 				   .queue();
 	}
 

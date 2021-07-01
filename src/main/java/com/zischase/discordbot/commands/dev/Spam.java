@@ -3,16 +3,27 @@ package com.zischase.discordbot.commands.dev;
 import com.zischase.discordbot.Config;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
+import org.jetbrains.annotations.NotNull;
 
 public class Spam extends Command {
 
     public Spam() {
         super(true);
     }
-
+    
+    @Override
+    public String helpText() {
+        return null;
+    }
+    
+    @Override
+    public @NotNull String shortDescription() {
+        return "Stupid idea, really. Helps with testing.";
+    }
+    
     @Override
     public void handle(CommandContext ctx) {
-        if (ctx.getEvent().getAuthor().getId().equals(Config.get("OWNER_ID")))
+        if (ctx.getEventInitiator().getId().equals(Config.get("OWNER_ID")))
         {
             if (ctx.getArgs().size() >= 1 && ctx.getArgs().get(0).matches("\\d+"))
             {

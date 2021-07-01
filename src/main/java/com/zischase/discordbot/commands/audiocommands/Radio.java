@@ -2,11 +2,12 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.zischase.discordbot.Config;
 import com.zischase.discordbot.commands.*;
-import com.zischase.discordbot.guildcontrol.GuildManager;
+import com.zischase.discordbot.guildcontrol.GuildHandler;
 import de.sfuhrm.radiobrowser4j.Paging;
 import de.sfuhrm.radiobrowser4j.RadioBrowser;
 import de.sfuhrm.radiobrowser4j.Station;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.entities.VoiceChannel;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,13 +57,18 @@ public class Radio extends Command
 	}
 	
 	@Override
+	public @NotNull String shortDescription() {
+		return "Plays a selected radio station.";
+	}
+	
+	@Override
 	public List<String> getAliases()
 	{
 		return List.of("R");
 	}
 	
 	@Override
-	public String getHelp()
+	public String helpText()
 	{
 		return String.format(""" 
 				Radio [genre] 
@@ -74,7 +80,6 @@ public class Radio extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
-		GuildMessageReceivedEvent event = ctx.getEvent();
 		List<String> args = ctx.getArgs();
 		
 		if (! args.isEmpty())
@@ -87,7 +92,7 @@ public class Radio extends Command
 				String searchQuery = query.replaceFirst("(?i)-(search|s)", "")
 							 .trim();
 				
-				searchByString(event, searchQuery);
+				searchByString(ctx, searchQuery);
 				return;
 			}
 			boolean tagFound = STATION_LIST.stream()
@@ -95,12 +100,12 @@ public class Radio extends Command
 
 			if (tagFound)
 			{
-				searchByTag(event, query);
+				searchByTag(ctx, query);
 			}
 		}
 	}
 	
-	private void searchByTag(GuildMessageReceivedEvent event, String query)
+	private void searchByTag(CommandContext ctx, String query)
 	{
 		List<Station> stations = STATION_LIST.stream()
 											 .filter(stn -> stn.getTags().matches("(?i)("+query+")"))
@@ -109,17 +114,19 @@ public class Radio extends Command
 		{
 			return;
 		}
-
+		
+		VoiceChannel voiceChannel = ctx.getMember() != null && ctx.getMember().getVoiceState() != null ?
+									ctx.getMember().getVoiceState().getChannel() : null;
+		
 		Collections.shuffle(stations);
 		
-		GuildManager.getContext(event.getGuild())
-					.audioManager()
-					.getTrackLoader()
-					.load(event.getChannel(), event.getMember(), stations.get(0)
-																		 .getUrl());
+		GuildHandler.getContext(ctx.getGuild())
+                    .audioManager()
+                    .getTrackLoader()
+                    .load(ctx.getChannel(), voiceChannel, stations.get(0).getUrl());
 	}
 	
-	private void searchByString(GuildMessageReceivedEvent event, String query)
+	private void searchByString(CommandContext ctx, String query)
 	{
 		// RegEx for negative lookahead searching for only non word characters.
 		String finalQuery = query.replaceAll("(?!\\w|\\s)(\\W)", "")
@@ -142,6 +149,9 @@ public class Radio extends Command
 			return;
 		}
 		
+		VoiceChannel voiceChannel = ctx.getMember() != null && ctx.getMember().getVoiceState() != null ?
+									ctx.getMember().getVoiceState().getChannel() : null;
+		
 		List<ISearchable> results = new ArrayList<>();
 		for (Station s : stations)
 		{
@@ -150,15 +160,15 @@ public class Radio extends Command
 
 		try
 		{
-			Future<ISearchable> result = new ResultSelector(results).getChoice(event);
+			Future<ISearchable> result = new ResultSelector(results).getChoice(ctx);
 
 
 			long timeoutDelayMS = Long.parseLong(Config.get("SEARCH_RESULT_DELAY_MS"));
 
-			GuildManager.getContext(event.getGuild())
-						.audioManager()
-						.getTrackLoader()
-						.load(event.getChannel(), event.getMember(), result.get(timeoutDelayMS, TimeUnit.MILLISECONDS).getUrl());
+			GuildHandler.getContext(ctx.getGuild())
+                        .audioManager()
+                        .getTrackLoader()
+                        .load(ctx.getChannel(), voiceChannel, result.get(timeoutDelayMS, TimeUnit.MILLISECONDS).getUrl());
 		}
 		catch (TimeoutException | InterruptedException | ExecutionException e)
 		{
