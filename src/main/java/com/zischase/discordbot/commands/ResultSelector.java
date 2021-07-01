@@ -15,23 +15,24 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ResultSelector
 {
-	private final int               delayMS          = Integer.parseInt(Config.get("SEARCH_RESULT_DELAY_MS")); // Where delay is the duration until listener gets terminated.
-	private final int               searchTimeOffset = Integer.parseInt(Config.get("SEARCH_RESULT_OFFSET_MS")); // Where offset is approximate time to query result.
-	private final List<ISearchable> searches;
-	private       ISearchable       result           = null;
+	private final int               searchDelayMS    = Integer.parseInt(Config.get("SEARCH_RESULT_DELAY_MS")); // Where delay is the duration until listener gets terminated.
+	private final int               searchDisplayTimeMS = Integer.parseInt(Config.get("SEARCH_RESULT_OFFSET_MS")) + searchDelayMS; // Where offset is approximate time to query result.
+	private final AtomicReference<Boolean>  	searchComplete = new AtomicReference<>(false);
+	private       ISearchable       		result           = null;
+	private final List<ISearchable> 	searches;
 	
 	public ResultSelector(List<ISearchable> searches)
 	{
 		this.searches = searches;
 	}
 	
-	public Future<ISearchable> getChoice(GuildMessageReceivedEvent event)
+	public Future<ISearchable> getChoice(CommandContext ctx)
 	{
-		JDA jda = event.getJDA();
+		JDA jda = ctx.getJDA();
 		CompletableFuture<ISearchable> cf = new CompletableFuture<>();
 		
 		ListenerAdapter response = new ListenerAdapter()
@@ -41,47 +42,38 @@ public class ResultSelector
 			@Override
 			public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent tmpEvent)
 			{
-				if (tmpEvent.getAuthor() == event.getAuthor())
+				if (tmpEvent.getMember() == ctx.getEventInitiator())
 				{
 					Message tmpMessage = tmpEvent.getMessage();
 					String choice = tmpMessage.getContentDisplay();
 					
-					if (tmpMessage.getChannel() == event.getChannel() && choice.matches("(\\d+).?"))
+					if (tmpMessage.getChannel() == ctx.getChannel() && choice.matches("(\\d+).?"))
 					{
 						int num = Integer.parseInt(choice);
 						if (num > 0 && num <= searches.size())
 						{
 							result = searches.get(num - 1);
 							cf.complete(result);
-							event.getChannel()
-								 .sendMessage("Adding: `" + result.getName() + "` . . .")
-								 .queue();
+							searchComplete.set(true);
 						}
 					}
-
 					jda.removeEventListener(this);
 				}
-				else if (LocalDateTime.now().isAfter(start.plusSeconds(delayMS / 1000)))
+				else if (LocalDateTime.now().isAfter(start.plusSeconds(searchDelayMS / 1000)))
 				{
 					jda.removeEventListener(this);
 				}
 			}
 		};
-		
-		
 		jda.addEventListener(response);
-		printList(event.getChannel());
+		printList(ctx.getChannel());
 		
-		try
-		{
-			Thread.sleep(delayMS);
+		while (LocalDateTime.now().isBefore(LocalDateTime.now().plusSeconds(searchDelayMS / 1000))) {
+			if (searchComplete.get()) {
+				break;
+			}
 		}
-		catch (InterruptedException e)
-		{
-			e.printStackTrace();
-		}
-
-
+		
 		jda.removeEventListener(response);
 		return cf;
 	}
@@ -109,19 +101,24 @@ public class ResultSelector
 				if (length.length() >= 2000)
 				{
 					length = "";
-					textChannel.sendMessage(embed.build())
+					textChannel.sendMessageEmbeds(embed.build())
 							   .queue();
 					embed = new EmbedBuilder();
 					embed.setColor(Color.DARK_GRAY);
 				}
 			}
 		}
-		Message message = new MessageBuilder().setEmbed(embed.build())
-											  .build();
+		Message message = new MessageBuilder().setEmbeds(embed.build()).build();
 		
-		textChannel.sendMessage(message)
-				   .complete()
-				   .delete()
-				   .queueAfter(delayMS + searchTimeOffset, TimeUnit.MILLISECONDS);
+		textChannel.sendMessage(message).queue((m) -> {
+			while (LocalDateTime.now().isBefore(LocalDateTime.now().plusSeconds(searchDisplayTimeMS / 1000))) {
+				if (searchComplete.get()) {
+					break;
+				}
+			}
+			if (m != null) {
+				m.delete().queue();
+			}
+		});
 	}
 }

@@ -4,12 +4,10 @@ import me.duncte123.botcommons.BotCommons;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
-import net.dv8tion.jda.api.events.ShutdownEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.LoginException;
-import java.time.OffsetDateTime;
 
 public class Bot
 {
@@ -34,18 +32,15 @@ public class Bot
 		}
 
 		setShutdownHook(jda);
-		jda.addEventListener(new Listener(jda));
-		jda.getPresence()
-				.setActivity(Activity.listening(" music"));
+		jda.addEventListener(new Listener());
+		jda.getPresence().setActivity(Activity.listening(" music"));
 	}
 
 	private static void setShutdownHook(JDA jda)
 	{
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			LOGGER.info("SHUTTING DOWN . . .");
-
-			Listener listener = (Listener) (jda.getRegisteredListeners().get(0));
-			listener.onShutdown(new ShutdownEvent(jda, OffsetDateTime.now(), 0));
+			LOGGER.info("Shutting down.");
+			
 			BotCommons.shutdown(jda);
 			jda.shutdown();
 

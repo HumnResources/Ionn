@@ -2,16 +2,13 @@ package com.zischase.discordbot.commands;
 
 import com.zischase.discordbot.DatabaseHandler;
 import com.zischase.discordbot.commands.audiocommands.*;
-import com.zischase.discordbot.commands.dev.Spam;
 import com.zischase.discordbot.commands.general.Clear;
 import com.zischase.discordbot.commands.general.Help;
 import com.zischase.discordbot.commands.general.Prefix;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -23,7 +20,7 @@ public final class CommandHandler
 
 	{
 		addCommand(new Help());
-//		addCommand(new Radio());
+		addCommand(new Radio());
 		addCommand(new Play());
 		addCommand(new Volume());
 		addCommand(new Stop());
@@ -34,7 +31,7 @@ public final class CommandHandler
 		addCommand(new Prefix());
 		addCommand(new Playlist());
   		addCommand(new Lyrics());
-		addCommand(new Spam());
+//		addCommand(new Spam());
 		addCommand(new Clear());
 		addCommand(new Queue());
 		addCommand(new Join());
@@ -54,40 +51,34 @@ public final class CommandHandler
 		return List.copyOf(commands);
 	}
 	
-	public void invoke(GuildMessageReceivedEvent event)
+	public void invoke(CommandContext ctx)
 	{
-		String prefix = DatabaseHandler.get(event.getGuild().getId(), "prefix");
+		String prefix = DatabaseHandler.get(ctx.getGuild().getId(), "prefix");
 		
-		String[] argsArr = event.getMessage()
-								.getContentRaw()
-								.replaceFirst("(?i)" + Pattern.quote(prefix), "")
-								.split("\\s");
+		String invoke = ctx.getMessage()
+						   .getContentRaw()
+						   .replaceFirst("(?i)" + Pattern.quote(prefix), "") // Remove prefix
+						   .split("\\s")[0] // Select first word (command)
+						   .toLowerCase();
 		
-		String invoke = argsArr[0].toLowerCase();
 		Command cmd = getCommand(invoke);
-
+		
 		if (cmd == null)
 		{
 			return;
 		}
-		List<String> args = Arrays.asList(argsArr)
-				.subList(1, argsArr.length);
 
-		CommandContext ctx = new CommandContext(event, args);
+		boolean isGuildPremium = Boolean.parseBoolean(DatabaseHandler.get(ctx.getGuild().getId(), "premium"));
 
-		boolean isGuildPremium = Boolean.parseBoolean(DatabaseHandler.get(event.getGuild().getId(), "premium"));
-
-		if (cmd.premiumCommand && ! isGuildPremium )
+		if (cmd.isPremium() && ! isGuildPremium )
 		{
-
-			String premiumCMDMessage = "Sorry, this feature is for premium guilds only :c";
-
-			event.getChannel()
-					.sendMessage(premiumCMDMessage)
-					.queue();
+			ctx.getChannel()
+			   .sendMessage("Sorry, this feature is for premium guilds only :c")
+			   .queue();
 			return;
-
 		}
+		
+		LOGGER.info(cmd.getName());
 		cmd.handle(ctx);
 	}
 	
@@ -116,9 +107,6 @@ public final class CommandHandler
 		return null;
 	}
 	
-
-	
-
 	private void addCommand(Command command)
 	{
 		boolean commandFound = commands.stream()
