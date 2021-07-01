@@ -49,7 +49,6 @@ public class Listener extends ListenerAdapter
 			CompletableFuture.runAsync(() -> {
 				for (Command customCommand: ctx.commandHandler().getCommandList()) {
 					String name = customCommand.getName().toLowerCase();
-					
 					boolean commandExists = g.retrieveCommands()
 											 .complete()
 											 .stream()

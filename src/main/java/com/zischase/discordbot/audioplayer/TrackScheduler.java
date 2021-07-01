@@ -54,11 +54,6 @@ public class TrackScheduler extends AudioEventAdapter
 	public void queueAudio(AudioTrack track, TextChannel textChannel)
 	{
 		this.textChannel = textChannel;
-		boolean hasPlayingTrack = GuildHandler.getContext(textChannel.getGuild())
-                                              .audioManager()
-                                              .getPlayer()
-                                              .getPlayingTrack() != null;
-
 		
 		if (! player.startTrack(track, true))
 		{ // noInterrupt: True == add to queue; Returns true if added
@@ -205,7 +200,7 @@ public class TrackScheduler extends AudioEventAdapter
 			nextTrack();
 		}
 		
-		else if (queue.isEmpty()) {
+		else if (queue.isEmpty() && this.player.getPlayingTrack() == null) {
 			textChannel.getJDA()
 					   .getDirectAudioController()
 					   .disconnect(textChannel.getGuild());
