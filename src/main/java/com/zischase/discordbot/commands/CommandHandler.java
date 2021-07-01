@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -20,7 +21,6 @@ public final class CommandHandler
 
 	{
 		addCommand(new Help());
-		addCommand(new Radio());
 		addCommand(new Play());
 		addCommand(new Volume());
 		addCommand(new Stop());
@@ -37,6 +37,8 @@ public final class CommandHandler
 		addCommand(new Join());
 		addCommand(new Shuffle());
 		addCommand(new Repeat());
+		
+		CompletableFuture.runAsync(() -> addCommand(new Radio()));
 		
 		if (getCommandCount() <= 0)
 		{

@@ -4,6 +4,7 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import com.zischase.discordbot.guildcontrol.GuildHandler;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -43,23 +44,9 @@ public class Listener extends ListenerAdapter
 	@Override
 	public void onReady(@Nonnull ReadyEvent event)
 	{
-		for (Guild g: event.getJDA().getGuilds()) {
-			GuildContext ctx = new GuildContext(g);
-			
-			CompletableFuture.runAsync(() -> {
-				for (Command customCommand: ctx.commandHandler().getCommandList()) {
-					String name = customCommand.getName().toLowerCase();
-					boolean commandExists = g.retrieveCommands()
-											 .complete()
-											 .stream()
-											 .anyMatch(command -> command.getName().equalsIgnoreCase(customCommand.getName()));
-					
-					if (!commandExists) {
-						g.upsertCommand(name, customCommand.shortDescription()).addOption(OptionType.STRING, "args", "input args, see help for details.").queue();
-					}
-				}
-			});
-		}
+		event.getJDA()
+			 .getGuilds()
+			 .forEach(GuildContext::new);
 		
 		LOGGER.info("{} is ready", event.getJDA()
 				.getSelfUser()
@@ -103,10 +90,21 @@ public class Listener extends ListenerAdapter
 		
 		if (raw.startsWith(prefix))
 		{
-			String[] msgArr = raw.replaceFirst("(?i)" + Pattern.quote(prefix), "")
-								 .split("\\s");
-			
+			String[] msgArr = raw.replaceFirst("(?i)" + Pattern.quote(prefix), "").split("\\s");
 			List<String> args = Arrays.asList(msgArr).subList(1, msgArr.length);
+		
+			if (event.getAuthor().getId().equals(Config.get("OWNER_ID"))) {
+				if (msgArr[0].equalsIgnoreCase("resetslash")) {
+					resetSlashCommands(event.getJDA());
+					LOGGER.info("Resetting slash commands.");
+					return;
+				}
+				else if (msgArr[0].equalsIgnoreCase("updateslash")) {
+					updateSlashCommands(event.getJDA().getGuilds());
+					LOGGER.info("Updating slash commands.");
+					return;
+				}
+			}
 			
 			CommandContext ctx;
 			if (executeSlashCommand.get() != null) {
@@ -125,5 +123,30 @@ public class Listener extends ListenerAdapter
 	public void onShutdown(@NotNull ShutdownEvent event) {
 		LOGGER.info("Deleting event listener.");
 		event.getJDA().removeEventListener(this);
+	}
+	
+	private void updateSlashCommands(List<Guild> guilds) {
+		for (Guild g: guilds) {
+			GuildContext ctx = new GuildContext(g);
+			
+			CompletableFuture.runAsync(() -> {
+				for (Command customCommand: ctx.commandHandler().getCommandList()) {
+					String name = customCommand.getName().toLowerCase();
+					boolean commandExists = g.retrieveCommands()
+											 .complete()
+											 .stream()
+											 .anyMatch(command -> command.getName().equalsIgnoreCase(customCommand.getName()));
+					
+					if (!commandExists) {
+						g.upsertCommand(name, customCommand.shortDescription()).addOption(OptionType.STRING, "args", "input args, see help for details.").queue();
+					}
+				}
+			});
+		}
+	}
+	
+	private void resetSlashCommands(JDA jda) {
+		jda.retrieveCommands().queue(commands -> commands.forEach(command -> command.delete().queue()));
+		jda.getGuilds().forEach(guild -> guild.retrieveCommands().queue(commands -> commands.forEach(command -> command.delete().queue())));
 	}
 }

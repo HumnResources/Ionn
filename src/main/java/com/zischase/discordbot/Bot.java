@@ -46,9 +46,4 @@ public class Bot
 			Runtime.getRuntime().halt(0);
 		}));
 	}
-	
-	private static void resetSlashCommands(JDA jda) {
-		jda.retrieveCommands().queue(commands -> commands.forEach(command -> command.delete().queue()));
-		jda.getGuilds().forEach(guild -> guild.retrieveCommands().queue(commands -> commands.forEach(command -> command.delete().queue())));
-	}
 }
