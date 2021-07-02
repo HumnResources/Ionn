@@ -79,8 +79,13 @@ public class CommandEventListener extends ListenerAdapter {
 			/* Using getGuildChannel() instead of getGuild() directly from event. This ensures we have null safety*/
 			String prefix = DBQueryHandler.get(event.getGuildChannel().getGuild().getId(), "prefix");
 
-			/* Builds a command for the bot to issue : <prefix><command> -<option> <args> */
-			mb.append("%s%s -%s".formatted(prefix, event.getName(), event.getSubcommandName()));
+			/* Builds a command for the bot to issue : `<prefix><command> -<option> <args>` */
+			mb.append("%s%s ".formatted(prefix, event.getName()));
+
+			if (event.getSubcommandName() != null) {
+				mb.append("-".concat(event.getSubcommandName()));
+			}
+
 			event.getOptions().forEach((opt) -> {
 				if (opt.getType() == OptionType.STRING) {
 					mb.append(" ".concat(opt.getAsString()));
