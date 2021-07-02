@@ -17,132 +17,132 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class TrackScheduler extends AudioEventAdapter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TrackScheduler.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TrackScheduler.class);
 
-    static {
-        LOGGER.info("TrackSchedulers Initialized");
-    }
+	static {
+		LOGGER.info("TrackSchedulers Initialized");
+	}
 
-    private final AudioPlayer player;
-    private final BlockingQueue<AudioTrack> queue;
-    private final String guildID;
-    private AudioTrack lastTrack;
-    private boolean repeat = false;
+	private final AudioPlayer               player;
+	private final BlockingQueue<AudioTrack> queue;
+	private final String                    guildID;
+	private       AudioTrack                lastTrack;
+	private       boolean                   repeat = false;
 
-    public TrackScheduler(AudioPlayer player, Guild guild) {
-        this.guildID = guild.getId();
-        this.player = player;
-        this.queue = new LinkedBlockingQueue<>();
-    }
+	public TrackScheduler(AudioPlayer player, Guild guild) {
+		this.guildID = guild.getId();
+		this.player  = player;
+		this.queue   = new LinkedBlockingQueue<>();
+	}
 
-    public boolean isRepeat() {
-        return repeat;
-    }
+	public boolean isRepeat() {
+		return repeat;
+	}
 
-    public void setRepeat(boolean repeat) {
-        this.repeat = repeat;
-    }
+	public void setRepeat(boolean repeat) {
+		this.repeat = repeat;
+	}
 
-    public void queueAudio(AudioTrack track) {
-        if (!player.startTrack(track, true)) { // noInterrupt: True == add to queue; Returns true if added
-            this.queue.offer(track);
-        }
-    }
+	public void queueAudio(AudioTrack track) {
+		if (!player.startTrack(track, true)) { // noInterrupt: True == add to queue; Returns true if added
+			this.queue.offer(track);
+		}
+	}
 
-    public void queueList(AudioPlaylist playlist) {
-        ArrayList<AudioTrack> tracks = (ArrayList<AudioTrack>) playlist.getTracks();
-        queueList(tracks);
-    }
+	public void queueList(AudioPlaylist playlist) {
+		ArrayList<AudioTrack> tracks = (ArrayList<AudioTrack>) playlist.getTracks();
+		queueList(tracks);
+	}
 
-    public void queueList(ArrayList<AudioTrack> tracks) {
-        if (tracks.isEmpty()) {
-            return;
-        }
-        this.queue.addAll(tracks);
+	public void queueList(ArrayList<AudioTrack> tracks) {
+		if (tracks.isEmpty()) {
+			return;
+		}
+		this.queue.addAll(tracks);
 
-        if (player.getPlayingTrack() == null) {
-            this.player.startTrack(queue.poll(), false);
-        }
-    }
+		if (player.getPlayingTrack() == null) {
+			this.player.startTrack(queue.poll(), false);
+		}
+	}
 
-    public void clearQueue() {
-        this.queue.clear();
-    }
+	public void clearQueue() {
+		this.queue.clear();
+	}
 
-    public ArrayList<AudioTrack> getQueue() {
-        ArrayList<AudioTrack> trackList = new ArrayList<>();
+	public ArrayList<AudioTrack> getQueue() {
+		ArrayList<AudioTrack> trackList = new ArrayList<>();
 
-        if (!this.queue.isEmpty()) {
-            trackList.addAll(queue);
-        }
+		if (!this.queue.isEmpty()) {
+			trackList.addAll(queue);
+		}
 
-        return trackList;
-    }
+		return trackList;
+	}
 
-    public void prevTrack() {
-        this.player.startTrack(lastTrack.makeClone(), false);
-    }
+	public void prevTrack() {
+		this.player.startTrack(lastTrack.makeClone(), false);
+	}
 
-    @Override
-    public void onPlayerPause(AudioPlayer player) {
-    }
+	@Override
+	public void onPlayerPause(AudioPlayer player) {
+	}
 
-    @Override
-    public void onPlayerResume(AudioPlayer player) {
-    }
+	@Override
+	public void onPlayerResume(AudioPlayer player) {
+	}
 
-    @Override
-    public void onTrackStart(AudioPlayer player, AudioTrack track) {
+	@Override
+	public void onTrackStart(AudioPlayer player, AudioTrack track) {
 //        if (!queue.isEmpty()) {
-            /* Do Nothing */
+		/* Do Nothing */
 //        }
-    }
+	}
 
-    @Override
-    public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
+	@Override
+	public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
 //        if (endReason.equals(AudioTrackEndReason.LOAD_FAILED)) {
-            /* Do Nothing*/
+		/* Do Nothing*/
 //        }
-        lastTrack = track;
+		lastTrack = track;
 
-        if (endReason.mayStartNext) {
-            nextTrack();
-        } else if (queue.isEmpty() && this.player.getPlayingTrack() == null) {
-            GuildContext.get(guildID)
-                    .guild()
-                    .getJDA()
-                    .getDirectAudioController()
-                    .disconnect(GuildContext.get(guildID).guild());
-        }
-    }
+		if (endReason.mayStartNext) {
+			nextTrack();
+		} else if (queue.isEmpty() && this.player.getPlayingTrack() == null) {
+			GuildContext.get(guildID)
+					.guild()
+					.getJDA()
+					.getDirectAudioController()
+					.disconnect(GuildContext.get(guildID).guild());
+		}
+	}
 
-    public void nextTrack() {
-        if (repeat) {
-            if (this.player.getPlayingTrack() != null) {
-                queue.add(this.player.getPlayingTrack().makeClone());
-            } else if (lastTrack != null) {
-                queue.add(lastTrack.makeClone());
-            }
-        }
+	public void nextTrack() {
+		if (repeat) {
+			if (this.player.getPlayingTrack() != null) {
+				queue.add(this.player.getPlayingTrack().makeClone());
+			} else if (lastTrack != null) {
+				queue.add(lastTrack.makeClone());
+			}
+		}
 
-        this.player.startTrack(queue.poll(), false);
-    }
+		this.player.startTrack(queue.poll(), false);
+	}
 
-    @Override
-    public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
-        if (!lastTrack.getIdentifier().matches(track.getIdentifier())) {
-            this.lastTrack = track;
-            player.playTrack(track.makeClone());
-        }
-    }
+	@Override
+	public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
+		if (!lastTrack.getIdentifier().matches(track.getIdentifier())) {
+			this.lastTrack = track;
+			player.playTrack(track.makeClone());
+		}
+	}
 
-    @Override
-    public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
-        player.stopTrack();
+	@Override
+	public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
+		player.stopTrack();
 
-        if (!queue.isEmpty()) {
-            nextTrack();
-        }
-    }
+		if (!queue.isEmpty()) {
+			nextTrack();
+		}
+	}
 
 }

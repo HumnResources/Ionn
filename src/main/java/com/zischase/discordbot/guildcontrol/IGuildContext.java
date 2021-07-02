@@ -7,12 +7,12 @@ import net.dv8tion.jda.api.entities.Guild;
 
 public interface IGuildContext {
 
-    PlayerPrinter playerPrinter();
+	PlayerPrinter playerPrinter();
 
-    Guild guild();
+	Guild guild();
 
-    AudioManager audioManager();
+	AudioManager audioManager();
 
-    CommandHandler commandHandler();
+	CommandHandler commandHandler();
 
 }

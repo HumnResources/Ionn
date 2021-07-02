@@ -14,87 +14,85 @@ import java.util.Map;
 
 public class GuildContext implements IGuildContext {
 
-    private static final Map<Long, GuildContext> GUILDS = new HashMap<>();
-    private final Guild guild;
-    private final AudioManager audioManager;
-    private final PlayerPrinter playerPrinter;
-    private final CommandHandler commandHandler;
+	private static final Map<Long, GuildContext> GUILDS = new HashMap<>();
+	private final        Guild                   guild;
+	private final        AudioManager            audioManager;
+	private final        PlayerPrinter           playerPrinter;
+	private final        CommandHandler          commandHandler;
 
-    public GuildContext(Guild guild) {
-        this.guild = guild;
-        this.audioManager = new AudioManager(guild);
+	public GuildContext(Guild guild) {
+		this.guild        = guild;
+		this.audioManager = new AudioManager(guild);
 
-        String textChannelID = DBQueryHandler.get(guild.getId(), "media_settings", "textchannel");
+		String textChannelID = DBQueryHandler.get(guild.getId(), "media_settings", "textchannel");
 
-        if (textChannelID != null && !textChannelID.isEmpty()) {
-            this.playerPrinter = new PlayerPrinter(this.audioManager, guild.getTextChannelById(textChannelID));
-        }
-        else if (guild.getDefaultChannel() != null) {
-            this.playerPrinter = new PlayerPrinter(this.audioManager, guild.getDefaultChannel());
-        }
-        else {
-            TextChannel channel = guild.getTextChannels()
-                    .stream()
-                    .filter(TextChannel::canTalk)
-                    .findFirst()
-                    .orElseThrow();
-            this.playerPrinter = new PlayerPrinter(this.audioManager, channel);
-        }
+		if (textChannelID != null && !textChannelID.isEmpty()) {
+			this.playerPrinter = new PlayerPrinter(this.audioManager, guild.getTextChannelById(textChannelID));
+		} else if (guild.getDefaultChannel() != null) {
+			this.playerPrinter = new PlayerPrinter(this.audioManager, guild.getDefaultChannel());
+		} else {
+			TextChannel channel = guild.getTextChannels()
+					.stream()
+					.filter(TextChannel::canTalk)
+					.findFirst()
+					.orElseThrow();
+			this.playerPrinter = new PlayerPrinter(this.audioManager, channel);
+		}
 
-        this.commandHandler = new CommandHandler();
-        setGuild(this);
-    }
+		this.commandHandler = new CommandHandler();
+		setGuild(this);
+	}
 
-    private static void setGuild(GuildContext guildContext) {
-        Guild guild = guildContext.guild();
-        GUILDS.putIfAbsent(guild.getIdLong(), guildContext);
+	private static void setGuild(GuildContext guildContext) {
+		Guild guild = guildContext.guild();
+		GUILDS.putIfAbsent(guild.getIdLong(), guildContext);
 
-        boolean initSettings = DBQueryHandler.get(guild.getId(), "prefix").isEmpty();
+		boolean initSettings = DBQueryHandler.get(guild.getId(), "prefix").isEmpty();
 
-        if (initSettings) {
-            Jdbi.create(DBConnectionHandler::getConnection)
-                    .useHandle(handle ->
-                            handle.createUpdate("""
-                                    INSERT INTO guilds(id, name) VALUES (:guildID, :name);
-                                    INSERT INTO media_settings(guild_id) VALUES (:guildID);
-                                    INSERT INTO guild_settings(guild_id) VALUES (:guildID);
-                                    """)
-                                    .bind("name", guild.getName())
-                                    .bind("guildID", guild.getId())
-                                    .execute());
-        }
-        int v = Integer.parseInt(DBQueryHandler.get(guild.getId(), "volume"));
-        guildContext.audioManager()
-                .getPlayer()
-                .setVolume(v);
-    }
+		if (initSettings) {
+			Jdbi.create(DBConnectionHandler::getConnection)
+					.useHandle(handle ->
+							handle.createUpdate("""
+									INSERT INTO guilds(id, name) VALUES (:guildID, :name);
+									INSERT INTO media_settings(guild_id) VALUES (:guildID);
+									INSERT INTO guild_settings(guild_id) VALUES (:guildID);
+									""")
+									.bind("name", guild.getName())
+									.bind("guildID", guild.getId())
+									.execute());
+		}
+		int v = Integer.parseInt(DBQueryHandler.get(guild.getId(), "volume"));
+		guildContext.audioManager()
+				.getPlayer()
+				.setVolume(v);
+	}
 
-    public static GuildContext get(String guildID) {
-        return GUILDS.get(Long.parseLong(guildID));
-    }
+	public static GuildContext get(String guildID) {
+		return GUILDS.get(Long.parseLong(guildID));
+	}
 
-    @Override
-    public PlayerPrinter playerPrinter() {
-        return playerPrinter;
-    }
+	@Override
+	public PlayerPrinter playerPrinter() {
+		return playerPrinter;
+	}
 
-    @Override
-    public Guild guild() {
-        return guild;
-    }
+	@Override
+	public Guild guild() {
+		return guild;
+	}
 
-    @Override
-    public AudioManager audioManager() {
-        return this.audioManager;
-    }
+	@Override
+	public AudioManager audioManager() {
+		return this.audioManager;
+	}
 
-    @Override
-    public CommandHandler commandHandler() {
-        return this.commandHandler;
-    }
+	@Override
+	public CommandHandler commandHandler() {
+		return this.commandHandler;
+	}
 
-    public final boolean isPremium() {
-        return Boolean.parseBoolean(DBQueryHandler.get(this.guild.getId(), "premium"));
-    }
+	public final boolean isPremium() {
+		return Boolean.parseBoolean(DBQueryHandler.get(this.guild.getId(), "premium"));
+	}
 
 }

@@ -10,38 +10,38 @@ import java.util.List;
 public class Previous extends Command {
 
 
-    public Previous() {
-        super(false);
-    }
+	public Previous() {
+		super(false);
+	}
 
-    @Override
-    public List<String> getAliases() {
-        return List.of("Prev", "pr");
-    }
+	@Override
+	public List<String> getAliases() {
+		return List.of("Prev", "pr");
+	}
 
-    @Override
-    public String helpText() {
-        return """
-                %s
-                				
-                Usage:
-                	prev/pr
-                """.formatted(shortDescription());
-    }
+	@Override
+	public String helpText() {
+		return """
+				%s
+								
+				Usage:
+					prev/pr
+				""".formatted(shortDescription());
+	}
 
-    @Override
-    public @NotNull String shortDescription() {
-        return "Plays previous song.";
-    }
+	@Override
+	public @NotNull String shortDescription() {
+		return "Plays previous song.";
+	}
 
-    @Override
-    public void handle(CommandContext ctx) {
+	@Override
+	public void handle(CommandContext ctx) {
 
-        GuildContext.get(ctx.getGuild().getId())
-                .audioManager()
-                .getScheduler()
-                .prevTrack();
+		GuildContext.get(ctx.getGuild().getId())
+				.audioManager()
+				.getScheduler()
+				.prevTrack();
 
-    }
+	}
 
 }

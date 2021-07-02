@@ -9,36 +9,36 @@ import java.util.List;
 
 public class NowPlaying extends Command {
 
-    public NowPlaying() {
-        super(false);
-    }
+	public NowPlaying() {
+		super(false);
+	}
 
-    @Override
-    public List<String> getAliases() {
-        return List.of("np", "Playing", "currentsong", "nowplaying");
-    }
+	@Override
+	public @NotNull String shortDescription() {
+		return "Displays the currently playing song.";
+	}
 
-    @Override
-    public String helpText() {
-        return """
-                Displays the currently playing song.
-                				
-                Usage:
-                	np/nowplaying/playing/currentsong
-                """;
-    }
+	@Override
+	public List<String> getAliases() {
+		return List.of("np", "Playing", "currentsong", "nowplaying");
+	}
 
-    @Override
-    public @NotNull String shortDescription() {
-        return "Displays the currently playing song.";
-    }
+	@Override
+	public String helpText() {
+		return """
+				Displays the currently playing song.
+								
+				Usage:
+					np/nowplaying/playing/currentsong
+				""";
+	}
 
-    @Override
-    public void handle(CommandContext ctx) {
-        GuildContext.get(ctx.getGuild().getId())
-                .playerPrinter()
-                .printNowPlaying(GuildContext.get(ctx.getGuild().getId()).audioManager(), ctx.getChannel());
+	@Override
+	public void handle(CommandContext ctx) {
+		GuildContext.get(ctx.getGuild().getId())
+				.playerPrinter()
+				.printNowPlaying(GuildContext.get(ctx.getGuild().getId()).audioManager(), ctx.getChannel());
 
-    }
+	}
 
 }

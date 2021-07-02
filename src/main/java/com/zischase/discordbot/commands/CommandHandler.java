@@ -16,100 +16,100 @@ import java.util.stream.Collectors;
 
 public final class CommandHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CommandHandler.class);
-    private final List<Command> commands = new ArrayList<>();
+	private static final Logger        LOGGER   = LoggerFactory.getLogger(CommandHandler.class);
+	private final        List<Command> commands = new ArrayList<>();
 
-    {
-        addCommand(new Help());
-        addCommand(new Play());
-        addCommand(new Volume());
-        addCommand(new Stop());
-        addCommand(new Skip());
-        addCommand(new Previous());
-        addCommand(new NowPlaying());
-        addCommand(new Youtube());
-        addCommand(new Prefix());
-        addCommand(new Playlist());
-        addCommand(new Lyrics());
+	{
+		addCommand(new Help());
+		addCommand(new Play());
+		addCommand(new Volume());
+		addCommand(new Stop());
+		addCommand(new Skip());
+		addCommand(new Previous());
+		addCommand(new NowPlaying());
+		addCommand(new Youtube());
+		addCommand(new Prefix());
+		addCommand(new Playlist());
+		addCommand(new Lyrics());
 //		addCommand(new Spam());
-        addCommand(new Clear());
-        addCommand(new Queue());
-        addCommand(new Join());
-        addCommand(new Shuffle());
-        addCommand(new Repeat());
+		addCommand(new Clear());
+		addCommand(new Queue());
+		addCommand(new Join());
+		addCommand(new Shuffle());
+		addCommand(new Repeat());
 
-        CompletableFuture.runAsync(() -> addCommand(new Radio()));
+		CompletableFuture.runAsync(() -> addCommand(new Radio()));
 
-        if (getCommandCount() <= 0) {
-            LOGGER.warn("Commands not added !!");
-            System.exit(1);
-        }
+		if (getCommandCount() <= 0) {
+			LOGGER.warn("Commands not added !!");
+			System.exit(1);
+		}
 
-    }
+	}
 
-    public List<Command> getCommandList() {
-        return List.copyOf(commands);
-    }
+	public List<Command> getCommandList() {
+		return List.copyOf(commands);
+	}
 
-    public void invoke(CommandContext ctx) {
-        String prefix = DBQueryHandler.get(ctx.getGuild().getId(), "prefix");
+	public void invoke(CommandContext ctx) {
+		String prefix = DBQueryHandler.get(ctx.getGuild().getId(), "prefix");
 
-        String invoke = ctx.getMessage()
-                .getContentRaw()
-                .replaceFirst("(?i)" + Pattern.quote(prefix), "") // Remove prefix
-                .split("\\s")[0] // Select first word (command)
-                .toLowerCase();
+		String invoke = ctx.getMessage()
+				.getContentRaw()
+				.replaceFirst("(?i)" + Pattern.quote(prefix), "") // Remove prefix
+				.split("\\s")[0] // Select first word (command)
+				.toLowerCase();
 
-        Command cmd = getCommand(invoke);
+		Command cmd = getCommand(invoke);
 
-        if (cmd == null) {
-            return;
-        }
+		if (cmd == null) {
+			return;
+		}
 
-        boolean isGuildPremium = Boolean.parseBoolean(DBQueryHandler.get(ctx.getGuild().getId(), "premium"));
+		boolean isGuildPremium = Boolean.parseBoolean(DBQueryHandler.get(ctx.getGuild().getId(), "premium"));
 
-        if (cmd.isPremium() && !isGuildPremium) {
-            ctx.getChannel()
-                    .sendMessage("Sorry, this feature is for premium guilds only :c")
-                    .queue();
-            return;
-        }
+		if (cmd.isPremium() && !isGuildPremium) {
+			ctx.getChannel()
+					.sendMessage("Sorry, this feature is for premium guilds only :c")
+					.queue();
+			return;
+		}
 
-        LOGGER.info(cmd.getName());
-        cmd.handle(ctx);
-    }
+		LOGGER.info(cmd.getName());
+		cmd.handle(ctx);
+	}
 
-    public Command getCommand(String search) {
-        for (Command cmd : commands) {
-            List<String> aliases = cmd.getAliases()
-                    .stream()
-                    .map(String::toLowerCase)
-                    .collect(Collectors.toList());
+	public Command getCommand(String search) {
+		for (Command cmd : commands) {
+			List<String> aliases = cmd.getAliases()
+					.stream()
+					.map(String::toLowerCase)
+					.collect(Collectors.toList());
 
-            if (cmd.getClass()
-                    .getSimpleName()
-                    .equalsIgnoreCase(search) || aliases.contains(search)) {
-                return cmd;
-            }
-        }
-        return null;
-    }
+			if (cmd.getClass()
+					.getSimpleName()
+					.equalsIgnoreCase(search) || aliases.contains(search)) {
+				return cmd;
+			}
+		}
+		return null;
+	}
 
-    public int getCommandCount() {
-        return commands.size();
-    }
+	public int getCommandCount() {
+		return commands.size();
+	}
 
-    private void addCommand(Command command) {
-        boolean commandFound = commands.stream()
-                .anyMatch(cmd -> cmd.getName()
-                        .equalsIgnoreCase(command.getName()));
+	private void addCommand(Command command) {
+		boolean commandFound = commands.stream()
+				.anyMatch(cmd -> cmd.getName()
+						.equalsIgnoreCase(command.getName()));
 
-        if (commandFound) {
-            LOGGER.warn("Command '{}' already present !", command.getName());
-            return;
-        }
+		if (commandFound) {
+			LOGGER.warn("Command '{}' already present !", command.getName());
+			return;
+		}
 
-        commands.add(command);
-    }
+		commands.add(command);
+	}
 
 }

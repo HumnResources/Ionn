@@ -12,37 +12,37 @@ import javax.security.auth.login.LoginException;
 
 public class Bot {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Bot.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Bot.class);
 
-    static {
-        DBConnectionHandler.getConnection();
-    }
+	static {
+		DBConnectionHandler.getConnection();
+	}
 
-    public static void main(String[] args) {
-        JDA jda = null;
-        try {
-            jda = JDABuilder.createDefault(Config.get("TOKEN")).build();
-        } catch (LoginException e) {
-            e.printStackTrace();
-        }
-        if (jda == null) {
-            throw new RuntimeException();
-        }
+	public static void main(String[] args) {
+		JDA jda = null;
+		try {
+			jda = JDABuilder.createDefault(Config.get("TOKEN")).build();
+		} catch (LoginException e) {
+			e.printStackTrace();
+		}
+		if (jda == null) {
+			throw new RuntimeException();
+		}
 
-        setShutdownHook(jda);
-        jda.addEventListener(new CommandEventListener());
-        jda.getPresence().setActivity(Activity.listening(" music"));
-    }
+		setShutdownHook(jda);
+		jda.addEventListener(new CommandEventListener());
+		jda.getPresence().setActivity(Activity.listening(" music"));
+	}
 
-    private static void setShutdownHook(JDA jda) {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            LOGGER.info("Shutting down.");
+	private static void setShutdownHook(JDA jda) {
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			LOGGER.info("Shutting down.");
 
-            BotCommons.shutdown(jda);
-            jda.shutdown();
+			BotCommons.shutdown(jda);
+			jda.shutdown();
 
-            Runtime.getRuntime().halt(0);
-        }));
-    }
+			Runtime.getRuntime().halt(0);
+		}));
+	}
 
 }

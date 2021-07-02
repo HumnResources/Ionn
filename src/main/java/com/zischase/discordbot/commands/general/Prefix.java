@@ -11,42 +11,42 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class Prefix extends Command {
 
-    private final AtomicReference<String> prefix = new AtomicReference<>();
+	private final AtomicReference<String> prefix = new AtomicReference<>();
 
-    public Prefix() {
-        super(false);
-    }
+	public Prefix() {
+		super(false);
+	}
 
-    @Override
-    public String helpText() {
-        return "Prefix [newPrefix] ~ Sets new prefix for commands.";
-    }
+	@Override
+	public String helpText() {
+		return "Prefix [newPrefix] ~ Sets new prefix for commands.";
+	}
 
-    @Override
-    public @NotNull String shortDescription() {
-        return "Sets the prefix to use for commands.";
-    }
+	@Override
+	public @NotNull String shortDescription() {
+		return "Sets the prefix to use for commands.";
+	}
 
-    @Override
-    public void handle(CommandContext ctx) {
-        Guild guild = ctx.getGuild();
-        List<String> args = ctx.getArgs();
+	@Override
+	public void handle(CommandContext ctx) {
+		Guild        guild = ctx.getGuild();
+		List<String> args  = ctx.getArgs();
 
-        if (args.isEmpty()) {
-            ctx.getEvent()
-                    .getChannel()
-                    .sendMessage("The current prefix is `" + prefix.get() + "`")
-                    .queue();
-            return;
-        }
+		if (args.isEmpty()) {
+			ctx.getEvent()
+					.getChannel()
+					.sendMessage("The current prefix is `" + prefix.get() + "`")
+					.queue();
+			return;
+		}
 
-        DBQueryHandler.set(guild.getId(), "prefix", args.get(0));
-        prefix.set(args.get(0));
+		DBQueryHandler.set(guild.getId(), "prefix", args.get(0));
+		prefix.set(args.get(0));
 
-        ctx.getEvent()
-                .getChannel()
-                .sendMessage("The new prefix has been set to `" + prefix.get() + "`")
-                .queue();
-    }
+		ctx.getEvent()
+				.getChannel()
+				.sendMessage("The new prefix has been set to `" + prefix.get() + "`")
+				.queue();
+	}
 
 }

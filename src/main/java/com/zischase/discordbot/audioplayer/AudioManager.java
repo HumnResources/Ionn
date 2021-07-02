@@ -14,50 +14,50 @@ import net.dv8tion.jda.api.entities.Guild;
 
 public class AudioManager {
 
-    private final static AudioPlayerManager PLAYER_MANAGER = new DefaultAudioPlayerManager();
+	private final static AudioPlayerManager PLAYER_MANAGER = new DefaultAudioPlayerManager();
 
-    static {
-        PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
-        PLAYER_MANAGER.getConfiguration().setOpusEncodingQuality(128);
-        PLAYER_MANAGER.registerSourceManager(new YoutubeAudioSourceManager());
-        PLAYER_MANAGER.registerSourceManager(new HttpAudioSourceManager());
-        PLAYER_MANAGER.registerSourceManager(new LocalAudioSourceManager());
-        PLAYER_MANAGER.registerSourceManager(new BeamAudioSourceManager());
+	static {
+		PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
+		PLAYER_MANAGER.getConfiguration().setOpusEncodingQuality(128);
+		PLAYER_MANAGER.registerSourceManager(new YoutubeAudioSourceManager());
+		PLAYER_MANAGER.registerSourceManager(new HttpAudioSourceManager());
+		PLAYER_MANAGER.registerSourceManager(new LocalAudioSourceManager());
+		PLAYER_MANAGER.registerSourceManager(new BeamAudioSourceManager());
 
-        AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER);
-        AudioSourceManagers.registerLocalSource(PLAYER_MANAGER);
-    }
+		AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER);
+		AudioSourceManagers.registerLocalSource(PLAYER_MANAGER);
+	}
 
-    private final AudioPlayer player;
-    private final TrackScheduler scheduler;
-    private final TrackLoader trackLoader;
+	private final AudioPlayer    player;
+	private final TrackScheduler scheduler;
+	private final TrackLoader    trackLoader;
 
-    public AudioManager(Guild guild) {
-        this.player = PLAYER_MANAGER.createPlayer();
-        this.scheduler = new TrackScheduler(this.getPlayer(), guild);
-        this.trackLoader = new TrackLoader(guild);
-        this.player.addListener(scheduler);
-        guild.getAudioManager().setSendingHandler(this.getSendHandler());
-    }
+	public AudioManager(Guild guild) {
+		this.player      = PLAYER_MANAGER.createPlayer();
+		this.scheduler   = new TrackScheduler(this.getPlayer(), guild);
+		this.trackLoader = new TrackLoader(guild);
+		this.player.addListener(scheduler);
+		guild.getAudioManager().setSendingHandler(this.getSendHandler());
+	}
 
-    public AudioPlayer getPlayer() {
-        return player;
-    }
+	public AudioPlayer getPlayer() {
+		return player;
+	}
 
-    public AudioPlayerSendHandler getSendHandler() {
-        return new AudioPlayerSendHandler(player);
-    }
+	public AudioPlayerSendHandler getSendHandler() {
+		return new AudioPlayerSendHandler(player);
+	}
 
-    public TrackLoader getTrackLoader() {
-        return trackLoader;
-    }
+	public TrackLoader getTrackLoader() {
+		return trackLoader;
+	}
 
-    public AudioPlayerManager getPlayerManager() {
-        return PLAYER_MANAGER;
-    }
+	public AudioPlayerManager getPlayerManager() {
+		return PLAYER_MANAGER;
+	}
 
-    public TrackScheduler getScheduler() {
-        return scheduler;
-    }
+	public TrackScheduler getScheduler() {
+		return scheduler;
+	}
 
 }

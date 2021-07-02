@@ -8,38 +8,38 @@ import java.util.List;
 
 public abstract class Command {
 
-    private final boolean premiumCommand;
+	private final boolean premiumCommand;
 
-    public Command(boolean premiumCommand) {
-        this.premiumCommand = premiumCommand;
-    }
+	public Command(boolean premiumCommand) {
+		this.premiumCommand = premiumCommand;
+	}
 
-    public CommandData getCommandData() {
-        return CommandData.fromData(DataObject.fromJson("""
-                {
-                	"name": "%s",
-                	"description": "%s"
-                }
-                """.formatted(getName().toLowerCase(), shortDescription())));
-    }
+	public CommandData getCommandData() {
+		return CommandData.fromData(DataObject.fromJson("""
+				{
+					"name": "%s",
+					"description": "%s"
+				}
+				""".formatted(getName().toLowerCase(), shortDescription())));
+	}
 
-    public String getName() {
-        return this.getClass().getSimpleName();
-    }
+	public String getName() {
+		return this.getClass().getSimpleName();
+	}
 
-    public final boolean isPremium() {
-        return premiumCommand;
-    }
+	@NotNull
+	public abstract String shortDescription();
 
-    public List<String> getAliases() {
-        return List.of();
-    }
+	public final boolean isPremium() {
+		return premiumCommand;
+	}
 
-    public abstract String helpText();
+	public List<String> getAliases() {
+		return List.of();
+	}
 
-    @NotNull
-    public abstract String shortDescription();
+	public abstract String helpText();
 
-    public abstract void handle(CommandContext ctx);
+	public abstract void handle(CommandContext ctx);
 
 }

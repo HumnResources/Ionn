@@ -10,33 +10,33 @@ import java.util.List;
 
 public class Skip extends Command {
 
-    public Skip() {
-        super(false);
-    }
+	public Skip() {
+		super(false);
+	}
 
-    @Override
-    public List<String> getAliases() {
-        return List.of("next", "n", "s");
-    }
+	@Override
+	public @NotNull String shortDescription() {
+		return "Skips the current song.";
+	}
 
-    @Override
-    public String helpText() {
-        return "Skip ~ Skip current track and play next in queue.";
-    }
+	@Override
+	public List<String> getAliases() {
+		return List.of("next", "n", "s");
+	}
 
-    @Override
-    public @NotNull String shortDescription() {
-        return "Skips the current song.";
-    }
+	@Override
+	public String helpText() {
+		return "Skip ~ Skip current track and play next in queue.";
+	}
 
-    @Override
-    public void handle(CommandContext ctx) {
-        AudioManager audioManager = GuildContext.get(ctx.getGuild().getId())
-                .audioManager();
+	@Override
+	public void handle(CommandContext ctx) {
+		AudioManager audioManager = GuildContext.get(ctx.getGuild().getId())
+				.audioManager();
 
-        audioManager.getScheduler()
-                .nextTrack();
+		audioManager.getScheduler()
+				.nextTrack();
 
-    }
+	}
 
 }
