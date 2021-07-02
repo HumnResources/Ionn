@@ -3,6 +3,7 @@ package com.zischase.discordbot.commands.general;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageType;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.OffsetDateTime;
@@ -22,7 +23,7 @@ public class Clear extends Command {
 
     @Override
     public @NotNull String shortDescription() {
-        return "Deletes messages.";
+        return "Deletes messages. Can specify amount. ";
     }
 
     @Override
@@ -38,14 +39,6 @@ public class Clear extends Command {
             numOfMsgs = Integer.parseInt(ctx.getArgs()
                     .get(0));
         }
-
-
-        ctx.getChannel()
-                .deleteMessageById(ctx.getEvent()
-                        .getMessage()
-                        .getId())
-                .complete();
-
 
         int delete = numOfMsgs;
         OffsetDateTime start = OffsetDateTime.now();
@@ -63,13 +56,10 @@ public class Clear extends Command {
             messages.removeIf(message -> message.getTimeCreated().isBefore(OffsetDateTime.now().minusDays(14)));
             messages.removeIf(Message::isPinned);
             messages.removeIf(message -> message.getTimeCreated().isAfter(start));
-
+            messages.removeIf(message -> message.getType().equals(MessageType.UNKNOWN));
 
             if (messages.size() == 1) {
-                ctx.getChannel()
-                        .deleteMessageById(messages.get(0)
-                                .getId())
-                        .complete();
+                ctx.getChannel().deleteMessageById(messages.get(0).getId()).complete();
                 break;
             } else if (messages.isEmpty()) {
                 break;

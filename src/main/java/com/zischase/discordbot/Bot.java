@@ -1,5 +1,6 @@
 package com.zischase.discordbot;
 
+import com.zischase.discordbot.commands.CommandEventListener;
 import me.duncte123.botcommons.BotCommons;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
