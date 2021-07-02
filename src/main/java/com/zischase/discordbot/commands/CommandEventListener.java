@@ -159,7 +159,7 @@ public class CommandEventListener extends ListenerAdapter {
 				for (com.zischase.discordbot.commands.Command c : GuildContext.get(g.getId()).commandHandler().getCommandList()) {
 					/* Comparator to ensure we don't overwrite */
 					if (slashCommands.stream().noneMatch((sc) -> sc.getName().equalsIgnoreCase(c.getName())))
-						g.upsertCommand(c.getCommandData()).complete();
+						g.upsertCommand(c.getCommandData()).queue((cmd) -> LOGGER.info("Added slash command {} to server {} ", cmd.getName(), g.getName()));
 				}
 			}
 		});
@@ -174,7 +174,8 @@ public class CommandEventListener extends ListenerAdapter {
 			for (Guild g : jda.getGuilds()) {
 				/* Delete entire list of commands for guild */
 				for (Command c : g.retrieveCommands().complete()) {
-					c.delete().complete();
+					/* Logs the successful deletion of a command. Returns null if delete fails */
+					c.delete().queue((nul) -> LOGGER.info("Deleted command {} from server {}", c.getName(), g.getName()), null);
 				}
 			}
 		});
