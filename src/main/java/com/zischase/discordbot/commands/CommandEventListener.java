@@ -1,7 +1,7 @@
-package com.zischase.discordbot;
+package com.zischase.discordbot.commands;
 
-import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.commands.CommandThreadFactory;
+import com.zischase.discordbot.Config;
+import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
@@ -14,6 +14,7 @@ import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -22,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -80,13 +80,10 @@ public class CommandEventListener extends ListenerAdapter {
             MessageBuilder mb = new MessageBuilder();
 
             /* Using getGuildChannel() instead of getGuild() directly from event. This ensures we have null safety*/
-            mb.append(DBQueryHandler.get(event.getGuildChannel().getGuild().getId(), "prefix"));
-            mb.append(event.getName());
+            String prefix = DBQueryHandler.get(event.getGuildChannel().getGuild().getId(), "prefix");
 
-            if (event.getSubcommandName() != null) {
-                mb.append(" ".concat(event.getSubcommandName()));
-            }
-
+            /* Builds a command for the bot to issue : <prefix><command> -<option> <args> */
+            mb.append("%s%s -%s".formatted(prefix, event.getName(), event.getSubcommandName()));
             event.getOptions().forEach((opt) -> {
                 if (opt.getType() == OptionType.STRING) {
                     mb.append(" ".concat(opt.getAsString()));
@@ -116,9 +113,14 @@ public class CommandEventListener extends ListenerAdapter {
             List<String> args = Arrays.asList(msgArr).subList(1, msgArr.length);
 
             if (event.getAuthor().getId().equals(Config.get("OWNER_ID"))) {
-                if (msgArr[0].equalsIgnoreCase("reslash")) {
-                    resetSlashCommands(event.getJDA());
-                    LOGGER.info("Resetting slash commands.");
+                if (msgArr[0].equalsIgnoreCase("slash")) {
+                    updateSlashCommands(event.getJDA());
+                    LOGGER.info("Creating slash commands.");
+                    return;
+                }
+                if (msgArr[0].equalsIgnoreCase("delslash")) {
+                    deleteSlashCommands(event.getJDA());
+                    LOGGER.info("Delete slash commands.");
                     return;
                 }
             }
@@ -141,23 +143,36 @@ public class CommandEventListener extends ListenerAdapter {
         super.onGuildLeave(event);
     }
 
-    private void resetSlashCommands(JDA jda) {
+    private void updateSlashCommands(JDA jda) {
 
-        CompletableFuture.runAsync(() -> {
-            jda.retrieveCommands().queue(commands -> commands.forEach(command -> command.delete().queue()));
-            jda.getGuilds()
-                    .forEach(guild -> guild.retrieveCommands()
-                            .queue(commands -> commands.forEach(command -> command.delete().queue())));
-        }).thenRun(() -> {
+        poolExecutor.execute(() -> {
+            /* Loop through guilds to replace command */
             for (Guild g : jda.getGuilds()) {
-                GuildContext.get(g.getId())
-                        .commandHandler()
-                        .getCommandList()
-                        .forEach(command -> {
-                            if (command.getCommandData() != null) {
-                                g.upsertCommand(command.getCommandData()).queue();
-                            }
-                        });
+
+                /* Get list of already installed commands */
+                List<Command> slashCommands = g.retrieveCommands().complete();
+
+                /* Reinitialize the commands */
+                for (com.zischase.discordbot.commands.Command c : GuildContext.get(g.getId()).commandHandler().getCommandList()) {
+                    /* Comparator to ensure we don't overwrite */
+                    if (slashCommands.stream().anyMatch((sc) -> sc.getName().equalsIgnoreCase(c.getName())))
+                        g.upsertCommand(c.getCommandData()).complete();
+                }
+            }
+        });
+    }
+
+    private void deleteSlashCommands(JDA jda) {
+        poolExecutor.execute(() -> {
+            /* Delete all global commands */
+            for (Command c : jda.retrieveCommands().complete()) {
+                c.delete().complete();
+            }
+            for (Guild g : jda.getGuilds()) {
+                /* Delete entire list of commands for guild */
+                for (Command c : g.retrieveCommands().complete()) {
+                    c.delete().complete();
+                }
             }
         });
     }
