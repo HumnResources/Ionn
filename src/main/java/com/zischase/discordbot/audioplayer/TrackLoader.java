@@ -71,7 +71,7 @@ public class TrackLoader implements AudioLoadResultHandler {
 			GuildContext.get(guildID)
 					.audioManager()
 					.getPlayerManager()
-					.loadItem("ytsearch: " + uri, new FunctionalResultHandler(this::trackLoaded, this::playlistLoaded, this::noMatches, this::loadFailed));
+					.loadItem("ytsearch: " + uri, new FunctionalResultHandler(this::trackLoaded, (playlist) -> trackLoaded(playlist.getTracks().get(0)), this::noMatches, this::loadFailed));
 		}
 	}
 
@@ -81,6 +81,19 @@ public class TrackLoader implements AudioLoadResultHandler {
 
 		if (CACHE.size() >= 300) {
 			CACHE.remove(0);
+		}
+		TextChannel channel = GuildContext.get(guildID)
+				.guild()
+				.getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
+
+		assert channel != null;
+		if (audioTrack.getInfo() != null) {
+			if (audioTrack.getInfo().title != null) {
+				channel.sendMessage("Added: " + audioTrack.getInfo().title).queue();
+			}
+			else {
+				channel.sendMessage("Added: " + audioTrack.getIdentifier()).queue();
+			}
 		}
 
 		GuildContext.get(guildID)
