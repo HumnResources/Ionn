@@ -35,7 +35,7 @@ public class AudioManager {
 	public AudioManager(Guild guild) {
 		this.player      = PLAYER_MANAGER.createPlayer();
 		this.scheduler   = new TrackScheduler(this.getPlayer(), guild);
-		this.trackLoader = new TrackLoader(guild);
+		this.trackLoader = new TrackLoader(guild.getId());
 		this.player.addListener(scheduler);
 		guild.getAudioManager().setSendingHandler(this.getSendHandler());
 	}

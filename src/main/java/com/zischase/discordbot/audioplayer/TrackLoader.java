@@ -8,7 +8,6 @@ import com.sun.istack.Nullable;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.CallBack;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
@@ -19,8 +18,8 @@ public class TrackLoader implements AudioLoadResultHandler {
 	private static final LinkedMap<String, AudioTrack> CACHE = new LinkedMap<>(50);
 	private final        String                        guildID;
 
-	public TrackLoader(Guild guild) {
-		this.guildID = guild.getId();
+	public TrackLoader(String guildID) {
+		this.guildID = guildID;
 	}
 
 	public void load(TextChannel channel, @Nullable VoiceChannel voiceChannel, String uri, CallBack callback) {
