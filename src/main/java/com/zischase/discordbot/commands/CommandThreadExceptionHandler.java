@@ -11,6 +11,8 @@ public class CommandThreadExceptionHandler implements Thread.UncaughtExceptionHa
     @Override
     public void uncaughtException(Thread t, Throwable e) {
 
+        e.printStackTrace();
+
         if (e.getMessage() != null)
         {
             LOGGER.warn("\n"+e.getMessage());
