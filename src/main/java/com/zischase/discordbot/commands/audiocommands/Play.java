@@ -13,7 +13,6 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.utils.data.DataObject;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,111 +23,116 @@ public class Play extends Command {
 
     public Play() {
         super(false);
-
-//        DataObject jsonObj = DataObject.fromJson("""
-//                {
-//                	"name": "play",
-//                	"description": "Plays a song from youtube or link",
-//                	"options": [
-//                		{
-//                			"name": "song",
-//                			"description": "search song name",
-//                			"type": 1,
-//                			"options": [
-//                				{
-//                					"name": "name",
-//                					"description": "Plays song by name",
-//                					"type": 3,
-//                					"required": true
-//                				}
-//                			]
-//                		},
-//                		{
-//                			"name": "url",
-//                			"description": "url to audio track",
-//                			"type": 1,
-//                			"options": [
-//                				{
-//                					"name": "link",
-//                					"description": "Plays song by url",
-//                					"type": 3,
-//                					"required": true
-//                				}
-//                			]
-//                		},
-//                		{
-//                			"name": "pause",
-//                			"description": "Play or pause current track",
-//                			"type": 1
-//                		},
-//                		{
-//                			"name": "next",
-//                			"description": "Push requested song to next in queue",
-//                			"type": 1,
-//                			"options": [
-//                				{
-//                					"name": "name",
-//                					"description": "Title of song to move.",
-//                					"type": 3,
-//                					"required": true
-//                				}
-//                			]
-//                		}
-//                	]
-//                }
-//                """);
     }
 
     @Override
     public CommandData getCommandData() {
-        /* Adding sub commands for QoL while using slash feature. - Parse JSON using Discord slash command docs as reference */
-        SubcommandData subcommandData = SubcommandData.fromData(DataObject.fromJson("""
+        /* Parse JSON using Discord slash command API docs as reference */
+        return CommandData.fromData(DataObject.fromJson("""
                 {
-                    "name": "song",
-                 	"description": "search song name",
-                 	"type": 1,
-                 	"options": [
-                 	    {
-                 		"name": "name",
-                 		"description": "Plays song by name",
-                 		"type": 3,
-                 		"required": true
-                 		}
-                 	]
-                },
-                {
-                    "name": "url",
-                 	"description": "url to audio track",
-                 	"type": 1,
-                 	"options": [
-                 	    {
-                 		    "name": "link",
-                 			"description": "Plays song by url",
-                 			"type": 3,
-                 			"required": true
-                 		}
-                 	]
-                },
-                {
-                    "name": "pause",
-                 	"description": "Play or pause current track",
-                 	"type": 1
-                },
-                {
-                 	"name": "next",
-                 	"description": "Push requested song to next in queue",
-                 	"type": 1,
-                 	"options": [
-                 		{
-                 		    "name": "name",
-                 			"description": "Title of song to move.",
-                 			"type": 3,
-                 			"required": true
-                 	    }
-                    ]
+                	"name": "play",
+                	"description": "Plays a song from youtube or link",
+                	"options": [
+                		{
+                			"name": "song",
+                			"description": "search song name",
+                			"type": 1,
+                			"options": [
+                				{
+                					"name": "name",
+                					"description": "Plays song by name",
+                					"type": 3,
+                					"required": true
+                				}
+                			]
+                		},
+                		{
+                			"name": "url",
+                			"description": "url to audio track",
+                			"type": 1,
+                			"options": [
+                				{
+                					"name": "link",
+                					"description": "Plays song by url",
+                					"type": 3,
+                					"required": true
+                				}
+                			]
+                		},
+                		{
+                			"name": "next",
+                			"description": "Push requested song to next in queue",
+                			"type": 1,
+                			"options": [
+                				{
+                					"name": "name",
+                					"description": "Title of song to move.",
+                					"type": 3,
+                					"required": true
+                				}
+                			]
+                		},
+                		{
+                			"name": "pause",
+                			"description": "Play or pause current track",
+                			"type": 1
+                		}
+                	]
                 }
                 """));
-        return super.getCommandData().addSubcommands(subcommandData);
+
+//        SubcommandData subCommandOne = SubcommandData.fromData(DataObject.fromJson("""
+//                {
+//                    "name": "song",
+//                 	"description": "search song name",
+//                 	"type": 1,
+//                 	"options": [
+//                 	    {
+//                 		"name": "name",
+//                 		"description": "Plays song by name",
+//                 		"type": 3,
+//                 		"required": true
+//                 		}
+//                 	]
+//                }
+//                """));
+//        SubcommandData subCommandTwo = SubcommandData.fromData(DataObject.fromJson("""
+//                {
+//                    "name": "url",
+//                 	"description": "url to audio track",
+//                 	"type": 1,
+//                 	"options": [
+//                 	    {
+//                 		    "name": "link",
+//                 			"description": "Plays song by url",
+//                 			"type": 3,
+//                 			"required": true
+//                 		}
+//                 	]
+//                }
+//                """));
+//        SubcommandData subCommandThree = SubcommandData.fromData(DataObject.fromJson("""
+//                {
+//                 	"name": "next",
+//                 	"description": "Push requested song to next in queue",
+//                 	"type": 1,
+//                 	"options": [
+//                 		{
+//                 		    "name": "name",
+//                 			"description": "Title of song to move.",
+//                 			"type": 3,
+//                 			"required": true
+//                 	    }
+//                    ]
+//                }
+//                """));
+//        SubcommandData subCommandFour = SubcommandData.fromData(DataObject.fromJson("""
+//                {
+//                    "name": "pause",
+//                 	"description": "Play or pause current track",
+//                 	"type": 1
+//                }
+//                """));
     }
 
     @Override
@@ -164,17 +168,18 @@ public class Play extends Command {
         DBQueryHandler.set(guildID, "media_settings", "textChannel", ctx.getChannel().getId());
 
 
-        if (args.isEmpty() || args.get(0).matches("(?i)(pause)")) {
+        if (args.isEmpty() || args.get(0).matches("(?i)-(pause)")) {
             AudioPlayer player = GuildContext.get(guildID)
                     .audioManager()
                     .getPlayer();
+
             player.setPaused(!player.isPaused());
-        } else if (args.get(0).matches("(?i)(next|n)")) {
+        } else if (args.get(0).matches("(?i)-(next|n)")) {
             String song = String.join(" ", args.subList(1, args.size()));
             playNext(song, ctx.getEvent(), trackLoader);
         }
         /* Checks to see if we have a potential link in the message */
-        if (args.get(0).equalsIgnoreCase("url")) {
+        if (args.get(0).matches("(?i)-(url)")) {
             List<Message.Attachment> attachments = ctx.getEvent()
                     .getMessage()
                     .getAttachments();
@@ -183,23 +188,14 @@ public class Play extends Command {
             }
         }
         /* Otherwise we check to see if they input a string, process using YT */
-        else if (args.get(0).equalsIgnoreCase("song")) {
-            String search = String.join(" ", args).replaceFirst("(?i)song", "");
+        else if (args.get(0).matches("(?i)-(song)")) {
+            String search = String.join(" ", args).replaceFirst("(?i)-(song)", "");
 
             GuildContext.get(guildID)
                     .audioManager()
                     .getPlayerManager()
                     .loadItem("ytsearch: " + search,
-                            new FunctionalResultHandler(null,
-                                    (playlist) -> trackLoader.load(ctx.getChannel(),
-                                            voiceChannel,
-                                            playlist.getTracks()
-                                                    .get(0)
-                                                    .getIdentifier()
-                                    ),
-                                    null,
-                                    null
-                            )
+                            new FunctionalResultHandler(null,(playlist) -> trackLoader.load(ctx.getChannel(), voiceChannel, playlist.getTracks().get(0).getIdentifier()), null,null)
                     );
         }
     }

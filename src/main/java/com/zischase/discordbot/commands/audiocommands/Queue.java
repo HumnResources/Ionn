@@ -6,6 +6,8 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.utils.data.DataObject;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -16,6 +18,61 @@ public class Queue extends Command {
 
     public Queue() {
         super(false);
+    }
+
+    @Override
+    public CommandData getCommandData() {
+        return CommandData.fromData(DataObject.fromJson("""
+                {
+                	"name": "queue",
+                	"description": "Displays the current queue.",
+                	"options": [
+                	    {
+                			"name": "show",
+                			"description": "Displays the current queue.",
+                			"type": 1
+                		},
+                		{
+                			"name": "next",
+                			"description": "Moves the song at the current index to next in queue.",
+                			"type": 1,
+                			"options": [
+                				{
+                					"name": "index",
+                					"description": "Use queue command to get index numbers.",
+                					"type": 3,
+                					"required": true
+                				}
+                			]
+                		},
+                		{
+                			"name": "jump",
+                			"description": "Shifts the queue to the index number. See queue",
+                			"type": 1,
+                			"options": [
+                				{
+                					"name": "index",
+                					"description": "Use queue command to get index numbers.",
+                					"type": 3,
+                					"required": true
+                				}
+                			]
+                		},
+                		{
+                			"name": "clear",
+                			"description": "Clears the current queue.",
+                			"type": 1,
+                			"options": [
+                				{
+                					"name": "index",
+                					"description": "Deletes song from specified index number. See queue",
+                					"type": 3
+                				}
+                			]
+                		}
+                	]
+                }
+                """));
     }
 
     @Override
