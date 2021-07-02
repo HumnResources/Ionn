@@ -23,7 +23,6 @@ public class AudioManager {
 		PLAYER_MANAGER.registerSourceManager(new HttpAudioSourceManager());
 		PLAYER_MANAGER.registerSourceManager(new LocalAudioSourceManager());
 		PLAYER_MANAGER.registerSourceManager(new BeamAudioSourceManager());
-
 		AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER);
 		AudioSourceManagers.registerLocalSource(PLAYER_MANAGER);
 	}
