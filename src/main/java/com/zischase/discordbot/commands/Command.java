@@ -5,19 +5,13 @@ import net.dv8tion.jda.api.utils.data.DataObject;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class Command {
 
     private final boolean premiumCommand;
-    private final AtomicReference<CommandData> commandData = new AtomicReference<>(null);
 
     public Command(boolean premiumCommand) {
         this.premiumCommand = premiumCommand;
-    }
-
-    public void setCommandData(CommandData commandData) {
-        this.commandData.set(commandData);
     }
 
     public CommandData getCommandData() {

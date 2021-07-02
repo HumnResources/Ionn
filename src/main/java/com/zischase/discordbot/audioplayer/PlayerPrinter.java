@@ -246,9 +246,13 @@ public class PlayerPrinter {
         channel.sendMessageEmbeds(embed.build())
                 .queue(msg ->
                 {
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     if (channel.getHistory().getRetrievedHistory().contains(msg)) {
-                        msg.delete()
-                                .queueAfter(5000, TimeUnit.MILLISECONDS);
+                        msg.delete().complete();
                     }
                 });
     }
