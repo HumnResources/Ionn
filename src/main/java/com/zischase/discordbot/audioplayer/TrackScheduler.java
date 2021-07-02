@@ -7,232 +7,142 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
-public class TrackScheduler extends AudioEventAdapter
-{
-	private static final Logger                    LOGGER = LoggerFactory.getLogger(TrackScheduler.class);
-	private final        AudioPlayer               player;
-	private final        BlockingQueue<AudioTrack> queue;
-	
-	
-	private boolean     repeat      = false;
-	private AudioTrack  lastTrack;
-	private TextChannel textChannel = null;
+public class TrackScheduler extends AudioEventAdapter {
 
-	static
-	{
-		LOGGER.info("TrackSchedulers Initialized");
-	}
+    private static final Logger LOGGER = LoggerFactory.getLogger(TrackScheduler.class);
 
-	public TrackScheduler(AudioPlayer player)
-	{
-		this.player = player;
-		this.queue = new LinkedBlockingQueue<>();
+    static {
+        LOGGER.info("TrackSchedulers Initialized");
+    }
 
-	}
-	
-	public void setRepeat(boolean repeat)
-	{
-		this.repeat = repeat;
-	}
-	
-	public boolean isRepeat()
-	{
-		return repeat;
-	}
-	
-	public void queueAudio(AudioTrack track, TextChannel textChannel)
-	{
-		this.textChannel = textChannel;
-		
-		if (! player.startTrack(track, true))
-		{ // noInterrupt: True == add to queue; Returns true if added
-			this.queue.offer(track);
-		}
-	}
-	
-	public void queueList(ArrayList<AudioTrack> tracks, TextChannel channel)
-	{
-		if (tracks.isEmpty())
-		{
-			return;
-		}
-		this.textChannel = channel;
-		
-		this.queue.addAll(tracks);
+    private final AudioPlayer player;
+    private final BlockingQueue<AudioTrack> queue;
+    private final String guildID;
+    private AudioTrack lastTrack;
+    private boolean repeat = false;
 
-		if (player.getPlayingTrack() == null)
-		{
-			this.player.startTrack(queue.poll(), false);
-		}
-	}
-	
-	public void queueList(AudioPlaylist playlist, TextChannel channel)
-	{
-		ArrayList<AudioTrack> tracks = (ArrayList<AudioTrack>) playlist.getTracks();
-		channel.sendMessage("Adding playlist `" + playlist.getName() + "` to the queue.")
-			   .queue();
-		queueList(tracks, channel);
-	}
-	
-	public void clearQueue()
-	{
-		this.queue.clear();
-	}
-	
-	public ArrayList<AudioTrack> getQueue()
-	{
-		ArrayList<AudioTrack> trackList = new ArrayList<>();
-		
-		if (! this.queue.isEmpty())
-		{
-			trackList.addAll(queue);
-		}
-		
-		return trackList;
-	}
-	
-	public void nextTrack()
-	{
-		if (repeat)
-		{
-			if (this.player.getPlayingTrack() != null)
-			{
-				queue.add(this.player.getPlayingTrack()
-									 .makeClone());
-			}
-			else if (lastTrack != null)
-			{
-				queue.add(lastTrack.makeClone());
-			}
-		}
-		
-		this.player.startTrack(queue.poll(), false);
-	}
-	
-	public void prevTrack()
-	{
-		this.player.startTrack(lastTrack.makeClone(), false);
-	}
-	
-	@Override
-	public void onPlayerPause(AudioPlayer player)
-	{
-		GuildContext.get(textChannel.getGuild())
-                    .playerPrinter()
-                    .printNowPlaying(GuildContext.get(textChannel.getGuild()).audioManager(), textChannel);
-	}
-	
-	@Override
-	public void onPlayerResume(AudioPlayer player)
-	{
-		GuildContext.get(textChannel.getGuild())
-                    .playerPrinter()
-                    .printNowPlaying(GuildContext.get(textChannel.getGuild()).audioManager(), textChannel);
-	}
-	
-	@Override
-	public void onTrackStart(AudioPlayer player, AudioTrack track)
-	{
-		if (! queue.isEmpty())
-		{
-			GuildContext.get(textChannel.getGuild())
-                        .playerPrinter()
-                        .printQueue(GuildContext.get(textChannel.getGuild()).audioManager(), textChannel);
-		}
-		
-		GuildContext.get(textChannel.getGuild())
-                    .playerPrinter()
-                    .printNowPlaying(GuildContext.get(textChannel.getGuild()).audioManager(), textChannel);
-	}
-	
-	@Override
-	public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason)
-	{
-		if (endReason.equals(AudioTrackEndReason.LOAD_FAILED))
-		{
-			boolean tooManyAttempts = false;
-			
-			if (lastTrack != null)
-			{
-				tooManyAttempts = lastTrack.getInfo()
-						.identifier
-						.equalsIgnoreCase(track.getInfo().identifier);
-			}
-			
-			if (tooManyAttempts)
-			{
-				nextTrack();
-			}
-			else
-			{
-				textChannel.sendMessage("Loading failed. . . \nTrying again!")
-						   .complete()
-						   .delete()
-						   .queueAfter(5000, TimeUnit.MILLISECONDS);
-				
-				Member member = textChannel.getGuild()
-										   .getMember(textChannel.getJDA().getSelfUser());
-				
-				VoiceChannel voiceChannel = member != null && member.getVoiceState() != null ?
-											member.getVoiceState().getChannel() : null;
-				
-				GuildContext.get(textChannel.getGuild())
-                            .audioManager()
-                            .getTrackLoader()
-                            .load(textChannel, voiceChannel, track.getInfo().identifier);
-			}
-		}
-		lastTrack = track;
-		
-		if (endReason.mayStartNext)
-		{
-			nextTrack();
-		}
-		
-		else if (queue.isEmpty() && this.player.getPlayingTrack() == null) {
-			textChannel.getJDA()
-					   .getDirectAudioController()
-					   .disconnect(textChannel.getGuild());
-		}
-	}
-	
-	@Override
-	public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception)
-	{
-		if (lastTrack.getIdentifier()
-					 .matches(track.getIdentifier()))
-		{
-			textChannel.sendMessage("There was an error playing the song, I tried twice but... \nI'm afraid we have to move on.")
-					   .complete()
-					   .delete()
-					   .queueAfter(5000, TimeUnit.MILLISECONDS);
-		}
-		else
-		{
-			this.lastTrack = track;
-			player.playTrack(track.makeClone());
-		}
-	}
-	
-	@Override
-	public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs)
-	{
-		player.stopTrack();
-		
-		if (! queue.isEmpty())
-		{
-			nextTrack();
-		}
-	}
+    public TrackScheduler(AudioPlayer player, Guild guild) {
+        this.guildID = guild.getId();
+        this.player = player;
+        this.queue = new LinkedBlockingQueue<>();
+    }
+
+    public boolean isRepeat() {
+        return repeat;
+    }
+
+    public void setRepeat(boolean repeat) {
+        this.repeat = repeat;
+    }
+
+    public void queueAudio(AudioTrack track) {
+        if (!player.startTrack(track, true)) { // noInterrupt: True == add to queue; Returns true if added
+            this.queue.offer(track);
+        }
+    }
+
+    public void queueList(AudioPlaylist playlist) {
+        ArrayList<AudioTrack> tracks = (ArrayList<AudioTrack>) playlist.getTracks();
+        queueList(tracks);
+    }
+
+    public void queueList(ArrayList<AudioTrack> tracks) {
+        if (tracks.isEmpty()) {
+            return;
+        }
+        this.queue.addAll(tracks);
+
+        if (player.getPlayingTrack() == null) {
+            this.player.startTrack(queue.poll(), false);
+        }
+    }
+
+    public void clearQueue() {
+        this.queue.clear();
+    }
+
+    public ArrayList<AudioTrack> getQueue() {
+        ArrayList<AudioTrack> trackList = new ArrayList<>();
+
+        if (!this.queue.isEmpty()) {
+            trackList.addAll(queue);
+        }
+
+        return trackList;
+    }
+
+    public void prevTrack() {
+        this.player.startTrack(lastTrack.makeClone(), false);
+    }
+
+    @Override
+    public void onPlayerPause(AudioPlayer player) {
+    }
+
+    @Override
+    public void onPlayerResume(AudioPlayer player) {
+    }
+
+    @Override
+    public void onTrackStart(AudioPlayer player, AudioTrack track) {
+//        if (!queue.isEmpty()) {
+            /* Do Nothing */
+//        }
+    }
+
+    @Override
+    public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
+//        if (endReason.equals(AudioTrackEndReason.LOAD_FAILED)) {
+            /* Do Nothing*/
+//        }
+        lastTrack = track;
+
+        if (endReason.mayStartNext) {
+            nextTrack();
+        } else if (queue.isEmpty() && this.player.getPlayingTrack() == null) {
+            GuildContext.get(guildID)
+                    .guild()
+                    .getJDA()
+                    .getDirectAudioController()
+                    .disconnect(GuildContext.get(guildID).guild());
+        }
+    }
+
+    public void nextTrack() {
+        if (repeat) {
+            if (this.player.getPlayingTrack() != null) {
+                queue.add(this.player.getPlayingTrack().makeClone());
+            } else if (lastTrack != null) {
+                queue.add(lastTrack.makeClone());
+            }
+        }
+
+        this.player.startTrack(queue.poll(), false);
+    }
+
+    @Override
+    public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
+        if (!lastTrack.getIdentifier().matches(track.getIdentifier())) {
+            this.lastTrack = track;
+            player.playTrack(track.makeClone());
+        }
+    }
+
+    @Override
+    public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
+        player.stopTrack();
+
+        if (!queue.isEmpty()) {
+            nextTrack();
+        }
+    }
+
 }

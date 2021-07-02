@@ -18,192 +18,172 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Lyrics extends Command
-{
-	private static final Logger LOGGER = LoggerFactory.getLogger(Lyrics.class);
+public class Lyrics extends Command {
 
-	public Lyrics()
-	{
-		super(false);
-	}
-	
-	@Override
-	public String helpText() {
-		return """
-				Searches for the lyrics on AZLyrics.
-				
-				Usage:
-					lyrics 				# Search current song
-					lyrics <song name>  # Request search
-				""";
-	}
-	
-	@Override
-	public @NotNull String shortDescription() {
-		return "Gets the lyrics for the current/requested song.";
-	}
-	
-	@Override
-	public void handle(CommandContext ctx) {
-		
-		List<String> args = ctx.getArgs();
-		Element lyricsElement = null;
-		String search;
-		
-		if (args.isEmpty())
-		{
-			search = GuildContext.get(ctx.getGuild())
-								 .audioManager()
-								 .getPlayer()
-								 .getPlayingTrack()
-								 .getInfo().title.strip()
-												 .replaceAll("\\s", "+");
-		}
-		else
-		{
-			search = String.join("+", args);
-		}
+    private static final Logger LOGGER = LoggerFactory.getLogger(Lyrics.class);
+
+    public Lyrics() {
+        super(false);
+    }
+
+    @Override
+    public String helpText() {
+        return """
+                Searches for the lyrics on AZLyrics.
+                				
+                Usage:
+                	lyrics 				# Search current song
+                	lyrics <song name>  # Request search
+                """;
+    }
+
+    @Override
+    public @NotNull String shortDescription() {
+        return "Gets the lyrics for the current/requested song.";
+    }
+
+    @Override
+    public void handle(CommandContext ctx) {
+
+        List<String> args = ctx.getArgs();
+        Element lyricsElement = null;
+        String search;
+
+        if (args.isEmpty()) {
+            search = GuildContext.get(ctx.getGuild().getId())
+                    .audioManager()
+                    .getPlayer()
+                    .getPlayingTrack()
+                    .getInfo().title.strip()
+                    .replaceAll("\\s", "+");
+        } else {
+            search = String.join("+", args);
+        }
 
 
-		String query = "https://search.azlyrics.com/search.php?q=" + search;
+        String query = "https://search.azlyrics.com/search.php?q=" + search;
 
-		Document doc;
-		try {
-			 Connection.Response response = Jsoup.connect(query)
-					 .userAgent("Mozilla")
-					 .referrer("http://www.google.com")
-					 .followRedirects(true)
-					 .execute();
+        Document doc;
+        try {
+            Connection.Response response = Jsoup.connect(query)
+                    .userAgent("Mozilla")
+                    .referrer("http://www.google.com")
+                    .followRedirects(true)
+                    .execute();
 
-			if (response.statusCode() == 403)
-			{
-				LOGGER.warn("Response Code - 403 : Forbidden");
-				return;
-			}
+            if (response.statusCode() == 403) {
+                LOGGER.warn("Response Code - 403 : Forbidden");
+                return;
+            }
 
-			doc = response.parse();
-		}
-		catch (IOException e)
-		{
-			LOGGER.warn("IOException - " + e.getCause().getMessage());
-			return;
-		}
+            doc = response.parse();
+        } catch (IOException e) {
+            LOGGER.warn("IOException - " + e.getCause().getMessage());
+            return;
+        }
 
-		Element searchResultElement = doc.select("a[href]")
-				.stream()
-				.filter(element -> element.attributes().hasKeyIgnoreCase("href"))
-				.filter(element -> element.attr("href").contains("lyrics/"))
-				.findFirst()
-				.orElse(null);
+        Element searchResultElement = doc.select("a[href]")
+                .stream()
+                .filter(element -> element.attributes().hasKeyIgnoreCase("href"))
+                .filter(element -> element.attr("href").contains("lyrics/"))
+                .findFirst()
+                .orElse(null);
 
-		if (searchResultElement == null)
-		{
-			ctx.getChannel().sendMessage("Sorry, could not find any results.").queue();
-			return;
-		}
+        if (searchResultElement == null) {
+            ctx.getChannel().sendMessage("Sorry, could not find any results.").queue();
+            return;
+        }
 
-		String lyricsURL = searchResultElement.attr("href");
+        String lyricsURL = searchResultElement.attr("href");
 
-		try {
-			Connection.Response response = Jsoup.connect(lyricsURL)
-					.userAgent("Mozilla")
-					.referrer("http://www.google.com")
-					.followRedirects(true)
-					.execute();
+        try {
+            Connection.Response response = Jsoup.connect(lyricsURL)
+                    .userAgent("Mozilla")
+                    .referrer("http://www.google.com")
+                    .followRedirects(true)
+                    .execute();
 
-			if (response.statusCode() == 403)
-			{
-				LOGGER.warn("Response Code - 403 : Forbidden");
-				return;
-			}
+            if (response.statusCode() == 403) {
+                LOGGER.warn("Response Code - 403 : Forbidden");
+                return;
+            }
 
-			doc = response.parse();
-		}
-		catch (IOException e)
-		{
-			LOGGER.warn("IOException - " + e.getCause().getMessage());
-			return;
-		}
+            doc = response.parse();
+        } catch (IOException e) {
+            LOGGER.warn("IOException - " + e.getCause().getMessage());
+            return;
+        }
 
-		String songTitle = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > b")
-				.first()
-				.toString()
-				.replaceAll("(?i)(<.+?>)", "");
-		String artist = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div > h2 > a > b")
-				.first()
-				.toString()
-				.replaceAll("(?i)(<.+?>)|(lyrics)", "");
+        String songTitle = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > b")
+                .first()
+                .toString()
+                .replaceAll("(?i)(<.+?>)", "");
+        String artist = doc.select(
+                "body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div > h2 > a > b")
+                .first()
+                .toString()
+                .replaceAll("(?i)(<.+?>)|(lyrics)", "");
 
-		// Arbitrarily search up to '20' nodes.
-		for (int i = 0; i < 20; i++)
-		{
-			lyricsElement = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div:nth-child(" + i + ")")
-					.first();
+        // Arbitrarily search up to '20' nodes.
+        for (int i = 0; i < 20; i++) {
+            lyricsElement = doc.select(
+                    "body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div:nth-child(" + i + ")")
+                    .first();
 
-			if (lyricsElement == null)
-			{
-				continue;
-			}
+            if (lyricsElement == null) {
+                continue;
+            }
 
-			if (lyricsElement.html()
-					.contains("<br>"))
-			{
-				break;
-			}
-		}
+            if (lyricsElement.html()
+                    .contains("<br>")) {
+                break;
+            }
+        }
 
 
-		
-		if (lyricsElement == null)
-		{
-			ctx.getChannel()
-			   .sendMessage("Sorry, i couldn't find anything :c")
-			   .queue();
-			return;
-		}
-		
-		String[] lyrics = lyricsElement.html()
-									   .replaceAll("(?i)(<.+?>\\s)", "")
-									   .split("(?m)(\\s\\n)");
-		
-		EmbedBuilder embed = new EmbedBuilder();
-		embed.setTitle(songTitle + " - " + artist);
-		embed.setColor(Color.lightGray);
-		
-		for (String str : lyrics)
-		{
-			if (str.isBlank() || str.isEmpty())
-			{
-				continue;
-			}
-			
-			// Reset the embed on the second verse, used to remove song title & name off subsequent messages.
-			if (str.equalsIgnoreCase(lyrics[1]))
-			{
-				embed = new EmbedBuilder();
-				embed.setColor(Color.lightGray);
-			}
-			
-			if (str.length() > 2000)
-			{
-				Pattern p = Pattern.compile("(?ms)(?<=\\s).{1,2000}");
-				Matcher m = p.matcher(str);
-				while (m.find())
-				{
-					ctx.getChannel()
-					   .sendMessageEmbeds(embed.setDescription(m.group())
-										 .build())
-					   .queue();
-				}
-			}
-			else
-			{
-				ctx.getChannel()
-				   .sendMessageEmbeds(embed.setDescription(str)
-									 .build())
-				   .queue();
-			}
-		}
-		
-	}
+        if (lyricsElement == null) {
+            ctx.getChannel()
+                    .sendMessage("Sorry, i couldn't find anything :c")
+                    .queue();
+            return;
+        }
+
+        String[] lyrics = lyricsElement.html()
+                .replaceAll("(?i)(<.+?>\\s)", "")
+                .split("(?m)(\\s\\n)");
+
+        EmbedBuilder embed = new EmbedBuilder();
+        embed.setTitle(songTitle + " - " + artist);
+        embed.setColor(Color.lightGray);
+
+        for (String str : lyrics) {
+            if (str.isBlank() || str.isEmpty()) {
+                continue;
+            }
+
+            // Reset the embed on the second verse, used to remove song title & name off subsequent messages.
+            if (str.equalsIgnoreCase(lyrics[1])) {
+                embed = new EmbedBuilder();
+                embed.setColor(Color.lightGray);
+            }
+
+            if (str.length() > 2000) {
+                Pattern p = Pattern.compile("(?ms)(?<=\\s).{1,2000}");
+                Matcher m = p.matcher(str);
+                while (m.find()) {
+                    ctx.getChannel()
+                            .sendMessageEmbeds(embed.setDescription(m.group())
+                                    .build())
+                            .queue();
+                }
+            } else {
+                ctx.getChannel()
+                        .sendMessageEmbeds(embed.setDescription(str)
+                                .build())
+                        .queue();
+            }
+        }
+
+    }
+
 }

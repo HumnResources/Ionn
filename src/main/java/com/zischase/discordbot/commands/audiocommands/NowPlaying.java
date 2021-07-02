@@ -7,42 +7,38 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class NowPlaying extends Command
-{
-	
-	public NowPlaying()
-	{
-		super(false);
-	}
-	
-	@Override
-	public String helpText() {
-		return """
-				Displays the currently playing song.
-				
-				Usage:
-					np/nowplaying/playing/currentsong
-				""";
-	}
-	
-	@Override
-	public @NotNull String shortDescription() {
-		return "Displays the currently playing song.";
-	}
-	
-	@Override
-	public List<String> getAliases()
-	{
-		return List.of("np", "Playing", "currentsong", "nowplaying");
-	}
-	
-	@Override
-	public void handle(CommandContext ctx)
-	{
-		GuildContext.get(ctx.getGuild())
-                    .playerPrinter()
-                    .printNowPlaying(GuildContext.get(ctx.getGuild()).audioManager(), ctx.getChannel());
+public class NowPlaying extends Command {
 
-	}
-	
+    public NowPlaying() {
+        super(false);
+    }
+
+    @Override
+    public List<String> getAliases() {
+        return List.of("np", "Playing", "currentsong", "nowplaying");
+    }
+
+    @Override
+    public String helpText() {
+        return """
+                Displays the currently playing song.
+                				
+                Usage:
+                	np/nowplaying/playing/currentsong
+                """;
+    }
+
+    @Override
+    public @NotNull String shortDescription() {
+        return "Displays the currently playing song.";
+    }
+
+    @Override
+    public void handle(CommandContext ctx) {
+        GuildContext.get(ctx.getGuild().getId())
+                .playerPrinter()
+                .printNowPlaying(GuildContext.get(ctx.getGuild().getId()).audioManager(), ctx.getChannel());
+
+    }
+
 }

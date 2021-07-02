@@ -10,23 +10,21 @@ public class Spam extends Command {
     public Spam() {
         super(true);
     }
-    
+
     @Override
     public String helpText() {
         return null;
     }
-    
+
     @Override
     public @NotNull String shortDescription() {
         return "Stupid idea, really. Helps with testing.";
     }
-    
+
     @Override
     public void handle(CommandContext ctx) {
-        if (ctx.getEventInitiator().getId().equals(Config.get("OWNER_ID")))
-        {
-            if (ctx.getArgs().size() >= 1 && ctx.getArgs().get(0).matches("\\d+"))
-            {
+        if (ctx.getEventInitiator().getId().equals(Config.get("OWNER_ID"))) {
+            if (ctx.getArgs().size() >= 1 && ctx.getArgs().get(0).matches("\\d+")) {
                 int num = Integer.parseInt(ctx.getArgs().get(0));
                 for (int i = 0; i < num; i++) {
                     ctx.getChannel().sendMessage(i + " - Spam ! !").queue();
@@ -34,4 +32,5 @@ public class Spam extends Command {
             }
         }
     }
+
 }
