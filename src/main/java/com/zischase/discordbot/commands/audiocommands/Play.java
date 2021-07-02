@@ -1,7 +1,6 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
-import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
@@ -48,12 +47,12 @@ public class Play extends Command {
 						},
 						{
 							"name": "url",
-							"description": "url to audio track",
+							"description": "Link to audio track",
 							"type": 1,
 							"options": [
 								{
 									"name": "link",
-									"description": "Plays song by url",
+									"description": "Plays audio by url",
 									"type": 3,
 									"required": true
 								}
@@ -61,7 +60,7 @@ public class Play extends Command {
 						},
 						{
 							"name": "next",
-							"description": "Push requested song to next in queue",
+							"description": "Play requested song next",
 							"type": 1,
 							"options": [
 								{
@@ -80,59 +79,6 @@ public class Play extends Command {
 					]
 				}
 				"""));
-
-//        SubcommandData subCommandOne = SubcommandData.fromData(DataObject.fromJson("""
-//                {
-//                    "name": "song",
-//                 	"description": "search song name",
-//                 	"type": 1,
-//                 	"options": [
-//                 	    {
-//                 		"name": "name",
-//                 		"description": "Plays song by name",
-//                 		"type": 3,
-//                 		"required": true
-//                 		}
-//                 	]
-//                }
-//                """));
-//        SubcommandData subCommandTwo = SubcommandData.fromData(DataObject.fromJson("""
-//                {
-//                    "name": "url",
-//                 	"description": "url to audio track",
-//                 	"type": 1,
-//                 	"options": [
-//                 	    {
-//                 		    "name": "link",
-//                 			"description": "Plays song by url",
-//                 			"type": 3,
-//                 			"required": true
-//                 		}
-//                 	]
-//                }
-//                """));
-//        SubcommandData subCommandThree = SubcommandData.fromData(DataObject.fromJson("""
-//                {
-//                 	"name": "next",
-//                 	"description": "Push requested song to next in queue",
-//                 	"type": 1,
-//                 	"options": [
-//                 		{
-//                 		    "name": "name",
-//                 			"description": "Title of song to move.",
-//                 			"type": 3,
-//                 			"required": true
-//                 	    }
-//                    ]
-//                }
-//                """));
-//        SubcommandData subCommandFour = SubcommandData.fromData(DataObject.fromJson("""
-//                {
-//                    "name": "pause",
-//                 	"description": "Play or pause current track",
-//                 	"type": 1
-//                }
-//                """));
 	}
 
 	@Override
@@ -186,17 +132,20 @@ public class Play extends Command {
 			if (!attachments.isEmpty()) {
 				trackLoader.load(ctx.getChannel(), voiceChannel, attachments.get(0).getProxyUrl());
 			}
+			else {
+				trackLoader.load(ctx.getChannel(), voiceChannel, args.get(1));
+			}
 		}
-		/* Otherwise we check to see if they input a string, process using YT */
-		else if (args.get(0).matches("(?i)-(song)")) {
-			String search = String.join(" ", args).replaceFirst("(?i)-(song)", "");
-
-			GuildContext.get(guildID)
-					.audioManager()
-					.getPlayerManager()
-					.loadItem("ytsearch: " + search,
-							new FunctionalResultHandler(null, (playlist) -> trackLoader.load(ctx.getChannel(), voiceChannel, playlist.getTracks().get(0).getIdentifier()), null, null)
-					);
+		/* Otherwise we check to see if they input a string, process using YT as default */
+		else {
+			String search;
+			if (args.get(0).matches("(?i)-(song)")) {
+				search = String.join(" ", args).replaceFirst("(?i)-(song)", "");
+			}
+			else {
+				search = String.join(" ", args);
+			}
+			trackLoader.load(ctx.getChannel(), voiceChannel, search);
 		}
 	}
 
@@ -248,5 +197,4 @@ public class Play extends Command {
 			});
 		}
 	}
-
 }

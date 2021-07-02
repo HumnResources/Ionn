@@ -1,10 +1,10 @@
 package com.zischase.discordbot.audioplayer;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
+import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.sun.istack.Nullable;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.CallBack;
 import com.zischase.discordbot.guildcontrol.GuildContext;
@@ -12,22 +12,28 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.apache.commons.collections4.map.LinkedMap;
+import org.slf4j.LoggerFactory;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class TrackLoader implements AudioLoadResultHandler {
 
 	private static final LinkedMap<String, AudioTrack> CACHE = new LinkedMap<>(50);
 	private final        String                        guildID;
+	private final AtomicReference<String> lastAddedSong = new AtomicReference<>();
 
 	public TrackLoader(String guildID) {
 		this.guildID = guildID;
 	}
 
-	public void load(TextChannel channel, @Nullable VoiceChannel voiceChannel, String uri, CallBack callback) {
+	public void load(TextChannel channel, VoiceChannel voiceChannel, String uri, CallBack callback) {
 		load(channel, voiceChannel, uri);
 		callback.methodCallBack();
 	}
 
-	public void load(TextChannel textChannel, @Nullable VoiceChannel voiceChannel, String uri) {
+	public void load(TextChannel textChannel, VoiceChannel voiceChannel, String uri) {
 		if (textChannel == null || voiceChannel == null) {
 			return;
 		}
@@ -37,22 +43,35 @@ public class TrackLoader implements AudioLoadResultHandler {
 		DBQueryHandler.set(id, "media_settings", "textChannel", textChannel.getId());
 		DBQueryHandler.set(id, "media_settings", "voiceChannel", voiceChannel.getId());
 
-
 		if (!voiceChannel.getMembers().contains(bot)) {
 			textChannel.getJDA()
 					.getDirectAudioController()
 					.connect(voiceChannel);
 		}
-		if (CACHE.containsKey(uri)) {
-			GuildContext.get(guildID)
-					.audioManager()
-					.getScheduler()
-					.queueAudio(CACHE.get(uri).makeClone());
-		} else {
+
+		/* Checks to see if we have a valid URL */
+		try {
+			new URL(uri);
+			if (CACHE.containsKey(uri)) {
+				GuildContext.get(guildID)
+						.audioManager()
+						.getScheduler()
+						.queueAudio(CACHE.get(uri).makeClone());
+			} else {
+				GuildContext.get(guildID)
+						.audioManager()
+						.getPlayerManager()
+						.loadItem(uri, this);
+			}
+		}
+		/* No Match - Search YouTube instead */
+		catch (MalformedURLException e) {
+			LoggerFactory.getLogger(this.getClass()).info("No url provided, searching youtube instead. - {}", uri);
+
 			GuildContext.get(guildID)
 					.audioManager()
 					.getPlayerManager()
-					.loadItem(uri, this);
+					.loadItem("ytsearch: " + uri, new FunctionalResultHandler(this::trackLoaded, this::playlistLoaded, this::noMatches, this::loadFailed));
 		}
 	}
 
@@ -97,5 +116,4 @@ public class TrackLoader implements AudioLoadResultHandler {
 		assert channel != null;
 		channel.sendMessage("Loading failed, sorry.").queue();
 	}
-
 }
