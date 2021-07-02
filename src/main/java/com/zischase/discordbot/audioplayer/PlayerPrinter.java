@@ -28,7 +28,9 @@ public class PlayerPrinter {
 		AudioEventListener trackWatcherEventListener = audioEvent -> {
 			String      dbQuery       = DBQueryHandler.get(defaultChannel.getGuild().getId(), "media_settings", "textChannel");
 			TextChannel activeChannel = defaultChannel.getGuild().getTextChannelById(dbQuery);
-			assert activeChannel != null;
+			if (activeChannel == null) {
+				return;
+			}
 
 			if (audioEvent instanceof TrackStuckEvent) {
 				activeChannel.sendMessage("Audio track stuck!").queue();
