@@ -7,11 +7,8 @@ import net.dv8tion.jda.api.entities.Guild;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class Prefix extends Command {
-
-	private final AtomicReference<String> prefix = new AtomicReference<>();
 
 	public Prefix() {
 		super(false);
@@ -32,21 +29,22 @@ public class Prefix extends Command {
 		Guild        guild = ctx.getGuild();
 		List<String> args  = ctx.getArgs();
 
+		String prefix = DBQueryHandler.get(guild.getId(), "prefix");
+
 		if (args.isEmpty()) {
 			ctx.getEvent()
 					.getChannel()
-					.sendMessage("The current prefix is `" + prefix.get() + "`")
+					.sendMessage("The current prefix is `" + prefix + "`")
 					.queue();
 			return;
 		}
 
 		DBQueryHandler.set(guild.getId(), "prefix", args.get(0));
-		prefix.set(args.get(0));
+		prefix = DBQueryHandler.get(guild.getId(), "prefix");
 
 		ctx.getEvent()
 				.getChannel()
-				.sendMessage("The new prefix has been set to `" + prefix.get() + "`")
+				.sendMessage("The new prefix has been set to `" + prefix + "`")
 				.queue();
 	}
-
 }
