@@ -1,6 +1,7 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
+import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
@@ -53,6 +54,19 @@ public class Play extends Command {
 								{
 									"name": "link",
 									"description": "Plays audio by url",
+									"type": 3,
+									"required": true
+								}
+							]
+						},
+						{
+							"name": "ytplaylist",
+							"description": "Adds a playlist of songs from provided search",
+							"type": 1,
+							"options": [
+								{
+									"name": "search",
+									"description": "Youtube search query",
 									"type": 3,
 									"required": true
 								}
@@ -136,9 +150,21 @@ public class Play extends Command {
 				trackLoader.load(ctx.getChannel(), voiceChannel, args.get(1));
 			}
 		}
+		else if (args.get(0).matches("(?i)-(ytplaylist)")) {
+			String search = String.join(" ", args.subList(1, args.size()));
+
+			TrackLoader loader = GuildContext.get(guildID).audioManager().getTrackLoader();
+
+			GuildContext.get(guildID)
+					.audioManager()
+					.getPlayerManager()
+					.loadItem("ytsearch: " + search, new FunctionalResultHandler(loader::trackLoaded, loader::playlistLoaded, loader::noMatches, loader::loadFailed));
+		}
+
 		/* Otherwise we check to see if they input a string, process using YT as default */
 		else {
 			String search;
+			/* Removes the -song flag added by slash command */
 			if (args.get(0).matches("(?i)-(song)")) {
 				search = String.join(" ", args).replaceFirst("(?i)-(song)", "");
 			}
