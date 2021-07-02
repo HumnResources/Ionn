@@ -25,21 +25,21 @@ public class Queue extends Command {
 		return CommandData.fromData(DataObject.fromJson("""
 				{
 					"name": "queue",
-					"description": "Displays the current queue.",
+					"description": "Displays the current queue",
 					"options": [
 					    {
 							"name": "show",
-							"description": "Displays the current queue.",
+							"description": "Displays the current queue",
 							"type": 1
 						},
 						{
 							"name": "next",
-							"description": "Moves the song at the current index to next in queue.",
+							"description": "Moves the song at the current index to next in queue",
 							"type": 1,
 							"options": [
 								{
 									"name": "index",
-									"description": "Use queue command to get index numbers.",
+									"description": "Use queue command to get index numbers",
 									"type": 3,
 									"required": true
 								}
@@ -47,12 +47,12 @@ public class Queue extends Command {
 						},
 						{
 							"name": "jump",
-							"description": "Shifts the queue to the index number. See queue",
+							"description": "Shifts the queue to the index number - See queue",
 							"type": 1,
 							"options": [
 								{
 									"name": "index",
-									"description": "Use queue command to get index numbers.",
+									"description": "Use queue command to get index numbers",
 									"type": 3,
 									"required": true
 								}
@@ -60,12 +60,12 @@ public class Queue extends Command {
 						},
 						{
 							"name": "clear",
-							"description": "Clears the current queue.",
+							"description": "Clears the current queue",
 							"type": 1,
 							"options": [
 								{
 									"name": "index",
-									"description": "Deletes song from specified index number. See queue",
+									"description": "Deletes song from specified index number - See queue",
 									"type": 3
 								}
 							]
