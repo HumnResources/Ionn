@@ -18,6 +18,10 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/*
+ * TODO : Find a solution for server rejection from hosting service
+ */
+
 public class Lyrics extends Command {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Lyrics.class);
