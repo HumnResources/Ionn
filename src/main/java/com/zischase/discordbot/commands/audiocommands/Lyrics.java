@@ -4,6 +4,8 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.utils.data.DataObject;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -28,6 +30,23 @@ public class Lyrics extends Command {
 
 	public Lyrics() {
 		super(false);
+	}
+
+	@Override
+	public CommandData getCommandData() {
+		return CommandData.fromData(DataObject.fromJson("""
+				{
+					"name": "lyrics",
+					"description": "Displays the lyrics for the current song",
+					"options": [
+						{
+							"name": "song",
+							"description": "Search lyrics for specific song",
+							"type": 3
+						}
+					]
+				}
+				"""));
 	}
 
 	@Override
