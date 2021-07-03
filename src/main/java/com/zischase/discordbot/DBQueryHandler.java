@@ -27,7 +27,7 @@ public final class DBQueryHandler {
 		Jdbi.create(DBConnectionHandler::getConnection)
 				.useHandle(handle ->
 				{
-					if (checkTable(handle,
+					if (tableContainsColumn(handle,
 							"guild_settings",
 							setting
 					)) {
@@ -37,7 +37,7 @@ public final class DBQueryHandler {
 								.bind("value", value)
 								.bind("guildID", guildID)
 								.execute();
-					} else if (checkTable(handle,
+					} else if (tableContainsColumn(handle,
 							"media_settings",
 							setting
 					)) {
@@ -51,14 +51,15 @@ public final class DBQueryHandler {
 				});
 	}
 
-	private static boolean checkTable(Handle handle, String table, String setting) {
+	private static boolean tableContainsColumn(Handle handle, String table, String setting) {
 		/* Language=PostgreSQL */
-		return handle.createQuery(
+		List<String> l = handle.createQuery(
 				"SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = :table")
 				.bind("table", table.toLowerCase())
 				.mapTo(String.class)
-				.list()
-				.contains(setting.toLowerCase());
+				.list();
+
+		return l.contains(setting.toLowerCase());
 	}
 
 	public static void set(String guildID, String table, String setting, Object value) {
@@ -75,7 +76,7 @@ public final class DBQueryHandler {
 		Jdbi.create(DBConnectionHandler::getConnection)
 				.useHandle(handle ->
 				{
-					if (checkTable(handle, table, setting)) {
+					if (tableContainsColumn(handle, table, setting)) {
 						handle.createUpdate(
 								"UPDATE <table> SET <setting> = :value WHERE guild_id = :guildID")
 								.define("table", table)
@@ -92,7 +93,7 @@ public final class DBQueryHandler {
 				.withHandle(handle ->
 				{
 					String r = "";
-					if (checkTable(handle,
+					if (tableContainsColumn(handle,
 							"guild_settings",
 							setting
 					)) {
@@ -103,7 +104,7 @@ public final class DBQueryHandler {
 								.mapTo(String.class)
 								.findFirst()
 								.orElse("");
-					} else if (checkTable(handle,
+					} else if (tableContainsColumn(handle,
 							"media_settings",
 							setting
 					)) {
@@ -126,7 +127,7 @@ public final class DBQueryHandler {
 				.withHandle(handle ->
 				{
 					String r = "";
-					if (checkTable(handle, table, setting)) {
+					if (tableContainsColumn(handle, table, setting)) {
 						r = handle.createQuery(
 								"SELECT <setting> FROM <table> WHERE guild_id = :id")
 								.define("setting", setting)
@@ -146,7 +147,7 @@ public final class DBQueryHandler {
 				.withHandle(handle ->
 				{
 					List<String> r = List.of();
-					if (checkTable(handle, table, setting)) {
+					if (tableContainsColumn(handle, table, setting)) {
 						r = handle.createQuery(
 								"SELECT <setting> FROM <table> WHERE guild_id = :id")
 								.define("setting", setting)
@@ -160,16 +161,25 @@ public final class DBQueryHandler {
 				});
 	}
 
-	public static void deletePlaylistFromDB(String id, String playlist) {
-		Jdbi.create(DBConnectionHandler::getConnection).useHandle(handle ->
-		{
-			if (checkTable(handle, "playlists", playlist)) {
-				handle.createUpdate("DELETE FROM playlists WHERE guild_id = <id> AND playlist = <playlist>")
-						.define("id", id)
-						.define("playlist", playlist)
-						.execute();
-			}
-		});
+	public static void addPlaylistEntry(String guildID, String name, String uri) {
+		Jdbi.create(DBConnectionHandler::getConnection).useHandle((h) ->
+				h.execute("INSERT INTO playlists VALUES (?, ?, ?)", guildID, name, uri));
 	}
 
+	public static void deletePlaylistEntry(String id, String name) {
+		Jdbi.create(DBConnectionHandler::getConnection).useHandle(handle ->
+				handle.execute("DELETE FROM playlists WHERE guild_id = ? AND name = ?", id, name));
+	}
+
+	public static String getPlaylist(String guildID, String name) {
+		return Jdbi.create(DBConnectionHandler::getConnection).withHandle((h) -> {
+			String r = h.createQuery("SELECT url FROM playlists WHERE guild_id = ? AND name = ?")
+					.bind(0, guildID)
+					.bind(1, name)
+					.mapTo(String.class)
+					.first();
+			h.close();
+			return r;
+		});
+	}
 }
