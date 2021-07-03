@@ -132,14 +132,14 @@ public class Playlist extends Command {
 
 	@Override
 	public void handle(CommandContext ctx) {
-		VoiceChannel voiceChannel = ctx.getMember().getVoiceState() != null ?
-				ctx.getMember().getVoiceState().getChannel() : null;
+		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
+				ctx.getEventInitiator().getVoiceState().getChannel() : null;
 
 		if (!playlistsInitialized) {
 			List<String> dbPlaylists = DBQueryHandler.getList(ctx.getGuild().getId(), "playlists", "name");
 
 			for (String playlist : dbPlaylists) {
-				this.playlists.put(playlist, DBQueryHandler.get(ctx.getGuild().getId(), playlist));
+				this.playlists.put(playlist, DBQueryHandler.getPlaylist(ctx.getGuild().getId(), playlist));
 			}
 
 			this.playlistsInitialized = true;
@@ -185,10 +185,6 @@ public class Playlist extends Command {
 						.load(ctx.getChannel(), voiceChannel, getPlaylistURL(ctx.getGuild().getId(), playlistName));
 			}
 			return;
-		} else if (args.size() < 2) {
-			ctx.getChannel()
-					.sendMessage("Not enough arguments ! Type `[prefix]help playlist` for help.")
-					.queue();
 		} else if (cmd.matches("(?i)-(current|c|q|queue)")) {
 			ArrayList<AudioTrack> queue = GuildContext.get(ctx.getGuild().getId())
 					.audioManager()
@@ -218,7 +214,7 @@ public class Playlist extends Command {
 
 		} else if (cmd.matches("(?i)-(delete|d|remove|r)")) {
 			this.playlists.remove(playlistName);
-			DBQueryHandler.deletePlaylistFromDB(ctx.getGuild().getId(), playlistName);
+			DBQueryHandler.deletePlaylistEntry(ctx.getGuild().getId(), playlistName);
 		}
 
 		printPlaylists(ctx.getChannel());
@@ -226,14 +222,14 @@ public class Playlist extends Command {
 
 	private void addPlaylist(String guildID, String name, String playlistURL) {
 		this.playlists.putIfAbsent(name.toLowerCase(), playlistURL);
-		DBQueryHandler.set(guildID, name, playlistURL);
+		DBQueryHandler.addPlaylistEntry(guildID, name, playlistURL);
 	}
 
 	private String getPlaylistURL(String guildID, String name) {
 		if (this.playlists.containsKey(name.toLowerCase())) {
 			return playlists.get(name.toLowerCase());
 		} else {
-			String playlistURL = DBQueryHandler.get(guildID, name);
+			String playlistURL = DBQueryHandler.getPlaylist(guildID, name);
 			addPlaylist(guildID, name, playlistURL);
 			return playlistURL;
 		}
