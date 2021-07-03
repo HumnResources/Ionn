@@ -152,7 +152,7 @@ public final class DBQueryHandler {
 								.define("setting", setting)
 								.define("table", table)
 								.bind("id", guildID)
-								.map(Object::toString)
+								.mapTo(String.class)
 								.list();
 					}
 					handle.close();
