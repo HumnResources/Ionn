@@ -27,14 +27,9 @@ public class PlayerPrinter {
 
 		AudioEventListener trackWatcherEventListener = audioEvent -> {
 			String      dbQuery       = DBQueryHandler.get(defaultChannel.getGuild().getId(), "media_settings", "textChannel");
-			if (dbQuery == null || dbQuery.isEmpty()) {
-				return;
-            }
 			TextChannel activeChannel = defaultChannel.getGuild().getTextChannelById(dbQuery);
-			if (activeChannel == null) {
-				return;
-			}
 
+			assert activeChannel != null;
 			if (audioEvent instanceof TrackStuckEvent) {
 				activeChannel.sendMessage("Audio track stuck!").queue();
 			} else if (audioEvent instanceof TrackExceptionEvent) {
@@ -153,26 +148,24 @@ public class PlayerPrinter {
 				.collect(Collectors.toList());
 
 		if (msgList.size() == 1) {
-			textChannel.deleteMessageById(msgList.get(0).getId())
-					.queue(null, null);
+			textChannel.deleteMessageById(msgList.get(0).getId()).queue(null, null);
 		} else if (msgList.size() > 1) {
-			textChannel.deleteMessages(msgList)
-					.queue(null, null);
+			textChannel.deleteMessages(msgList).queue(null, null);
 		}
 	}
 
 	private String progressPercentage(int done, int total) {
-		int    size              = 30;
+		int    size              = 10;
 		String iconLeftBoundary  = "|";
-		String iconDone          = "=";
-		String iconRemain        = ".";
+		String iconDone          = "-";
+		String iconRemain        = "\u00A0"; // &nbsp
 		String iconRightBoundary = "|";
 
 		if (done > total) {
 			throw new IllegalArgumentException();
 		}
-		int donePercents = (100 * done) / total;
-		int doneLength   = size * donePercents / 100;
+		int donePercent = (100 * done) / total;
+		int doneLength   = size * donePercent / 100;
 
 		StringBuilder bar = new StringBuilder(iconLeftBoundary);
 		for (int i = 0; i < size; i++) {

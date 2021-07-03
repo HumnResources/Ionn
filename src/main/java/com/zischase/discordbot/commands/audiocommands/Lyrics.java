@@ -4,6 +4,8 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.utils.data.DataObject;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -18,12 +20,33 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/*
+ * TODO : Find a solution for server rejection from hosting service
+ */
+
 public class Lyrics extends Command {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Lyrics.class);
 
 	public Lyrics() {
 		super(false);
+	}
+
+	@Override
+	public CommandData getCommandData() {
+		return CommandData.fromData(DataObject.fromJson("""
+				{
+					"name": "lyrics",
+					"description": "Displays the lyrics for the current song",
+					"options": [
+						{
+							"name": "song",
+							"description": "Search lyrics for specific song",
+							"type": 3
+						}
+					]
+				}
+				"""));
 	}
 
 	@Override
