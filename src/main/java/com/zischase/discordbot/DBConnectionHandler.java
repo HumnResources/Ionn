@@ -51,8 +51,8 @@ public final class DBConnectionHandler {
 						CREATE TABLE IF NOT EXISTS media_settings(
 						    guild_id VARCHAR NOT NULL UNIQUE,
 						    volume INT NOT NULL DEFAULT 10,
-						    voiceChannel VARCHAR(20) NOT NULL,
-						    textChannel VARCHAR(20) NOT NULL,
+						    voiceChannel VARCHAR(20),
+						    textChannel VARCHAR(20),
 						    CONSTRAINT chk_volume CHECK(volume BETWEEN -1 AND 101),
 						    CONSTRAINT fk_guild_id FOREIGN KEY(guild_id) REFERENCES guilds(id)
 						        ON UPDATE CASCADE
