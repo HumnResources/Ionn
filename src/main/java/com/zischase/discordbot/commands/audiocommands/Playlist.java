@@ -8,6 +8,8 @@ import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.utils.data.DataObject;
 import org.jdbi.v3.core.Jdbi;
 import org.jetbrains.annotations.NotNull;
 
@@ -42,6 +44,67 @@ public class Playlist extends Command {
 				})
 				.stream()
 				.anyMatch(s -> s.equalsIgnoreCase(name.trim()));
+	}
+
+	@Override
+	public CommandData getCommandData() {
+		return CommandData.fromData(DataObject.fromJson("""
+				{
+					"name": "playlist",
+					"description": "Provides custom playlist support for youtube songs",
+					"options": [
+						{
+							"name": "play", 
+							"description": "",
+							"type": 1,
+							"options": [
+								{
+									"name", "name",
+									"description": "Load playlist with specified name",
+									"type": 3,
+									"required": true
+								}
+							]
+						},
+						{
+							"name": "delete", 
+							"description": "",
+							"type": 1,
+							"options": [
+								{
+									"name", "name",
+									"description": "Delete playlist with specified name",
+									"type": 3,
+									"required": true
+								}
+							]
+						},
+						{
+							"name": "add", 
+							"description": "",
+							"type": 1,
+							"options": [
+								{
+									"name", "name",
+									"description": "Create playlist of current queue with specified name",
+									"type": 3,
+									"required": true
+								}
+							]
+						},
+						{
+							"name": "current", 
+							"description": "Create playlist using current queue. Generates simple name",
+							"type": 1
+						},
+						{
+							"name": "display",
+							"description": "Shows a list of available playlists",
+							"type": 3 
+						}
+					]
+				}
+				"""));
 	}
 
 	@Override
