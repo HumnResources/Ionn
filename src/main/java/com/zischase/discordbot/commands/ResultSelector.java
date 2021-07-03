@@ -14,8 +14,7 @@ import javax.annotation.Nonnull;
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ResultSelector {
@@ -24,29 +23,33 @@ public class ResultSelector {
 	private final int                      searchDisplayTimeMS = Integer.parseInt(Config.get("SEARCH_RESULT_OFFSET_MS")) + searchDelayMS; // Where offset is approximate time to query result.
 	private final AtomicReference<Boolean> searchComplete      = new AtomicReference<>(false);
 	private final List<ISearchable>        searches;
-	private       ISearchable              result              = null;
+	private final TextChannel textChannel;
+	private final JDA jda;
+	private final Member initiator;
 
-	public ResultSelector(List<ISearchable> searches) {
-		this.searches = searches;
+	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator) {
+		this.searches    = searches;
+		this.textChannel = textChannel;
+		this.jda         = jda;
+		this.initiator   = initiator;
 	}
 
-	public Future<ISearchable> getChoice(JDA jda, Member eventInitiator, TextChannel channel) {
-		CompletableFuture<ISearchable> cf = new CompletableFuture<>();
+	public ISearchable getChoice() {
+		CompletableFuture<ISearchable> futureResult = new CompletableFuture<>();
 
 		ListenerAdapter response = new ListenerAdapter() {
 			final LocalDateTime start = LocalDateTime.now();
 
 			@Override
 			public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent tmpEvent) {
-				if (tmpEvent.getMember() == eventInitiator) {
+				if (tmpEvent.getMember() == initiator) {
 					Message tmpMessage = tmpEvent.getMessage();
 					String  choice     = tmpMessage.getContentDisplay();
 
-					if (tmpMessage.getChannel() == channel && choice.matches("(\\d+).?")) {
+					if (tmpMessage.getChannel() == textChannel && choice.matches("(\\d+).?")) {
 						int num = Integer.parseInt(choice);
 						if (num > 0 && num <= searches.size()) {
-							result = searches.get(num - 1);
-							cf.complete(result);
+							futureResult.complete(searches.get(num - 1));
 							searchComplete.set(true);
 						}
 					}
@@ -57,19 +60,23 @@ public class ResultSelector {
 			}
 		};
 		jda.addEventListener(response);
-		printList(channel);
+		printList();
 
 		while (LocalDateTime.now().isBefore(LocalDateTime.now().plusSeconds(searchDelayMS / 1000))) {
 			if (searchComplete.get()) {
 				break;
 			}
 		}
-
 		jda.removeEventListener(response);
-		return cf;
+		try {
+			return futureResult.get(searchDisplayTimeMS, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException | ExecutionException | TimeoutException e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
 
-	private void printList(TextChannel textChannel) {
+	private void printList() {
 		EmbedBuilder embed = new EmbedBuilder();
 		embed.setColor(Color.DARK_GRAY);
 
