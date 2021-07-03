@@ -148,11 +148,9 @@ public class PlayerPrinter {
 				.collect(Collectors.toList());
 
 		if (msgList.size() == 1) {
-			textChannel.deleteMessageById(msgList.get(0).getId())
-					.queue(null, null);
+			textChannel.deleteMessageById(msgList.get(0).getId()).queue(null, null);
 		} else if (msgList.size() > 1) {
-			textChannel.deleteMessages(msgList)
-					.queue(null, null);
+			textChannel.deleteMessages(msgList).queue(null, null);
 		}
 	}
 

@@ -1,7 +1,6 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
-import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
@@ -152,13 +151,10 @@ public class Play extends Command {
 		}
 		else if (args.get(0).matches("(?i)-(ytplaylist)")) {
 			String search = String.join(" ", args.subList(1, args.size()));
-
-			TrackLoader loader = GuildContext.get(guildID).audioManager().getTrackLoader();
-
 			GuildContext.get(guildID)
 					.audioManager()
-					.getPlayerManager()
-					.loadItem("ytsearch: " + search, new FunctionalResultHandler(loader::trackLoaded, loader::playlistLoaded, loader::noMatches, loader::loadFailed));
+					.getTrackLoader()
+					.loadYTSearchResults(ctx.getChannel(), voiceChannel, search);
 		}
 
 		/* Otherwise we check to see if they input a string, process using YT as default */
@@ -212,15 +208,7 @@ public class Play extends Command {
 					.playerPrinter()
 					.printNowPlaying(GuildContext.get(guildID).audioManager(), event.getChannel());
 		} else {
-			trackLoader.load(event.getChannel(), voiceChannel, song, () -> {
-				GuildContext.get(guildID)
-						.playerPrinter()
-						.printQueue(GuildContext.get(guildID).audioManager(), event.getChannel());
-
-				GuildContext.get(guildID)
-						.playerPrinter()
-						.printNowPlaying(GuildContext.get(guildID).audioManager(), event.getChannel());
-			});
+			trackLoader.load(event.getChannel(), voiceChannel, song);
 		}
 	}
 }
