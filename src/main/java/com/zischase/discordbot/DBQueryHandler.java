@@ -160,4 +160,16 @@ public final class DBQueryHandler {
 				});
 	}
 
+	public static void deletePlaylistFromDB(String id, String playlist) {
+		Jdbi.create(DBConnectionHandler::getConnection).useHandle(handle ->
+		{
+			if (checkTable(handle, "playlists", playlist)) {
+				handle.createUpdate("DELETE FROM playlists WHERE guild_id = <id> AND playlist = <playlist>")
+						.define("id", id)
+						.define("playlist", playlist)
+						.execute();
+			}
+		});
+	}
+
 }
