@@ -5,6 +5,8 @@ import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 
 public final class DBQueryHandler {
 
@@ -133,6 +135,25 @@ public final class DBQueryHandler {
 								.mapTo(String.class)
 								.findFirst()
 								.orElse("");
+					}
+					handle.close();
+					return r;
+				});
+	}
+
+	public static List<String> getList(String guildID, String table, String setting) {
+		return Jdbi.create(DBConnectionHandler::getConnection)
+				.withHandle(handle ->
+				{
+					List<String> r = List.of();
+					if (checkTable(handle, table, setting)) {
+						r = handle.createQuery(
+								"SELECT <setting> FROM <table> WHERE guild_id = :id")
+								.define("setting", setting)
+								.define("table", table)
+								.bind("id", guildID)
+								.map(Object::toString)
+								.list();
 					}
 					handle.close();
 					return r;
