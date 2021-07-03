@@ -130,7 +130,7 @@ public class TrackScheduler extends AudioEventAdapter {
 
 	@Override
 	public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
-		if (!lastTrack.getIdentifier().matches(track.getIdentifier())) {
+		if (lastTrack != null && !lastTrack.getIdentifier().matches(track.getIdentifier())) {
 			this.lastTrack = track;
 			player.playTrack(track.makeClone());
 		}

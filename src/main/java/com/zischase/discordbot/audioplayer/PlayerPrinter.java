@@ -28,9 +28,9 @@ public class PlayerPrinter {
 		AudioEventListener trackWatcherEventListener = audioEvent -> {
 			String      dbQuery       = DBQueryHandler.get(defaultChannel.getGuild().getId(), "media_settings", "textChannel");
 			if (dbQuery == null || dbQuery.isEmpty()) {
-                                return;
-                        }
-                        TextChannel activeChannel = defaultChannel.getGuild().getTextChannelById(dbQuery);
+				return;
+            }
+			TextChannel activeChannel = defaultChannel.getGuild().getTextChannelById(dbQuery);
 			if (activeChannel == null) {
 				return;
 			}
