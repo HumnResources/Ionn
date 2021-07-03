@@ -16,13 +16,11 @@ import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class TrackLoader implements AudioLoadResultHandler {
 
 	private static final LinkedMap<String, AudioTrack> CACHE = new LinkedMap<>(50);
 	private final        String                        guildID;
-	private final AtomicReference<String> lastAddedSong = new AtomicReference<>();
 
 	public TrackLoader(String guildID) {
 		this.guildID = guildID;
@@ -78,10 +76,14 @@ public class TrackLoader implements AudioLoadResultHandler {
 	@Override
 	public void trackLoaded(AudioTrack audioTrack) {
 		CACHE.putIfAbsent(audioTrack.getInfo().uri, audioTrack);
-
-		if (CACHE.size() >= 300) {
+		if (CACHE.size() > 300) {
 			CACHE.remove(0);
 		}
+		GuildContext.get(guildID)
+				.audioManager()
+				.getScheduler()
+				.queueAudio(audioTrack);
+
 		TextChannel channel = GuildContext.get(guildID)
 				.guild()
 				.getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
@@ -96,10 +98,6 @@ public class TrackLoader implements AudioLoadResultHandler {
 			}
 		}
 
-		GuildContext.get(guildID)
-				.audioManager()
-				.getScheduler()
-				.queueAudio(audioTrack);
 	}
 
 	@Override
