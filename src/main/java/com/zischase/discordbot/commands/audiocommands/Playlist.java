@@ -2,6 +2,7 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.DBConnectionHandler;
+import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
@@ -55,11 +56,11 @@ public class Playlist extends Command {
 					"options": [
 						{
 							"name": "play", 
-							"description": "",
+							"description": "Load a playlist",
 							"type": 1,
 							"options": [
 								{
-									"name", "name",
+									"name": "name",
 									"description": "Load playlist with specified name",
 									"type": 3,
 									"required": true
@@ -68,11 +69,11 @@ public class Playlist extends Command {
 						},
 						{
 							"name": "delete", 
-							"description": "",
+							"description": "Delete a playlist",
 							"type": 1,
 							"options": [
 								{
-									"name", "name",
+									"name": "name",
 									"description": "Delete playlist with specified name",
 									"type": 3,
 									"required": true
@@ -81,11 +82,11 @@ public class Playlist extends Command {
 						},
 						{
 							"name": "add", 
-							"description": "",
+							"description": "Add new playlist",
 							"type": 1,
 							"options": [
 								{
-									"name", "name",
+									"name": "name",
 									"description": "Create playlist of current queue with specified name",
 									"type": 3,
 									"required": true
@@ -100,7 +101,7 @@ public class Playlist extends Command {
 						{
 							"name": "display",
 							"description": "Shows a list of available playlists",
-							"type": 3 
+							"type": 1
 						}
 					]
 				}
@@ -135,21 +136,10 @@ public class Playlist extends Command {
 				ctx.getMember().getVoiceState().getChannel() : null;
 
 		if (!playlistsInitialized) {
-			List<String> dbPlaylists = Jdbi.create(DBConnectionHandler.getConnection())
-					.withHandle(handle -> {
-
-						List<String> pls = handle.createQuery(
-								"SELECT playlist_name FROM youtube_playlists WHERE guild_id = :id")
-								.bind("id", ctx.getGuild().getId())
-								.mapTo(String.class)
-								.list();
-
-						handle.close();
-						return pls;
-					});
+			List<String> dbPlaylists = DBQueryHandler.getList(ctx.getGuild().getId(), "playlists", "name");
 
 			for (String playlist : dbPlaylists) {
-				this.playlists.put(playlist, dbRetrieve(ctx.getGuild().getId(), playlist));
+				this.playlists.put(playlist, DBQueryHandler.get(ctx.getGuild().getId(), playlist));
 			}
 
 			this.playlistsInitialized = true;
@@ -228,23 +218,22 @@ public class Playlist extends Command {
 
 		} else if (cmd.matches("(?i)-(delete|d|remove|r)")) {
 			this.playlists.remove(playlistName);
-			deleteDBEntry(ctx.getGuild().getId(), playlistName);
+			DBQueryHandler.deletePlaylistFromDB(ctx.getGuild().getId(), playlistName);
 		}
-
 
 		printPlaylists(ctx.getChannel());
 	}
 
 	private void addPlaylist(String guildID, String name, String playlistURL) {
 		this.playlists.putIfAbsent(name.toLowerCase(), playlistURL);
-		dbUpdate(guildID, name, playlistURL);
+		DBQueryHandler.set(guildID, name, playlistURL);
 	}
 
 	private String getPlaylistURL(String guildID, String name) {
 		if (this.playlists.containsKey(name.toLowerCase())) {
 			return playlists.get(name.toLowerCase());
 		} else {
-			String playlistURL = dbRetrieve(guildID, name);
+			String playlistURL = DBQueryHandler.get(guildID, name);
 			addPlaylist(guildID, name, playlistURL);
 			return playlistURL;
 		}
@@ -288,63 +277,4 @@ public class Playlist extends Command {
 
 		return playlistURL;
 	}
-
-	private void dbUpdate(String guildID, String name, String playlistURL) {
-		String finalName = name.toLowerCase().trim();
-
-		boolean hasTableEntry = checkTable(guildID, finalName);
-
-		if (hasTableEntry) {
-			Jdbi.create(DBConnectionHandler.getConnection())
-					.useHandle(handle -> handle.execute(
-							"UPDATE youtube_playlists SET playlist_url = ? WHERE guild_id = ? AND playlist_name = ?",
-							playlistURL,
-							guildID,
-							finalName
-					));
-		} else {
-			createPlaylistDBEntry(guildID, finalName, playlistURL);
-		}
-	}
-
-	private void createPlaylistDBEntry(String guildID, String name, String playlistURL) {
-		String finalName = name.toLowerCase().trim();
-
-		Jdbi.create(DBConnectionHandler.getConnection())
-				.useHandle(handle -> handle.execute(
-						"INSERT INTO youtube_playlists(guild_id, playlist_name, playlist_url) VALUES (?, ?, ?)",
-						guildID,
-						finalName,
-						playlistURL
-				));
-	}
-
-	private String dbRetrieve(String guildID, String name) {
-		String finalName = name.toLowerCase().trim();
-
-		return Jdbi.create(DBConnectionHandler.getConnection())
-				.withHandle(handle -> {
-					String r;
-					r = handle.createQuery(
-							"SELECT playlist_url FROM youtube_playlists WHERE guild_id = :guildID AND playlist_name = :name")
-							.bind("guildID", guildID)
-							.bind("name", finalName)
-							.mapTo(String.class)
-							.findFirst()
-							.orElse("");
-					handle.close();
-					return r;
-				});
-	}
-
-	private void deleteDBEntry(String guildID, String name) {
-		String finalName = name.toLowerCase().trim();
-
-		Jdbi.create(DBConnectionHandler.getConnection())
-				.useHandle(handle -> handle.execute("DELETE FROM youtube_playlists WHERE guild_id = ? AND playlist_name = ?",
-						guildID,
-						finalName
-				));
-	}
-
 }
