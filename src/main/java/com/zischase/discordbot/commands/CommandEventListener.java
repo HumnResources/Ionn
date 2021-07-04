@@ -88,7 +88,7 @@ public class CommandEventListener extends ListenerAdapter {
 
 			event.getOptions().forEach((opt) -> {
 				if (opt.getType() == OptionType.STRING || opt.getType() == OptionType.INTEGER) {
-					mb.append(" ".concat(opt.getAsString()));
+					mb.append(opt.getAsString().concat(" "));
 				}
 			});
 
