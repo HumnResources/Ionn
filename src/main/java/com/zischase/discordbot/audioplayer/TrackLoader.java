@@ -78,7 +78,6 @@ public class TrackLoader implements AudioLoadResultHandler {
 				.audioManager()
 				.getScheduler()
 				.queueAudio(audioTrack);
-
 		TextChannel channel = GuildContext.get(guildID)
 				.guild()
 				.getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
