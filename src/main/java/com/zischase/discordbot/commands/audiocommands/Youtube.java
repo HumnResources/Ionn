@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -70,6 +69,7 @@ public class Youtube extends Command {
 											"name": "playnext",
 											"value": "-n"
 										}
+									]
 								}
 							]
 						},
@@ -179,7 +179,6 @@ public class Youtube extends Command {
 						if (songList.size() >= 12) {
 							/* Waits for user input - blocking - commands handled asynchronously */
 							ISearchable searchable = new ResultSelector(songList, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator()).getChoice();
-
 							videoUrl = searchable.getUrl();	
 						}
 					} else {
