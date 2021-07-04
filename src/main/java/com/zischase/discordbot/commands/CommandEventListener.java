@@ -158,7 +158,7 @@ public class CommandEventListener extends ListenerAdapter {
 				/* Reinitialize the commands */
 				for (com.zischase.discordbot.commands.Command c : GuildContext.get(g.getId()).commandHandler().getCommandList()) {
 					/* Comparator to ensure we don't overwrite */
-					if (slashCommands.stream().noneMatch((sc) -> sc.getName().equalsIgnoreCase(c.getName())))
+					if (slashCommands.stream().noneMatch((sc) -> sc.toString().equals(c.toString())))
 						g.upsertCommand(c.getCommandData()).queue((cmd) -> LOGGER.info("Added slash command {} to server {} ", cmd.getName(), g.getName()));
 				}
 			}
