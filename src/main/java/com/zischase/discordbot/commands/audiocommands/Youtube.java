@@ -177,17 +177,10 @@ public class Youtube extends Command {
 						));
 
 						if (songList.size() >= 12) {
-							try {
-								/* Waits for user input - blocking - commands handled asynchronously */
-								ISearchable searchable = new ResultSelector(songList, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator()).getChoice();
+							/* Waits for user input - blocking - commands handled asynchronously */
+							ISearchable searchable = new ResultSelector(songList, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator()).getChoice();
 
-								videoUrl = searchable.getUrl();
-
-							} catch (InterruptedException | ExecutionException e) {
-								LOGGER.warn("Youtube result exception: \n" + e.getCause()
-										.getLocalizedMessage());
-							}
-							break;
+							videoUrl = searchable.getUrl();	
 						}
 					} else {
 						videoUrl = videoUrl.concat(videoID);
