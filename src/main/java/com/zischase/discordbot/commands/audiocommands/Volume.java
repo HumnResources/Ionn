@@ -4,8 +4,9 @@ import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.utils.data.DataObject;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -22,18 +23,7 @@ public class Volume extends Command {
 
 	@Override
 	public CommandData getCommandData() {
-		return CommandData.fromData(DataObject.fromJson("""
-				{
-					"name": "volume",
-					"description": "%s",
-					"options": [
-						{
-							"name": "num",
-							"description": "New volume level"
-						}
-					]
-				}
-				""".formatted(shortDescription())));
+		return super.getCommandData().addOptions(new OptionData(OptionType.INTEGER, "num", "New volume level."));
 	}
 
 	@Override
