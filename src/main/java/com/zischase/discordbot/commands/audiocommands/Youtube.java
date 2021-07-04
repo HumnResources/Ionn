@@ -9,6 +9,8 @@ import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.utils.data.DataObject;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -36,7 +38,7 @@ public class Youtube extends Command {
 
 	@Override
 	public @NotNull String shortDescription() {
-		return "Plays or searches for, a song from youtube";
+		return "Plays or searches for a song from youtube";
 	}
 
 	@Override
@@ -48,6 +50,22 @@ public class Youtube extends Command {
 	public String helpText() {
 		return "`Youtube [Search Query] : Search youtube for a song. Then adds it to the queue`\n" + "`Youtube -[search|s] : Provides a list of songs. Reply with a number to choose.`\n" + "`Aliases: " + String
 				.join(" ", getAliases()) + "`";
+	}
+
+	@Override
+	public CommandData getCommandData() {
+		return CommandData.fromData(DataObject.fromJson("""
+				{
+					"name": "youtube",
+					"description": "%s",
+					"options": [
+						{
+							"name": "num",
+							"description": "New volume level"
+						}
+					]
+				}
+				""".formatted(shortDescription())));
 	}
 
 	@Override
@@ -73,26 +91,16 @@ public class Youtube extends Command {
 		}
 		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
 
+		boolean doSearch = args.get(0).matches("(?i)-(search|url|name)");
 
-		boolean doSearch = false;
-		if (args.get(0).equalsIgnoreCase("search")) {
-			doSearch = true;
-		}
-
-//		boolean doSearch = args.stream().anyMatch(arg -> arg.matches("(?i)(-s|-search)"));
-
-		String query = String.join("-", args)
-				.replaceFirst("(?i) (search|url|name)", "")
-				.trim()
-				.replaceAll("-", "+");
+		String query = String.join("+", args)
+				.replaceFirst("(?i)-(search|url|name)", "")
+				.trim();
 
 		String url = "http://youtube.com/results?search_query=" + query;
-
 		TrackLoader trackLoader = GuildContext.get(guildID)
 				.audioManager()
 				.getTrackLoader();
-
-
 		try {
 			doc = Jsoup.connect(url)
 					.get();
@@ -159,7 +167,6 @@ public class Youtube extends Command {
 					}
 				}
 			}
-			String finalVideoName = videoName;
 			trackLoader.load(ctx.getChannel(), voiceChannel, videoUrl);
 			/* while end */
 		}

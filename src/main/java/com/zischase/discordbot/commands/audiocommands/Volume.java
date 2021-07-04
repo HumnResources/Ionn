@@ -1,21 +1,39 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.zischase.discordbot.Config;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.utils.data.DataObject;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Volume extends Command {
 
-	private final int maxVolume = Integer.parseInt(Config.get("MAX_VOLUME"));
+	private final AtomicInteger maxVol = new AtomicInteger(-1);
 
 	public Volume() {
 		super(false);
+	}
+
+	@Override
+	public CommandData getCommandData() {
+		return CommandData.fromData(DataObject.fromJson("""
+				{
+					"name": "volume",
+					"description": "%s",
+					"options": [
+						{
+							"name": "num",
+							"description": "New volume level"
+						}
+					]
+				}
+				""".formatted(shortDescription())));
 	}
 
 	@Override
@@ -30,13 +48,20 @@ public class Volume extends Command {
 
 	@Override
 	public String helpText() {
-		return "Volume [amount] ~ Sets the volume. 0-" + maxVolume + " | Leave empty to display current volume.";
+		return "Volume [amount] ~ Sets the volume. 0-" + maxVol.get() + " | Leave empty to display current volume.";
 	}
 
 	@Override
 	public void handle(CommandContext ctx) {
 		String       guildID = ctx.getGuild().getId();
 		List<String> args    = ctx.getArgs();
+
+		if (this.maxVol.get() == -1) {
+			if (DBQueryHandler.get(guildID, "premium").equals("true"))
+				this.maxVol.set(100);
+			else
+				this.maxVol.set(25);
+		}
 
 		if (args.isEmpty()) {
 			ctx.getEvent()
@@ -48,20 +73,13 @@ public class Volume extends Command {
 
 		if (args.get(0).matches("\\d+")) {
 			int num = Integer.parseInt(args.get(0));
-			int max = maxVolume;
-
-			if (GuildContext.get(guildID).isPremium()) {
-				max = 100;
-			}
-
-			boolean validNum = (num >= 0 && num <= max);
-
+			boolean validNum = (num >= 0 && num <= maxVol.get());
 			if (validNum) {
 				setVolume(guildID, num);
 
 				ctx.getEvent()
 						.getChannel()
-						.sendMessage("The volume has been set to `" + getVolume(guildID) + "`")
+						.sendMessage("The volume has been set to `" + num + "`")
 						.queue();
 
 				return;
@@ -69,7 +87,7 @@ public class Volume extends Command {
 		}
 		ctx.getEvent()
 				.getChannel()
-				.sendMessage("Please input a number between 0-" + maxVolume)
+				.sendMessage("Please input a number between 0-" + maxVol.get())
 				.queue();
 	}
 
@@ -81,11 +99,11 @@ public class Volume extends Command {
 	}
 
 	private void setVolume(String guildID, int value) {
-		DBQueryHandler.set(guildID, "volume", value);
 		GuildContext.get(guildID)
 				.audioManager()
 				.getPlayer()
 				.setVolume(value);
+		DBQueryHandler.set(guildID, "volume", value);
 	}
 
 }
