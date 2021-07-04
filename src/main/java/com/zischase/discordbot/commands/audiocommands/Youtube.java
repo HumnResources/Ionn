@@ -56,8 +56,41 @@ public class Youtube extends Command {
 					"description": "%s",
 					"options": [
 						{
-							"name": "num",
-							"description": "New volume level"
+							"name": "list",
+							"description": "Searches YouTube",
+							"type": 1,
+							"options": [
+								{
+									"name": "query",
+									"description": "Displays a list from search result. ~30s to decide.",
+									"type": 3,
+									"required": true,
+									"choices": [
+										{
+											"name": "playnext",
+											"value": "-n"
+										}
+								}
+							]
+						},
+						{
+							"name": "search",
+							"description": "Adds first result from YouTube search to queue.",
+							"type": 1,
+							"options": [
+								{
+									"name": "query",
+									"description": "Displays a list from search result. ~30s to decide.",
+									"type": 3,
+									"required": true,
+									"choices": [
+										{
+											"name": "playnext",
+											"value": "-n"
+										}
+									]
+								}
+							]
 						}
 					]
 				}
@@ -76,20 +109,25 @@ public class Youtube extends Command {
 		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
 				ctx.getEventInitiator().getVoiceState().getChannel() : null;
 
-		List<ISearchable> songList  = new ArrayList<>();
-		String            videoUrl  = "https://www.youtube.com/watch?v=";
-		String            videoID   = "";
-		Document          doc       = null;
+		List<ISearchable> songList = new ArrayList<>();
+		String            videoUrl = "https://www.youtube.com/watch?v=";
+		String            videoID  = "";
+		Document          doc      = null;
 
 		if (voiceChannel != null) {
-			DBQueryHandler.set(guildID, "media_settings", "voiceChannel", voiceChannel.getId());
+			DBQueryHandler.set(guildID, "media_settings", "voicechannel", voiceChannel.getId());
+		} else {
+			voiceChannel = ctx.getGuild().getVoiceChannelById(DBQueryHandler.get(guildID, "media_settings", "voicechannel"));
 		}
+
 		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
 
-		boolean doSearch = args.get(0).matches("(?i)-(search|url|name)");
+		boolean listResults = args.get(0).matches("(?i)-(list)");
+		boolean hasNextFlag = args.stream().anyMatch(arg -> arg.matches("(?i)-(n|next)"));
 
 		String query = String.join("+", args)
-				.replaceFirst("(?i)-(search|url|name)", "")
+				.replaceFirst("(?i)-(list|url|name)", "")
+				.replaceFirst("(?i)-(n)", "")
 				.trim();
 
 		String url = "http://youtube.com/results?search_query=" + query;
@@ -133,7 +171,7 @@ public class Youtube extends Command {
 				songName_Pattern = Pattern.compile("(?im)(?=vi/" + videoID + "/).{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?)(?=\"}])");
 				nameMatcher      = songName_Pattern.matcher(element.html());
 				if (nameMatcher.find()) {
-					if (doSearch) {
+					if (listResults) {
 						songList.add(new SearchInfo(nameMatcher.group(1),
 								"https://www.youtube.com/watch?v=" + videoID
 						));
@@ -146,7 +184,7 @@ public class Youtube extends Command {
 										ctx.getChannel()
 								).get();
 
-								videoUrl  = searchable.getUrl();
+								videoUrl = searchable.getUrl();
 
 							} catch (InterruptedException | ExecutionException e) {
 								LOGGER.warn("Youtube result exception: \n" + e.getCause()
@@ -155,7 +193,7 @@ public class Youtube extends Command {
 							break;
 						}
 					} else {
-						videoUrl  = videoUrl.concat(videoID);
+						videoUrl = videoUrl.concat(videoID);
 						break;
 					}
 				}
@@ -164,7 +202,6 @@ public class Youtube extends Command {
 			/* while end */
 		}
 		if (ctx.getArgs().size() <= 2) {
-			boolean hasNextFlag = args.stream().anyMatch(arg -> arg.matches("(?i)-(n|next)"));
 
 			if (hasNextFlag) {
 				TrackScheduler scheduler = GuildContext.get(guildID)
