@@ -6,7 +6,6 @@ import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.audioplayer.TrackScheduler;
 import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
@@ -22,15 +21,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Youtube extends Command {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Youtube.class);
-
-	private final AtomicReference<Member> proxyCallMember = new AtomicReference<>(null);
 
 	public Youtube() {
 		super(false);
@@ -83,7 +79,6 @@ public class Youtube extends Command {
 		List<ISearchable> songList  = new ArrayList<>();
 		String            videoUrl  = "https://www.youtube.com/watch?v=";
 		String            videoID   = "";
-		String            videoName = "";
 		Document          doc       = null;
 
 		if (voiceChannel != null) {
@@ -151,7 +146,6 @@ public class Youtube extends Command {
 										ctx.getChannel()
 								).get();
 
-								videoName = searchable.getName();
 								videoUrl  = searchable.getUrl();
 
 							} catch (InterruptedException | ExecutionException e) {
@@ -161,7 +155,6 @@ public class Youtube extends Command {
 							break;
 						}
 					} else {
-						videoName = nameMatcher.toString();
 						videoUrl  = videoUrl.concat(videoID);
 						break;
 					}
