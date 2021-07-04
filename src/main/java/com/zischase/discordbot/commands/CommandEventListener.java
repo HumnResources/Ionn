@@ -83,7 +83,7 @@ public class CommandEventListener extends ListenerAdapter {
 			mb.append("%s%s ".formatted(prefix, event.getName()));
 
 			if (event.getSubcommandName() != null) {
-				mb.append("-".concat(event.getSubcommandName()));
+				mb.append("-".concat(event.getSubcommandName()).concat(" "));
 			}
 
 			event.getOptions().forEach((opt) -> {
