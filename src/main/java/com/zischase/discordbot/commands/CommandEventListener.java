@@ -87,7 +87,7 @@ public class CommandEventListener extends ListenerAdapter {
 			}
 
 			event.getOptions().forEach((opt) -> {
-				if (opt.getType() == OptionType.STRING) {
+				if (opt.getType() == OptionType.STRING || opt.getType() == OptionType.INTEGER) {
 					mb.append(" ".concat(opt.getAsString()));
 				}
 			});
@@ -158,7 +158,7 @@ public class CommandEventListener extends ListenerAdapter {
 				/* Reinitialize the commands */
 				for (com.zischase.discordbot.commands.Command c : GuildContext.get(g.getId()).commandHandler().getCommandList()) {
 					/* Comparator to ensure we don't overwrite */
-					if (slashCommands.stream().noneMatch((sc) -> sc.toString().equals(c.toString())))
+					if (slashCommands.stream().noneMatch((sc) -> sc.getName().equals(c.getName()) && sc.getDescription().equals(c.getCommandData().getDescription())))
 						g.upsertCommand(c.getCommandData()).queue((cmd) -> LOGGER.info("Added slash command {} to server {} ", cmd.getName(), g.getName()));
 				}
 			}
