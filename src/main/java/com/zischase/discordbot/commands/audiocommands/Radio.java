@@ -1,6 +1,5 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.zischase.discordbot.Config;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.guildcontrol.GuildContext;
@@ -17,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
