@@ -54,7 +54,7 @@ public class ResultSelector {
 					}
 					jda.removeEventListener(this);
 
-				} else if (LocalDateTime.now().isAfter(start.plusSeconds(searchDisplayTimeMS / 1000))) {
+				} else if (LocalDateTime.now().isAfter(start.plusSeconds(searchDelayMS / 1000))) {
 					jda.removeEventListener(this);
 				}
 			}
