@@ -1,6 +1,5 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.zischase.discordbot.Config;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.guildcontrol.GuildContext;
@@ -17,10 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -36,15 +31,12 @@ public class Radio extends Command {
 		LOGGER.info("Loading Radio Stations");
 		STATION_LIST = RADIO_BROWSER.listStations(Paging.at(0, 25000));
 		STATION_LIST.removeIf(station -> {
-
 			boolean nullState = station.getState() == null || station.getState().matches("null");
 			boolean noBitRate = station.getBitrate() <= 0;
 			boolean noURL     = station.getUrl().isEmpty();
 			boolean noCodec   = station.getCodec().isEmpty();
-
 			if (nullState || noBitRate || noURL || noCodec) {
 				i.getAndIncrement();
-//				LOGGER.info("Station Removed: " + station.getUrl());
 				return true;
 			}
 			return false;
@@ -97,14 +89,14 @@ public class Radio extends Command {
 
 			if (args.get(0).matches("(?i)-(search|s)")) {
 
-				String searchQuery = query.replaceFirst("(?i)-(search|s)", "")
-						.trim();
+				query = query.replaceFirst("(?i)-(search|s)", "").trim();
 
-				searchByString(guildID, textChannel, voiceChannel, searchQuery, ctx.getEventInitiator());
+				searchByString(guildID, textChannel, voiceChannel, query, ctx.getEventInitiator());
 				return;
 			}
-			boolean tagFound = STATION_LIST.stream()
-					.anyMatch(stn -> stn.getTags().matches("(?i)(" + query + ")"));
+			String finalQuery = query;
+			boolean tagFound = STATION_LIST.stream().anyMatch(stn ->
+					stn.getTags().matches("(?i)(" + finalQuery + ")"));
 
 			if (tagFound) {
 				searchByTag(guildID, textChannel, voiceChannel, query);
@@ -121,13 +113,11 @@ public class Radio extends Command {
 				.filter(stn -> stn.getName()
 						.toLowerCase()
 						.replaceAll("(?!\\w|\\s)(\\W)", " ")
-//													 .matches("(?i)("+finalQuery+")"))
 						.contains(finalQuery))
 				.limit(50)
 				.collect(Collectors.toList());
 
 		if (stations.isEmpty()) {
-
 			return;
 		}
 
@@ -136,21 +126,11 @@ public class Radio extends Command {
 			results.add(new SearchInfo(s));
 		}
 
-		try {
-			Future<ISearchable> result = new ResultSelector(results).getChoice(textChannel.getJDA(),
-					initiator,
-					textChannel
-			);
-
-			long timeoutDelayMS = Long.parseLong(Config.get("SEARCH_RESULT_DELAY_MS"));
-			GuildContext.get(guildID)
-					.audioManager()
-					.getTrackLoader()
-					.load(textChannel, voiceChannel, result.get(timeoutDelayMS, TimeUnit.MILLISECONDS).getUrl());
-		} catch (TimeoutException | InterruptedException | ExecutionException e) {
-			LOGGER.warn("Radio result exception: \n" + e.getCause()
-					.getLocalizedMessage());
-		}
+		ISearchable result = new ResultSelector(results, textChannel, textChannel.getJDA(), initiator).getChoice();
+		GuildContext.get(guildID)
+				.audioManager()
+				.getTrackLoader()
+				.load(textChannel, voiceChannel, result.getUrl());
 	}
 
 	private void searchByTag(String guildID, TextChannel textChannel, VoiceChannel voiceChannel, String query) {
