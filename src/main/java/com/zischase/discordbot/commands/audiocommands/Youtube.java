@@ -179,10 +179,7 @@ public class Youtube extends Command {
 						if (songList.size() >= 12) {
 							try {
 								/* Waits for user input - blocking - commands handled asynchronously */
-								ISearchable searchable = new ResultSelector(songList).getChoice(ctx.getJDA(),
-										ctx.getEventInitiator(),
-										ctx.getChannel()
-								).get();
+								ISearchable searchable = new ResultSelector(songList, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator()).getChoice();
 
 								videoUrl = searchable.getUrl();
 
