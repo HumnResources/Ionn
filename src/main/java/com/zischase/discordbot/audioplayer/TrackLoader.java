@@ -5,13 +5,14 @@ import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.sun.istack.Nullable;
 import com.zischase.discordbot.DBQueryHandler;
-import com.zischase.discordbot.commands.CallBack;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.apache.commons.collections4.map.LinkedMap;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
@@ -26,26 +27,19 @@ public class TrackLoader implements AudioLoadResultHandler {
 		this.guildID = guildID;
 	}
 
-	public void load(TextChannel channel, VoiceChannel voiceChannel, String uri, CallBack callback) {
-		load(channel, voiceChannel, uri);
-		callback.methodCallBack();
+	public void loadYTSearchResults(TextChannel textChannel, @Nullable VoiceChannel voiceChannel, String uri) {
+		joinChannels(voiceChannel, textChannel);
+
+		uri = "ytsearch: " + uri;
+
+		GuildContext.get(guildID)
+				.audioManager()
+				.getPlayerManager()
+				.loadItem(uri, this);
 	}
 
-	public void load(TextChannel textChannel, VoiceChannel voiceChannel, String uri) {
-		if (textChannel == null || voiceChannel == null) {
-			return;
-		}
-		String id  = textChannel.getGuild().getId();
-		Member bot = textChannel.getGuild().getMember(textChannel.getJDA().getSelfUser());
-
-		DBQueryHandler.set(id, "media_settings", "textChannel", textChannel.getId());
-		DBQueryHandler.set(id, "media_settings", "voiceChannel", voiceChannel.getId());
-
-		if (!voiceChannel.getMembers().contains(bot)) {
-			textChannel.getJDA()
-					.getDirectAudioController()
-					.connect(voiceChannel);
-		}
+	public void load(TextChannel textChannel, @Nullable VoiceChannel voiceChannel, String uri) {
+		joinChannels(voiceChannel, textChannel);
 
 		/* Checks to see if we have a valid URL */
 		try {
@@ -76,8 +70,7 @@ public class TrackLoader implements AudioLoadResultHandler {
 	@Override
 	public void trackLoaded(AudioTrack audioTrack) {
 		CACHE.putIfAbsent(audioTrack.getInfo().uri, audioTrack);
-
-		if (CACHE.size() >= 300) {
+		if (CACHE.size() > 300) {
 			CACHE.remove(0);
 		}
 
@@ -85,17 +78,9 @@ public class TrackLoader implements AudioLoadResultHandler {
 				.audioManager()
 				.getScheduler()
 				.queueAudio(audioTrack);
-
-		String channelID = DBQueryHandler.get(guildID, "media_settings", "textchannel");
-		TextChannel channel;
-		if (!channelID.isEmpty()) {
-			channel = GuildContext.get(guildID)
-					.guild()
-					.getTextChannelById(channelID);
-		}
-		else {
-			return;
-		}
+		TextChannel channel = GuildContext.get(guildID)
+				.guild()
+				.getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
 
 		assert channel != null;
 		if (audioTrack.getInfo() != null) {
@@ -135,5 +120,17 @@ public class TrackLoader implements AudioLoadResultHandler {
 
 		assert channel != null;
 		channel.sendMessage("Loading failed, sorry.").queue();
+	}
+
+	private void joinChannels(@NonNull VoiceChannel voiceChannel, TextChannel textChannel) {
+		Member bot = textChannel.getGuild().getMember(textChannel.getJDA().getSelfUser());
+		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
+		DBQueryHandler.set(guildID, "media_settings", "voiceChannel", voiceChannel.getId());
+
+		if (!voiceChannel.getMembers().contains(bot)) {
+			textChannel.getJDA()
+					.getDirectAudioController()
+					.connect(voiceChannel);
+		}
 	}
 }

@@ -74,10 +74,7 @@ public class Youtube extends Command {
 		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
 
 
-		boolean doSearch = false;
-		if (args.get(0).equalsIgnoreCase("search")) {
-			doSearch = true;
-		}
+		boolean doSearch = args.get(0).equalsIgnoreCase("search");
 
 //		boolean doSearch = args.stream().anyMatch(arg -> arg.matches("(?i)(-s|-search)"));
 
@@ -100,69 +97,58 @@ public class Youtube extends Command {
 			e.printStackTrace();
 		}
 
-		if (doc != null) {
-			Element element = new Element("script");
-			doc.select("script")
-					.forEach(e -> element.append(e.html()));
+		if (doc == null) {
+			return;
+		}
+		Element element = new Element("script");
+		doc.select("script")
+				.forEach(e -> element.append(e.html()));
 
-			//			RegEx
+		//			RegEx
 //			(?im)            - caseInsensitive, Multiline
 //			(?<="videoId":") - Negative lookbehind for finding video ID key
 //			.+?              - Any character up to ?.
 //			(?=")            - ? = ".
-			Pattern videoIDPattern = Pattern.compile("(?im)(?<=\"videoId\":\").+?(?=\")");
-			Matcher videoMatcher   = videoIDPattern.matcher(element.html());
+		Pattern videoIDPattern = Pattern.compile("(?im)(?<=\"videoId\":\").+?(?=\")");
+		Matcher videoMatcher   = videoIDPattern.matcher(element.html());
 
-			Pattern songName_Pattern;
-			Matcher nameMatcher;
+		Pattern songName_Pattern;
+		Matcher nameMatcher;
 
-			while (videoMatcher.find()) {
-				if (videoID.matches(videoMatcher.group(0))) {
-					continue;
-				}
-				videoID = videoMatcher.group(0);
+		while (videoMatcher.find()) {
+			if (videoID.matches(videoMatcher.group(0))) {
+				continue;
+			}
+			videoID = videoMatcher.group(0);
 
 //				RegEx. . . again . . . 				 - https://regex101.com/r/1c2wAQ/1
 //				(?im)                                - caseInsensitive, Multiline
 //				(?=i.ytimg.com/vi/"+uri+").{1,300}   - Positive lookahead to contain video ID near title. Arbitrarily up to 300 chars
 //				(?<="title":\{"runs":\[\{"text":")   - Positive lookbehind to contain text prior to title.
 //				(.+?(?=\"}]))                        - Extract song name. Any character up to the next "}]. - This closes the js object on YT end.
-				songName_Pattern = Pattern.compile("(?im)(?=vi/" + videoID + "/).{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?)(?=\"}])");
-				nameMatcher      = songName_Pattern.matcher(element.html());
-				if (nameMatcher.find()) {
-					if (doSearch) {
-						songList.add(new SearchInfo(nameMatcher.group(1),
-								"https://www.youtube.com/watch?v=" + videoID
-						));
+			songName_Pattern = Pattern.compile("(?im)(?=vi/" + videoID + "/).{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?)(?=\"}])");
+			nameMatcher      = songName_Pattern.matcher(element.html());
+			if (nameMatcher.find()) {
+				if (doSearch) {
+					songList.add(new SearchInfo(nameMatcher.group(1),
+							"https://www.youtube.com/watch?v=" + videoID
+					));
 
-						if (songList.size() >= 12) {
-							try {
-								/* Waits for user input - blocking - commands handled asynchronously */
-								ISearchable searchable = new ResultSelector(songList).getChoice(ctx.getJDA(),
-										ctx.getEventInitiator(),
-										ctx.getChannel()
-								).get();
-
-								videoName = searchable.getName();
-								videoUrl  = searchable.getUrl();
-
-							} catch (InterruptedException | ExecutionException e) {
-								LOGGER.warn("Youtube result exception: \n" + e.getCause()
-										.getLocalizedMessage());
-							}
-							break;
-						}
-					} else {
-						videoName = nameMatcher.toString();
-						videoUrl  = videoUrl.concat(videoID);
-						break;
+					if (songList.size() >= 12) {
+						/* Waits for user input - blocking - commands handled asynchronously */
+						ISearchable searchable = new ResultSelector(songList, textChannel, ctx.getJDA(), ctx.getEventInitiator())
+								.getChoice();
+						videoUrl  = searchable.getUrl();
 					}
+				} else {
+					videoUrl  = videoUrl.concat(videoID);
+					break;
 				}
 			}
-			String finalVideoName = videoName;
-			trackLoader.load(ctx.getChannel(), voiceChannel, videoUrl);
 			/* while end */
 		}
+		trackLoader.load(ctx.getChannel(), voiceChannel, videoUrl);
+
 		if (ctx.getArgs().size() <= 2) {
 			boolean hasNextFlag = args.stream().anyMatch(arg -> arg.matches("(?i)-(n|next)"));
 

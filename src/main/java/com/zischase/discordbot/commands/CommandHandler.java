@@ -30,7 +30,7 @@ public final class CommandHandler {
 		addCommand(new Youtube());
 		addCommand(new Prefix());
 		addCommand(new Playlist());
-		addCommand(new Lyrics());
+//		addCommand(new Lyrics());
 //		addCommand(new Spam());
 		addCommand(new Clear());
 		addCommand(new Queue());
@@ -38,6 +38,7 @@ public final class CommandHandler {
 		addCommand(new Shuffle());
 		addCommand(new Repeat());
 
+		/* Takes a hot minute. */
 		CompletableFuture.runAsync(() -> addCommand(new Radio()));
 
 		if (getCommandCount() <= 0) {
