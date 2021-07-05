@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,12 +63,7 @@ public class Youtube extends Command {
 									"name": "query",
 									"description": "Displays a list from search result. ~30s to decide.",
 									"type": 3,
-									"required": true,
-									"choices": [
-										{
-											"name": "playnext",
-											"value": "-n"
-										}
+									"required": true
 								}
 							]
 						},
@@ -82,13 +76,7 @@ public class Youtube extends Command {
 									"name": "query",
 									"description": "Displays a list from search result. ~30s to decide.",
 									"type": 3,
-									"required": true,
-									"choices": [
-										{
-											"name": "playnext",
-											"value": "-n"
-										}
-									]
+									"required": true
 								}
 							]
 						}
@@ -177,19 +165,9 @@ public class Youtube extends Command {
 						));
 
 						if (songList.size() >= 12) {
-							try {
-								/* Waits for user input - blocking - commands handled asynchronously */
-								ISearchable searchable = new ResultSelector(songList).getChoice(ctx.getJDA(),
-										ctx.getEventInitiator(),
-										ctx.getChannel()
-								).get();
-
-								videoUrl = searchable.getUrl();
-
-							} catch (InterruptedException | ExecutionException e) {
-								LOGGER.warn("Youtube result exception: \n" + e.getCause()
-										.getLocalizedMessage());
-							}
+							/* Waits for user input - blocking - commands handled asynchronously */
+							ISearchable searchable = new ResultSelector(songList, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator()).getChoice();
+							videoUrl = searchable.getUrl();
 							break;
 						}
 					} else {
