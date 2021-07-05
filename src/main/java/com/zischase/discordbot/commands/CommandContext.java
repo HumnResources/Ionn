@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands;
 
+import com.zischase.discordbot.DBQueryHandler;
 import me.duncte123.botcommons.commands.ICommandContext;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -27,21 +28,24 @@ public class CommandContext implements ICommandContext {
 	}
 
 	public Member getEventInitiator() {
-		return this.eventInitiator.get();
+		return eventInitiator.get();
 	}
 
 	@Override
 	public Guild getGuild() {
-		return this.event.getGuild();
+		return event.getGuild();
 	}
 
 	@Override
 	public GuildMessageReceivedEvent getEvent() {
-		return this.event;
+		return event;
 	}
 
 	public List<String> getArgs() {
 		return args;
 	}
 
+	public final boolean isPremiumGuild() {
+		return Boolean.parseBoolean(DBQueryHandler.get(getGuild().getId(), "guilds", "premium"));
+	}
 }

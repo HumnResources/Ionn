@@ -83,17 +83,17 @@ public class CommandEventListener extends ListenerAdapter {
 			mb.append("%s%s ".formatted(prefix, event.getName()));
 
 			if (event.getSubcommandName() != null) {
-				mb.append("-".concat(event.getSubcommandName()));
+				mb.append("-".concat(event.getSubcommandName()).concat(" "));
 			}
 
 			event.getOptions().forEach((opt) -> {
-				if (opt.getType() == OptionType.STRING) {
-					mb.append(" ".concat(opt.getAsString()));
+				if (opt.getType() == OptionType.STRING || opt.getType() == OptionType.INTEGER) {
+					mb.append(opt.getAsString().concat(" "));
 				}
 			});
 
 			/* Ensure we skip detection of bot message in channel until we start processing the command. */
-			proxyCallMember.set(event.getMember());
+			this.proxyCallMember.set(event.getMember());
 
 			/* Delete the command issued by the bot */
 			event.getChannel().sendMessage(mb.build()).queue((cmdMsg) -> cmdMsg.delete().queue());
@@ -129,7 +129,7 @@ public class CommandEventListener extends ListenerAdapter {
 				}
 			}
 
-			proxyCallMember.set(null);
+			this.proxyCallMember.set(null);
 			poolExecutor.execute(() -> GuildContext.get(ctx.getGuild().getId()).commandHandler().invoke(ctx));
 		}
 	}
@@ -158,7 +158,7 @@ public class CommandEventListener extends ListenerAdapter {
 				/* Reinitialize the commands */
 				for (com.zischase.discordbot.commands.Command c : GuildContext.get(g.getId()).commandHandler().getCommandList()) {
 					/* Comparator to ensure we don't overwrite */
-					if (slashCommands.stream().noneMatch((sc) -> sc.getName().equalsIgnoreCase(c.getName())))
+					if (slashCommands.stream().noneMatch((sc) -> sc.getName().equals(c.getName()) && sc.getDescription().equals(c.getCommandData().getDescription())))
 						g.upsertCommand(c.getCommandData()).queue((cmd) -> LOGGER.info("Added slash command {} to server {} ", cmd.getName(), g.getName()));
 				}
 			}
