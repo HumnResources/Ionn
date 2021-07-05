@@ -93,7 +93,7 @@ public class CommandEventListener extends ListenerAdapter {
 			});
 
 			/* Ensure we skip detection of bot message in channel until we start processing the command. */
-			proxyCallMember.set(event.getMember());
+			this.proxyCallMember.set(event.getMember());
 
 			/* Delete the command issued by the bot */
 			event.getChannel().sendMessage(mb.build()).queue((cmdMsg) -> cmdMsg.delete().queue());
@@ -129,7 +129,7 @@ public class CommandEventListener extends ListenerAdapter {
 				}
 			}
 
-			proxyCallMember.set(null);
+			this.proxyCallMember.set(null);
 			poolExecutor.execute(() -> GuildContext.get(ctx.getGuild().getId()).commandHandler().invoke(ctx));
 		}
 	}

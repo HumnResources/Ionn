@@ -38,11 +38,11 @@ public final class DBConnectionHandler {
 				handle.execute("""
 						CREATE TABLE IF NOT EXISTS guilds(
 						    id VARCHAR(20) NOT NULL PRIMARY KEY,
-						    name VARCHAR NOT NULL);
+						    name VARCHAR NOT NULL,
+						    premium BOOLEAN NOT NULL DEFAULT false);
 						 
 						CREATE TABLE IF NOT EXISTS guild_settings(
 						    guild_id VARCHAR NOT NULL UNIQUE,
-						    ispremium VARCHAR(5) NOT NULL DEFAULT 'false',
 						    prefix VARCHAR(1) NOT NULL DEFAULT '/',
 						    CONSTRAINT fk_guild_id FOREIGN KEY(guild_id) REFERENCES guilds(id)
 						        ON UPDATE CASCADE

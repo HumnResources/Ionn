@@ -47,7 +47,7 @@ public class Volume extends Command {
 		List<String> args    = ctx.getArgs();
 
 		if (this.maxVol.get() == -1) {
-			if (DBQueryHandler.get(guildID, "premium").equals("true"))
+			if (ctx.isPremiumGuild())
 				this.maxVol.set(100);
 			else
 				this.maxVol.set(25);

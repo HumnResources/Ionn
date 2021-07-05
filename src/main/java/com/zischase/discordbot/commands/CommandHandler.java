@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands;
 
+import com.sun.istack.Nullable;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.audiocommands.*;
 import com.zischase.discordbot.commands.general.Clear;
@@ -67,19 +68,18 @@ public final class CommandHandler {
 			return;
 		}
 
-		boolean isGuildPremium = Boolean.parseBoolean(DBQueryHandler.get(ctx.getGuild().getId(), "premium"));
-
-		if (cmd.isPremium() && !isGuildPremium) {
+		if (cmd.isPremium() && !ctx.isPremiumGuild()) {
 			ctx.getChannel()
 					.sendMessage("Sorry, this feature is for premium guilds only :c")
 					.queue();
-			return;
 		}
-
-		LOGGER.info(cmd.getName());
-		cmd.handle(ctx);
+		else {
+			LOGGER.info(cmd.getName());
+			cmd.handle(ctx);
+		}
 	}
 
+	@Nullable
 	public Command getCommand(String search) {
 		for (Command cmd : commands) {
 			List<String> aliases = cmd.getAliases()
