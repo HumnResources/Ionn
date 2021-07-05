@@ -3,12 +3,27 @@ package com.zischase.discordbot.commands.audiocommands;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.Command.Choice;
 import org.jetbrains.annotations.NotNull;
 
 public class Repeat extends Command {
 
 	public Repeat() {
 		super(true);
+	}
+
+	@Override
+	public CommandData getCommandData() {
+		return super.getCommandData().addOptions(
+				new OptionData(OptionType.STRING, "set", "Sets repeat on or off for current queue")
+						.addChoices(
+								new Choice("on", "on"),
+								new Choice("off", "off")
+						)
+		);
 	}
 
 	@Override

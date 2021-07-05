@@ -9,8 +9,10 @@ import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.utils.data.DataObject;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jdbi.v3.core.Jdbi;
 import org.jetbrains.annotations.NotNull;
 
@@ -49,63 +51,15 @@ public class Playlist extends Command {
 
 	@Override
 	public CommandData getCommandData() {
-		return CommandData.fromData(DataObject.fromJson("""
-				{
-					"name": "playlist",
-					"description": "Provides custom playlist support for youtube songs",
-					"options": [
-						{
-							"name": "play", 
-							"description": "Load a playlist",
-							"type": 1,
-							"options": [
-								{
-									"name": "name",
-									"description": "Load playlist with specified name",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "delete", 
-							"description": "Delete a playlist",
-							"type": 1,
-							"options": [
-								{
-									"name": "name",
-									"description": "Delete playlist with specified name",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "add", 
-							"description": "Add new playlist",
-							"type": 1,
-							"options": [
-								{
-									"name": "name",
-									"description": "Create playlist of current queue with specified name",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "current", 
-							"description": "Create playlist using current queue. Generates simple name",
-							"type": 1
-						},
-						{
-							"name": "display",
-							"description": "Shows a list of available playlists",
-							"type": 1
-						}
-					]
-				}
-				"""));
+		OptionData name = new OptionData(OptionType.STRING, "name", " ", true);
+
+		return super.getCommandData().addSubcommands(
+				new SubcommandData("play", "Displays the current queue").addOptions(name.setDescription("Load playlist with specified name")),
+				new SubcommandData("delete", "Moves the song at the current index to next in queue").addOptions(name.setDescription("Delete playlist with specified name")),
+				new SubcommandData("add", "Add new playlist").addOptions(name.setDescription("Create playlist of current queue with specified name")),
+				new SubcommandData("current", "Create playlist using current queue. Generates simple name"),
+				new SubcommandData("display", "Shows a list of available playlists")
+		);
 	}
 
 	@Override

@@ -9,6 +9,9 @@ import de.sfuhrm.radiobrowser4j.Station;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +49,16 @@ public class Radio extends Command {
 
 	public Radio() {
 		super(false);
+	}
+
+	@Override
+	public CommandData getCommandData() {
+		return super.getCommandData().addSubcommands(
+				new SubcommandData("list", "Display list of radio stations")
+						.addOption(OptionType.STRING, "query", "Displays a list from search result"),
+				new SubcommandData("tag", "Add a radio station to queue matching tag")
+						.addOption(OptionType.STRING, "query", "Add first song from search result")
+		);
 	}
 
 	@Override
@@ -87,9 +100,9 @@ public class Radio extends Command {
 		if (!args.isEmpty()) {
 			String query = String.join(" ", args).toLowerCase();
 
-			if (args.get(0).matches("(?i)-(search|s)")) {
+			if (args.get(0).matches("(?i)-(list|l)")) {
 
-				query = query.replaceFirst("(?i)-(search|s)", "").trim();
+				query = query.replaceFirst("(?i)-(list|l)", "").trim();
 
 				searchByString(guildID, textChannel, voiceChannel, query, ctx.getEventInitiator());
 				return;
