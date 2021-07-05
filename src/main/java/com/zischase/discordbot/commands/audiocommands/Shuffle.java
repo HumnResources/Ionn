@@ -19,7 +19,7 @@ public class Shuffle extends Command {
 
 	@Override
 	public @NotNull String shortDescription() {
-		return "Sets shuffle on/off for current playlist.";
+		return "Shuffles current playlist.";
 	}
 
 	@Override
@@ -29,7 +29,6 @@ public class Shuffle extends Command {
 								
 				Usage:
 					`shuffle`
-					`shuffle [on|off]`
 				""";
 	}
 

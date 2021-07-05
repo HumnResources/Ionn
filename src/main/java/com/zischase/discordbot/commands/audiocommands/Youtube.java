@@ -8,8 +8,9 @@ import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.utils.data.DataObject;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -49,40 +50,10 @@ public class Youtube extends Command {
 
 	@Override
 	public CommandData getCommandData() {
-		return CommandData.fromData(DataObject.fromJson("""
-				{
-					"name": "youtube",
-					"description": "%s",
-					"options": [
-						{
-							"name": "list",
-							"description": "Searches YouTube",
-							"type": 1,
-							"options": [
-								{
-									"name": "query",
-									"description": "Displays a list from search result. ~30s to decide.",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "search",
-							"description": "Adds first result from YouTube search to queue.",
-							"type": 1,
-							"options": [
-								{
-									"name": "query",
-									"description": "Displays a list from search result. ~30s to decide.",
-									"type": 3,
-									"required": true
-								}
-							]
-						}
-					]
-				}
-				""".formatted(shortDescription())));
+		return super.getCommandData().addSubcommands(
+				new SubcommandData("list", "Display list of songs").addOption(OptionType.STRING, "query", "Displays a list from search result"),
+				new SubcommandData("search", "Play a song").addOption(OptionType.STRING, "query", "Add first song from search result")
+		);
 	}
 
 	@Override

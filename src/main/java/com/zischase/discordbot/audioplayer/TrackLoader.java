@@ -12,7 +12,6 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.apache.commons.collections4.map.LinkedMap;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
@@ -39,8 +38,9 @@ public class TrackLoader implements AudioLoadResultHandler {
 	}
 
 	public void load(TextChannel textChannel, @Nullable VoiceChannel voiceChannel, String uri) {
-		joinChannels(voiceChannel, textChannel);
-
+		if (joinChannels(voiceChannel, textChannel)) {
+			return;
+		}
 		/* Checks to see if we have a valid URL */
 		try {
 			new URL(uri);
@@ -122,7 +122,11 @@ public class TrackLoader implements AudioLoadResultHandler {
 		channel.sendMessage("Loading failed, sorry.").queue();
 	}
 
-	private void joinChannels(@NonNull VoiceChannel voiceChannel, TextChannel textChannel) {
+	private boolean joinChannels(@Nullable VoiceChannel voiceChannel, TextChannel textChannel) {
+		if (voiceChannel == null) {
+			return false;
+		}
+
 		Member bot = textChannel.getGuild().getMember(textChannel.getJDA().getSelfUser());
 		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
 		DBQueryHandler.set(guildID, "media_settings", "voiceChannel", voiceChannel.getId());
@@ -132,5 +136,7 @@ public class TrackLoader implements AudioLoadResultHandler {
 					.getDirectAudioController()
 					.connect(voiceChannel);
 		}
+
+		return true;
 	}
 }

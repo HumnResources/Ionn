@@ -11,8 +11,10 @@ import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.utils.data.DataObject;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -26,72 +28,17 @@ public class Play extends Command {
 
 	@Override
 	public CommandData getCommandData() {
-		/* Parse JSON using Discord slash command API docs as reference */
-		return CommandData.fromData(DataObject.fromJson("""
-				{
-					"name": "play",
-					"description": "Plays a song from youtube or link",
-					"options": [
-						{
-							"name": "song",
-							"description": "search song name",
-							"type": 1,
-							"options": [
-								{
-									"name": "name",
-									"description": "Plays song by name",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "url",
-							"description": "Link to audio track",
-							"type": 1,
-							"options": [
-								{
-									"name": "link",
-									"description": "Plays audio by url",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "ytplaylist",
-							"description": "Adds a playlist of songs from provided search",
-							"type": 1,
-							"options": [
-								{
-									"name": "search",
-									"description": "Youtube search query",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "next",
-							"description": "Play requested song next",
-							"type": 1,
-							"options": [
-								{
-									"name": "name",
-									"description": "Title of song to move.",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "pause",
-							"description": "Play or pause current track",
-							"type": 1
-						}
-					]
-				}
-				"""));
+		OptionData name = new OptionData(OptionType.STRING, "name", "Plays song by name", true);
+		OptionData link = new OptionData(OptionType.STRING, "link", "Plays audio by url", true);
+		OptionData search = new OptionData(OptionType.STRING, "search", "Youtube search query", true);
+
+		return super.getCommandData().addSubcommands(
+				new SubcommandData("song", "search song name").addOptions(name),
+				new SubcommandData("url", "Link to audio track").addOptions(link),
+				new SubcommandData("ytplaylist", "Adds a playlist of songs from provided search").addOptions(search),
+				new SubcommandData("next", "Play requested song next").addOptions(name.setDescription("Title of song to move.")),
+				new SubcommandData("pause", "Play or pause current track")
+		);
 	}
 
 	@Override
