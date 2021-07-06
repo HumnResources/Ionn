@@ -1,7 +1,6 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.zischase.discordbot.DBConnectionHandler;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
@@ -13,7 +12,6 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
-import org.jdbi.v3.core.Jdbi;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -31,22 +29,6 @@ public class Playlist extends Command {
 	public Playlist() {
 		super(true);
 		playlists = new HashMap<>();
-	}
-
-	private static boolean checkTable(String guildID, String name) {
-		return Jdbi.create(DBConnectionHandler.getConnection())
-				.withHandle(handle -> {
-					List<String> settings = handle.createQuery( /* Language=PostgreSQL */
-							"SELECT playlist_name FROM youtube_playlists WHERE guild_id = :guildID")
-							.bind("guildID", guildID)
-							.mapTo(String.class)
-							.list();
-
-					handle.close();
-					return settings;
-				})
-				.stream()
-				.anyMatch(s -> s.equalsIgnoreCase(name.trim()));
 	}
 
 	@Override
