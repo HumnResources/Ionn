@@ -37,13 +37,7 @@ public class CommandEventListener extends ListenerAdapter {
 
 	@Override
 	public void onReady(@Nonnull ReadyEvent event) {
-		event.getJDA()
-				.getGuilds()
-				.forEach(GuildContext::new);
-
-		LOGGER.info("{} is ready", event.getJDA()
-				.getSelfUser()
-				.getAsTag());
+		LOGGER.info("Command Event Listener - Ready");
 	}
 
 	@Override

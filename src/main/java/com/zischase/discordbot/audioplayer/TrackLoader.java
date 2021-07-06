@@ -81,6 +81,11 @@ public class TrackLoader implements AudioLoadResultHandler {
 				.guild()
 				.getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
 
+		if (GuildContext.get(guildID).audioManager().getScheduler().getQueue().isEmpty()) {
+			/* No point in displaying added message if it's the next song */
+			return;
+		}
+
 		assert channel != null;
 		if (audioTrack.getInfo() != null) {
 			if (audioTrack.getInfo().title != null) {
