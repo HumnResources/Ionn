@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
@@ -50,9 +51,11 @@ public class Youtube extends Command {
 
 	@Override
 	public CommandData getCommandData() {
+		OptionData query = new OptionData(OptionType.STRING, "query", "Displays a list from search result", true);
+
 		return super.getCommandData().addSubcommands(
-				new SubcommandData("list", "Display list of songs").addOption(OptionType.STRING, "query", "Displays a list from search result"),
-				new SubcommandData("search", "Play a song").addOption(OptionType.STRING, "query", "Add first song from search result")
+				new SubcommandData("list", "Display list of songs").addOptions(query),
+				new SubcommandData("search", "Play a song").addOptions(query.setDescription("Add first song from search result"))
 		);
 	}
 
@@ -80,7 +83,8 @@ public class Youtube extends Command {
 
 		String query = String.join("+", args)
 				.replaceFirst("(?i)-(list|url|name)", "")
-				.replaceFirst("(?i)-(n)", "")
+				.replaceFirst("(?i)-(n|next)", "")
+				.replaceFirst("(?i)-(search)", "")
 				.trim();
 
 		String url = "http://youtube.com/results?search_query=" + query;
@@ -159,6 +163,10 @@ public class Youtube extends Command {
 				ArrayList<AudioTrack> queue = scheduler.getQueue();
 
 				int index = queue.size() - 1; // Subtract 1 for '0' based numeration.
+
+				if (index < 0 || index > queue.size()) {
+					return;
+				}
 
 				queue.add(0, queue.get(index));
 				queue.remove(index + 1); // Adding one to account for -> shift of list
