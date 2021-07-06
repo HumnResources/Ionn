@@ -38,7 +38,7 @@ public class TrackLoader implements AudioLoadResultHandler {
 	}
 
 	public void load(TextChannel textChannel, @Nullable VoiceChannel voiceChannel, String uri) {
-		if (!joinChannels(voiceChannel, textChannel)) {
+		if (joinChannels(voiceChannel, textChannel)) {
 			try {
 				/* Checks to see if we have a valid URL */
 				new URL(uri);
