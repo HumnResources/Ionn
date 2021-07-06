@@ -143,7 +143,7 @@ public class PlayerPrinter {
 				.filter(msg -> !msg.isPinned())
 				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
 				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now().plusDays(14)))
-				.filter(msg -> Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Now Playing"))
+				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Now Playing"))
 				.findFirst()
 				.orElse(null);
 	}
