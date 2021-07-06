@@ -92,7 +92,7 @@ public class GuildContext implements IGuildContext {
 	}
 
 	public final boolean isPremium() {
-		return Boolean.parseBoolean(DBQueryHandler.get(this.guild.getId(), "guilds", "premium"));
+		return DBQueryHandler.getPremiumStatus(guild.getId());
 	}
 
 }

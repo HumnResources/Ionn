@@ -46,6 +46,6 @@ public class CommandContext implements ICommandContext {
 	}
 
 	public final boolean isPremiumGuild() {
-		return Boolean.parseBoolean(DBQueryHandler.get(getGuild().getId(), "guilds", "premium"));
+		return DBQueryHandler.getPremiumStatus(getGuild().getId());
 	}
 }
