@@ -73,12 +73,6 @@ public class Youtube extends Command {
 		String            videoID  = "";
 		Document          doc      = null;
 
-		if (voiceChannel != null) {
-			DBQueryHandler.set(guildID, "media_settings", "voicechannel", voiceChannel.getId());
-		} else {
-			voiceChannel = ctx.getGuild().getVoiceChannelById(DBQueryHandler.get(guildID, "media_settings", "voicechannel"));
-		}
-
 		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
 
 		boolean listResults = args.get(0).matches("(?i)-(list)");

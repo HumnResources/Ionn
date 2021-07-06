@@ -2,7 +2,6 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.Command;
@@ -67,12 +66,6 @@ public class Play extends Command {
 		TrackLoader trackLoader = GuildContext.get(guildID)
 				.audioManager()
 				.getTrackLoader();
-
-		if (voiceChannel != null) {
-			DBQueryHandler.set(guildID, "media_settings", "voiceChannel", voiceChannel.getId());
-		}
-		DBQueryHandler.set(guildID, "media_settings", "textChannel", ctx.getChannel().getId());
-
 
 		if (args.isEmpty() || args.get(0).matches("(?i)-(pause)")) {
 			AudioPlayer player = GuildContext.get(guildID)

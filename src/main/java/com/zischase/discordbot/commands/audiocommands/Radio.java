@@ -1,6 +1,5 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import de.sfuhrm.radiobrowser4j.Paging;
@@ -85,17 +84,9 @@ public class Radio extends Command {
 		List<String> args = ctx.getArgs();
 
 		String guildID = ctx.getGuild().getId();
+		TextChannel textChannel = ctx.getChannel();
 		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
 				ctx.getEventInitiator().getVoiceState().getChannel() : null;
-		TextChannel textChannel = ctx.getChannel();
-
-		if (voiceChannel != null) {
-			DBQueryHandler.set(guildID, "media_settings", "voiceChannel", voiceChannel.getId());
-		} else if (DBQueryHandler.get(guildID, "media_settings", "voiceChannel") == null) {
-			return;
-		}
-
-		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
 
 		if (!args.isEmpty()) {
 			String query = String.join(" ", args).toLowerCase();

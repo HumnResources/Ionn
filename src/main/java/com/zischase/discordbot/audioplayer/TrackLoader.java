@@ -27,7 +27,9 @@ public class TrackLoader implements AudioLoadResultHandler {
 	}
 
 	public void loadYTSearchResults(TextChannel textChannel, @Nullable VoiceChannel voiceChannel, String uri) {
-		joinChannels(voiceChannel, textChannel);
+		if (!joinChannels(voiceChannel, textChannel)) {
+			return;
+		}
 
 		uri = "ytsearch: " + uri;
 
@@ -38,7 +40,7 @@ public class TrackLoader implements AudioLoadResultHandler {
 	}
 
 	public void load(TextChannel textChannel, @Nullable VoiceChannel voiceChannel, String uri) {
-		if (joinChannels(voiceChannel, textChannel)) {
+		if (!joinChannels(voiceChannel, textChannel)) {
 			return;
 		}
 		/* Checks to see if we have a valid URL */
@@ -123,6 +125,9 @@ public class TrackLoader implements AudioLoadResultHandler {
 	}
 
 	private boolean joinChannels(@Nullable VoiceChannel voiceChannel, TextChannel textChannel) {
+		if (voiceChannel == null) {
+			voiceChannel = textChannel.getGuild().getVoiceChannelById(DBQueryHandler.get(guildID, "media_settings", "voicechannel"));
+		}
 		if (voiceChannel == null) {
 			return false;
 		}
