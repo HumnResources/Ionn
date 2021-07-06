@@ -100,9 +100,11 @@ public class TrackScheduler extends AudioEventAdapter {
 
 	@Override
 	public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
-//        if (endReason.equals(AudioTrackEndReason.LOAD_FAILED)) {
-		/* Do Nothing*/
-//        }
+        if (endReason.equals(AudioTrackEndReason.LOAD_FAILED)) {
+			/* Do Nothing*/
+			LOGGER.info("Loading failed for audio track {}", track.getInfo().title);
+			return;
+        }
 		lastTrack = track;
 
 		if (endReason.mayStartNext) {
