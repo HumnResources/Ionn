@@ -1,13 +1,9 @@
 package com.zischase.discordbot.audioplayer;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
-import com.sedmelluq.discord.lavaplayer.player.event.AudioEventListener;
-import com.sedmelluq.discord.lavaplayer.player.event.TrackExceptionEvent;
-import com.sedmelluq.discord.lavaplayer.player.event.TrackStuckEvent;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.sun.istack.Nullable;
-import com.zischase.discordbot.DBQueryHandler;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
@@ -15,78 +11,45 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.awt.*;
-import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class PlayerPrinter {
 
-	private final int   historyPollLimit = 25;
-	private final int   npTimerRateMs    = 3000;
-	private final Timer nowPlayingTimer  = new Timer("nowPlayingTimer");
+	private final int   historyPollLimit = 7;
 
 	public PlayerPrinter(AudioManager audioManager, TextChannel defaultChannel) {
-		AudioEventListener trackWatcherEventListener = audioEvent -> {
-			/* Check for available channel to display Now PLaying prompt */
-			String      dbQuery       = DBQueryHandler.get(defaultChannel.getGuild().getId(), "media_settings", "textChannel");
-			TextChannel activeChannel = defaultChannel.getGuild().getTextChannelById(dbQuery);
-
-			/* Clear the current timer, we got a new event to handle */
-			nowPlayingTimer.purge();
-
-			/* Ensure we have somewhere to send the message, check for errors */
-			assert activeChannel != null;
-			if (audioEvent instanceof TrackStuckEvent) {
-				activeChannel.sendMessage("Audio track stuck!").queue();
-				audioEvent.player.stopTrack();
-			} else if (audioEvent instanceof TrackExceptionEvent) {
-				activeChannel.sendMessage("Error loading the audio.").queue();
-			} else if (audioEvent.player.getPlayingTrack() == null) {
-				printNowPlaying(audioManager, activeChannel);
-				activeChannel.getJDA().getDirectAudioController().disconnect(activeChannel.getGuild());
-			} else {
-				/* Set up a timer to continually update the running time of the song */
-				nowPlayingTimer.scheduleAtFixedRate(new TimerTask() {
-					@Override
-					public void run() {
-						if (audioEvent.player.getPlayingTrack() != null) {
-							if (audioEvent.player.getPlayingTrack().getPosition() < audioEvent.player.getPlayingTrack().getDuration()) {
-								printNowPlaying(audioManager, activeChannel);
-							}
-						}
-					}
-				}, Date.from(Instant.now()), npTimerRateMs);
-			}
-		};
-
 		/* Add the event watcher to the current guild's audio manager */
-		audioManager.getPlayer().addListener(trackWatcherEventListener);
+		TrackWatcherEventListener watcher = new TrackWatcherEventListener(audioManager, defaultChannel.getGuild().getId());
+		audioManager.getPlayer().addListener(watcher);
+		defaultChannel.getJDA().addEventListener(watcher);
 	}
 
 	public void printNowPlaying(AudioManager audioManager, TextChannel channel) {
 		AudioPlayer  player = audioManager.getPlayer();
 		EmbedBuilder embed  = new EmbedBuilder();
 
-		long autoDeleteDelayMS;
 		if (player.getPlayingTrack() == null) {
 			embed.setTitle("Nothing Playing");
 			embed.setColor(Color.darkGray);
 			embed.setFooter(". . .");
-			autoDeleteDelayMS = 5000;
 		} else {
 			AudioTrackInfo info      = player.getPlayingTrack().getInfo();
 			long           duration  = info.length / 1000;
 			long           position  = player.getPlayingTrack().getPosition() / 1000;
-			String         repeat    = audioManager.getScheduler().isRepeat() ? " \uD83D\uDD01" : "Off";
+			String         paused    = player.isPaused() ? "⏸" : "▶";
+			String         repeat    = audioManager.getScheduler().isRepeat() ? " \uD83D\uDD01" : "";
 			String         timeTotal = String.format("%d:%02d:%02d", duration / 3600, (duration % 3600) / 60, (duration % 60));
 			String timeCurrent = String.format("%d:%02d:%02d",
 					position / 3600,
 					(position % 3600) / 60,
 					(position % 60)
 			);
+
 
 			if (info.title != null && !info.title.isEmpty()) {
 				embed.appendDescription(info.title + "\n\n");
@@ -96,43 +59,34 @@ public class PlayerPrinter {
 				embed.appendDescription("-----\n\n");
 			}
 
-			if (player.isPaused()) {
-				embed.appendDescription("Paused -  \uD83D\uDD34 ");
-			} else if (player.getPlayingTrack().getDuration() == Long.MAX_VALUE) {
-				embed.appendDescription("Live - \uD83C\uDF99");
+
+			if (player.getPlayingTrack().getDuration() == Long.MAX_VALUE) {
+				embed.appendDescription("\uD83C\uDF99");
 			} else {
 				embed.appendDescription(timeCurrent + " - " + timeTotal + "");
 				String progressBar = progressPercentage((int) position, (int) duration);
 				embed.appendDescription(System.lineSeparator() + progressBar);
 			}
+
 			embed.setColor(Color.CYAN);
-			embed.setTitle("\uD83D\uDCFB \uD83C\uDFB6 Now Playing \uD83C\uDFB6 \uD83D\uDCFB");
-			embed.appendDescription("\n"+repeat);
+			embed.setTitle("\uD83D\uDCFB \uD83C\uDFB6 Now Playing \uD83C\uDFB6 \uD83D\uDCFB\n");
+			embed.appendDescription("\n" + paused + " " + repeat);
 			embed.setFooter(info.uri);
-			autoDeleteDelayMS = player.getPlayingTrack().getDuration() - player.getPlayingTrack().getPosition();
 		}
 
-		Message message = new MessageBuilder().setEmbeds(embed.build()).build();
+		Message message    = new MessageBuilder().setEmbeds(embed.build()).build();
 		Message currentMsg = getCurrentNowPlayingMsg(channel);
+
 
 		if (currentMsg != null) {
 			channel.editMessageById(currentMsg.getId(), message).queue();
-		}
-
-		else {
-			channel.sendMessage(message)
-					.queue(msg ->
-					{
-						if (channel.getHistory().getRetrievedHistory().contains(msg)) {
-							msg.delete()
-									.queueAfter(autoDeleteDelayMS, TimeUnit.MILLISECONDS);
-						}
-					});
+		} else {
+			channel.sendMessage(message).queue();
 		}
 	}
 
 	@Nullable
-	private Message getCurrentNowPlayingMsg(TextChannel textChannel) {
+	Message getCurrentNowPlayingMsg(TextChannel textChannel) {
 		return textChannel
 				.getHistory()
 				.retrievePast(historyPollLimit)
@@ -148,7 +102,7 @@ public class PlayerPrinter {
 				.orElse(null);
 	}
 
-	private void deletePrevious(TextChannel textChannel) {
+	void deletePrevious(TextChannel textChannel) {
 
 		List<Message> msgList = textChannel.getHistory()
 				.retrievePast(historyPollLimit)
@@ -187,7 +141,7 @@ public class PlayerPrinter {
 		int    size              = 30;
 		String iconLeftBoundary  = "|";
 		String iconDone          = "=";
-		String iconRemain        = "\u00A0. \u200b";
+		String iconRemain        = "\u00A0. \u200b"; // '&nbsp. <zero-width-sp>'
 		String iconRightBoundary = "|";
 
 		if (done > total) {
@@ -222,7 +176,7 @@ public class PlayerPrinter {
 
 		if (queue.isEmpty()) {
 			embed.appendDescription("Nothing in the queue.");
-			channel.sendMessageEmbeds(embed.build()).complete();
+			channel.sendMessageEmbeds(embed.build()).queue();
 			return;
 		}
 
@@ -260,7 +214,7 @@ public class PlayerPrinter {
 
 		embed.appendDescription(" ```fix\nUp Next: " + queue.get(queue.size() - 1).getInfo().title + "```");
 
-		channel.sendMessageEmbeds(embed.build()).complete();
+		channel.sendMessageEmbeds(embed.build()).queue();
 	}
 
 }
