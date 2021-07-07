@@ -29,7 +29,6 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 
 	public TrackWatcherEventListener(AudioManager audioManager, String guildID) {
 		this.id = guildID;
-		audioManager.getPlayer().addListener(this);
 	}
 
 	@Override
@@ -82,7 +81,7 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 			activeChannel.getJDA().getDirectAudioController().disconnect(activeChannel.getGuild());
 		} else {
 			/* Set up a timer to continually update the running time of the song */
-			int nowPlayingTimerRateMs = 3000;
+			int nowPlayingTimerRateMs = 1200;
 			nowPlayingTimer.scheduleAtFixedRate(new TimerTask() {
 				@Override
 				public void run() {
@@ -112,7 +111,13 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 
 	@Override
 	public void onGuildMessageUpdate(@NotNull GuildMessageUpdateEvent event) {
+			Message eventMessage     = event.getMessage();
+			Message currentNPMessage = GuildContext.get(id).playerPrinter().getCurrentNowPlayingMsg(event.getChannel());
 
+			/* If we have a new Now Playing message, add reactions */
+			if (currentNPMessage != null && eventMessage.getIdLong() == currentNPMessage.getIdLong()) {
+				addReactions(event.getChannel());
+			}
 	}
 
 	private void addReactions(TextChannel activeChannel) {
