@@ -4,9 +4,9 @@ import com.zischase.discordbot.DBConnectionHandler;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.audioplayer.PlayerPrinter;
+import com.zischase.discordbot.audioplayer.TrackWatcherEventListener;
 import com.zischase.discordbot.commands.CommandHandler;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.TextChannel;
 import org.jdbi.v3.core.Jdbi;
 
 import java.util.HashMap;
@@ -23,24 +23,16 @@ public class GuildContext implements IGuildContext {
 	public GuildContext(Guild guild) {
 		this.guild        = guild;
 		this.audioManager = new AudioManager(guild);
-
-		String textChannelID = DBQueryHandler.get(guild.getId(), "media_settings", "textchannel");
-
-		if (textChannelID != null && !textChannelID.isEmpty()) {
-			this.playerPrinter = new PlayerPrinter(this.audioManager, guild.getTextChannelById(textChannelID));
-		} else if (guild.getDefaultChannel() != null) {
-			this.playerPrinter = new PlayerPrinter(this.audioManager, guild.getDefaultChannel());
-		} else {
-			TextChannel channel = guild.getTextChannels()
-					.stream()
-					.filter(TextChannel::canTalk)
-					.findFirst()
-					.orElseThrow();
-			this.playerPrinter = new PlayerPrinter(this.audioManager, channel);
-		}
-
 		this.commandHandler = new CommandHandler();
+		this.playerPrinter = new PlayerPrinter();
+
+		/* Update global GuildContext references */
 		setGuild(this);
+
+		/* Add the event watcher to the current guild's audio manager and JDA */
+		TrackWatcherEventListener watcher = new TrackWatcherEventListener(this);
+		audioManager.getPlayer().addListener(watcher);
+		guild.getJDA().addEventListener(watcher);
 	}
 
 	private static void setGuild(GuildContext guildContext) {
@@ -69,6 +61,10 @@ public class GuildContext implements IGuildContext {
 
 	public static GuildContext get(String guildID) {
 		return GUILDS.get(Long.parseLong(guildID));
+	}
+
+	public String getID(){
+		return this.guild.getId();
 	}
 
 	@Override

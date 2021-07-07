@@ -173,10 +173,6 @@ public class Youtube extends Command {
 
 				scheduler.clearQueue();
 				scheduler.queueList(queue);
-
-				GuildContext.get(guildID)
-						.playerPrinter()
-						.printQueue(GuildContext.get(guildID).audioManager(), ctx.getChannel());
 			}
 		}
 	}

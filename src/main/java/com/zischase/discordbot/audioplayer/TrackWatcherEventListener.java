@@ -10,75 +10,80 @@ import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionAddEvent;
+import net.dv8tion.jda.api.events.message.guild.react.GenericGuildMessageReactionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TrackWatcherEventListener extends ListenerAdapter implements AudioEventListener {
 
-	private static final int MAX_REACTIONS = 6;
-	private final Timer nowPlayingTimer    = new Timer("nowPlayingTimer");
-	private final String id;
+	private static final int          NOW_PLAYING_TIMER_RATE_MS = 5000;
+	private static final int          MAX_REACTIONS             = 6;
+	private final        String       shuffle                   = "\uD83D\uDD00";
+	private final        String       repeat                    = "\uD83D\uDD01";
+	private final        String       prev                      = "⏮";
+	private final        String       playPause                 = "⏯";
+	private final        String       next                      = "⏭";
+	private final        String       stop                      = "⏹";
+	private final        List<String> reactions                 = List.of(shuffle, repeat, prev, playPause, next, stop);
+	private final        Timer        nowPlayingTimer           = new Timer("nowPlayingTimer");
+	private final        GuildContext ctx;
 
-	public TrackWatcherEventListener(AudioManager audioManager, String guildID) {
-		this.id = guildID;
+	public TrackWatcherEventListener(GuildContext ctx) {
+		this.ctx = ctx;
 	}
 
 	@Override
-	public void onGuildMessageReactionAdd(@NotNull GuildMessageReactionAddEvent event) {
+	public void onGenericGuildMessageReaction(@NotNull GenericGuildMessageReactionEvent event) {
 		Message eventMessage = event.retrieveMessage().complete();
-		Message currentNPMessage = GuildContext.get(id)
-				.playerPrinter()
-				.getCurrentNowPlayingMsg(event.getChannel());
 
 		if (!eventMessage.getAuthor().isBot() || event.retrieveUser().complete().isBot() ||
-				event.getReaction().isSelf() || !id.equalsIgnoreCase(event.getGuild().getId())) {
+				event.getReaction().isSelf() || !ctx.getID().equalsIgnoreCase(event.getGuild().getId())) {
 			return;
 		}
-		event.getReaction().getReactionEmote().getName();
+
+		Message currentNPMessage = ctx.playerPrinter().getCurrentNowPlayingMsg(event.getChannel());
 
 		if (eventMessage.getIdLong() == currentNPMessage.getIdLong()) {
-			AudioManager manager = GuildContext.get(event.getGuild().getId()).audioManager();
+			AudioManager manager = ctx.audioManager();
 
 			switch (event.getReaction().getReactionEmote().getName()) {
-				// Shuffle
-				case "\uD83D\uDD00" -> {
+				/* Shuffle */
+				case shuffle -> {
 					ArrayList<AudioTrack> currentQueue = manager.getScheduler().getQueue();
 					Collections.shuffle(currentQueue);
 					manager.getScheduler().clearQueue();
 					manager.getScheduler().queueList(currentQueue);
 				}
-				// repeat
-				case "\uD83D\uDD01" -> manager.getScheduler().setRepeat(!manager.getScheduler().isRepeat());
-				// Prev. Track
-				case "⏮" -> manager.getScheduler().prevTrack();
-				// Play/Pause
-				case "⏯" -> manager.getPlayer().setPaused(!manager.getPlayer().isPaused());
-				// Next Track
-				case "⏭" -> manager.getScheduler().nextTrack();
-				// Stop All
-				case "⏹" -> {
+				/* repeat */
+				case repeat -> manager.getScheduler().setRepeat(!manager.getScheduler().isRepeat());
+				/* Prev. Track */
+				case prev -> manager.getScheduler().prevTrack();
+				/* Play/Pause */
+				case playPause -> manager.getPlayer().setPaused(!manager.getPlayer().isPaused());
+				/* Next Track */
+				case next -> manager.getScheduler().nextTrack();
+				/* Stop */
+				case stop -> {
 					manager.getScheduler().clearQueue();
 					manager.getPlayer().stopTrack();
 				}
 			}
 		}
-
-		event.getReaction().clearReactions().complete();
-		addReactions(GuildContext.get(event.getGuild().getId()).playerPrinter(), event.getChannel());
+		addReactions(ctx.playerPrinter(), event.getChannel());
 	}
-
 
 	@Override
 	public void onEvent(AudioEvent audioEvent) {
 		/* Check for available channel to display Now PLaying prompt */
-		String        dbQuery       = DBQueryHandler.get(id, "media_settings", "textChannel");
-		TextChannel   activeChannel = GuildContext.get(id).guild().getTextChannelById(dbQuery);
-		PlayerPrinter printer       = GuildContext.get(id).playerPrinter();
-		AudioManager  audioManager  = GuildContext.get(id).audioManager();
+		String        dbQuery       = DBQueryHandler.get(ctx.getID(), "media_settings", "textChannel");
+		TextChannel   activeChannel = ctx.guild().getTextChannelById(dbQuery);
+		PlayerPrinter printer       = ctx.playerPrinter();
+		AudioManager  audioManager  = ctx.audioManager();
+
 		/* Clear the current timer, we got a new event to handle */
 		nowPlayingTimer.purge();
 
@@ -96,36 +101,40 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 			activeChannel.getJDA().getDirectAudioController().disconnect(activeChannel.getGuild());
 		} else {
 			/* Set up a timer to continually update the running time of the song */
-			int nowPlayingTimerRateMs = 7500;
 			nowPlayingTimer.scheduleAtFixedRate(new TimerTask() {
 				@Override
 				public void run() {
-					if (audioEvent.player.getPlayingTrack() != null) {
-						if (audioEvent.player.getPlayingTrack().getPosition() < audioEvent.player.getPlayingTrack().getDuration()) {
+					AudioTrack track = audioEvent.player.getPlayingTrack();
+					if (track != null) {
+						if (track.getPosition() < track.getDuration()) {
 							printer.printNowPlaying(audioManager, activeChannel);
 							addReactions(printer, activeChannel);
 						}
 					}
 				}
-			}, Date.from(Instant.now().plusMillis(nowPlayingTimerRateMs)), nowPlayingTimerRateMs);
+				/* Delay first execution to prevent reprinting of Now Playing - Sets timer interval */
+			}, Date.from(Instant.now().plusMillis(NOW_PLAYING_TIMER_RATE_MS)), NOW_PLAYING_TIMER_RATE_MS);
 		}
 	}
 
-
 	private void addReactions(PlayerPrinter printer, TextChannel channel) {
 		/* Small wait to allow printer to display song info if needed */
-		Message currentMsg = printer.getCurrentNowPlayingMsg(channel);
+		Message nowPlayingMsg = printer.getCurrentNowPlayingMsg(channel);
 
-		if (currentMsg == null || currentMsg.getType() == MessageType.UNKNOWN || currentMsg.getReactions().size() == MAX_REACTIONS) {
+		if (nowPlayingMsg == null || nowPlayingMsg.getType() == MessageType.UNKNOWN || nowPlayingMsg.getReactions().size() == MAX_REACTIONS) {
 			return;
 		}
 
-		/* Add reactions to represent controls */
-		currentMsg.addReaction("\uD83D\uDD00").queue(); // :twisted_rightwards_arrows:
-		currentMsg.addReaction("\uD83D\uDD01").queue(); // :repeat:
-		currentMsg.addReaction("⏮").queue();
-		currentMsg.addReaction("⏯").queue();
-		currentMsg.addReaction("⏭").queue();
-		currentMsg.addReaction("⏹").queue();
+		List<String> reactionsPresent = nowPlayingMsg.getReactions()
+				.stream()
+				.map(reaction -> reaction.getReactionEmote().getName())
+				.collect(Collectors.toList());
+
+		/* Only add a reaction if it's missing. Saves on queues submit to discord API */
+		for (String r : reactions) {
+			if (!reactionsPresent.contains(r)) {
+				nowPlayingMsg.addReaction(r).queue();
+			}
+		}
 	}
 }

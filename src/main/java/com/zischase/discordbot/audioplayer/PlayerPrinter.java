@@ -7,7 +7,6 @@ import com.sun.istack.Nullable;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.slf4j.LoggerFactory;
 
@@ -17,33 +16,59 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class PlayerPrinter {
 
 	private final int   historyPollLimit = 7;
 
-	public PlayerPrinter(AudioManager audioManager, TextChannel defaultChannel) {
-		/* Add the event watcher to the current guild's audio manager */
-		TrackWatcherEventListener watcher = new TrackWatcherEventListener(audioManager, defaultChannel.getGuild().getId());
-		audioManager.getPlayer().addListener(watcher);
-		defaultChannel.getJDA().addEventListener(watcher);
+	private final AtomicReference<Message> nowPlayingMessage = new AtomicReference<>(null);
+
+	public PlayerPrinter() {
+
 	}
 
-	public void printNowPlaying(AudioManager audioManager, TextChannel channel) {
+	public synchronized void printNowPlaying(AudioManager audioManager, TextChannel channel) {
+		printNowPlaying(audioManager, channel, false);
+	}
+
+	public synchronized void printNowPlaying(AudioManager audioManager, TextChannel channel, boolean forcePrint) {
+		Message currentMsg;
+		Message newMessage;
+
+		if (forcePrint) {
+			currentMsg = getCurrentNowPlayingMsg(channel);
+			channel.sendMessage(currentMsg).queue();
+			return;
+		}
+
+		newMessage = buildNewMessage(audioManager);
+		currentMsg = getCurrentNowPlayingMsg(channel);
+
+		if (currentMsg != null) {
+			channel.editMessageById(currentMsg.getId(), newMessage).queue(null, err -> LoggerFactory.getLogger(this.getClass()).info("Error editing message, probably deleted."));
+		} else {
+			channel.sendMessage(newMessage).queue();
+		}
+	}
+
+	private Message buildNewMessage(AudioManager audioManager) {
 		AudioPlayer  player = audioManager.getPlayer();
 		EmbedBuilder embed  = new EmbedBuilder();
+		AudioTrack track = player.getPlayingTrack();
 
-		if (player.getPlayingTrack() == null) {
+
+		if (track == null) {
 			embed.setTitle("Nothing Playing");
 			embed.setColor(Color.darkGray);
 			embed.setFooter(". . .");
 		} else {
-			AudioTrackInfo info      = player.getPlayingTrack().getInfo();
+			AudioTrackInfo info      = track.getInfo();
 			long           duration  = info.length / 1000;
-			long           position  = player.getPlayingTrack().getPosition() / 1000;
+			long           position  = track.getPosition() / 1000;
 			String         paused    = player.isPaused() ? "⏸" : "▶";
-			String         repeat    = audioManager.getScheduler().isRepeat() ? " \uD83D\uDD01" : "";
+			String         repeat    = audioManager.getScheduler().isRepeat() ? " \uD83D\uDD01" : ""; // Repeat sign
 			String         timeTotal = String.format("%d:%02d:%02d", duration / 3600, (duration % 3600) / 60, (duration % 60));
 			String timeCurrent = String.format("%d:%02d:%02d",
 					position / 3600,
@@ -51,48 +76,45 @@ public class PlayerPrinter {
 					(position % 60)
 			);
 
-
-			if (info.title != null && !info.title.isEmpty()) {
-				embed.appendDescription(info.title + "\n\n");
-			} else if (info.author != null && !info.author.isEmpty()) {
-				embed.appendDescription(info.author + "\n\n");
+			String title = info.title;
+			String author = info.author;
+			if (title != null && !title.isEmpty()) {
+				embed.appendDescription(title + "\n\n");
+			} else if (author != null && !author.isEmpty()) {
+				embed.appendDescription(author + "\n\n");
 			} else {
 				embed.appendDescription("-----\n\n");
 			}
 
-
-			if (player.getPlayingTrack().getDuration() == Long.MAX_VALUE) {
-				embed.appendDescription("\uD83C\uDF99");
+			/* Checks to see if it's a live stream */
+			if (track.getDuration() == Long.MAX_VALUE) {
+				embed.appendDescription("\uD83C\uDF99"); // Microphone
 			} else {
 				embed.appendDescription(timeCurrent + " - " + timeTotal + "");
 				String progressBar = progressPercentage((int) position, (int) duration);
 				embed.appendDescription(System.lineSeparator() + progressBar);
 			}
-
 			embed.setColor(Color.CYAN);
-			embed.setTitle("\uD83D\uDCFB \uD83C\uDFB6 Now Playing \uD83C\uDFB6 \uD83D\uDCFB\n");
-			embed.appendDescription("\n" + paused + " " + repeat);
-			embed.setFooter(info.uri);
+			embed.setTitle("\uD83D\uDCFB \uD83C\uDFB6 Now Playing \uD83C\uDFB6 \uD83D\uDCFB "); // Music Notes
+			embed.appendDescription("\n\n" + paused + " " + repeat);
+			embed.addField("", "\n\uD83D\uDD0A " + audioManager.getPlayer().getVolume(), true); // Volume
 		}
 
-		Message message    = new MessageBuilder().setEmbeds(embed.build()).build();
-		Message currentMsg = getCurrentNowPlayingMsg(channel);
-
-
-		if (currentMsg != null) {
-			channel.editMessageById(currentMsg.getId(), message).queue(null, err -> LoggerFactory.getLogger(this.getClass()).info("Error deleting message, likely already deleted."));
-		} else {
-			channel.sendMessage(message).queue();
-		}
+		return new MessageBuilder().setEmbeds(embed.build()).build();
 	}
 
 	@Nullable
 	Message getCurrentNowPlayingMsg(TextChannel textChannel) {
-		return textChannel
+		List<Message> messages = textChannel
 				.getHistory()
 				.retrievePast(historyPollLimit)
-				.complete()
-				.stream()
+				.complete();
+//
+//		if (nowPlayingMessage.get() != null && messages.contains(nowPlayingMessage.get())) {
+//			return nowPlayingMessage.get();
+//		}
+
+		Message message = messages.stream()
 				.filter(msg -> msg.getAuthor().isBot())
 				.filter(msg -> !msg.getEmbeds().isEmpty())
 				.filter(msg -> !msg.isPinned())
@@ -101,6 +123,9 @@ public class PlayerPrinter {
 				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Now Playing"))
 				.findFirst()
 				.orElse(null);
+
+		this.nowPlayingMessage.set(message);
+		return message;
 	}
 
 	void deletePrevious(TextChannel textChannel) {
@@ -109,32 +134,20 @@ public class PlayerPrinter {
 				.retrievePast(historyPollLimit)
 				.complete()
 				.stream()
-				.filter(msg ->
-				{
-					boolean isBot     = msg.getAuthor().isBot();
-					boolean hasEmbeds = !msg.getEmbeds().isEmpty();
-					boolean notPinned = !msg.isPinned();
-					boolean createdBeforeNow = msg.getTimeCreated()
-							.isBefore(OffsetDateTime.now());
-					boolean lessThan2Weeks = msg.getTimeCreated()
-							.isAfter(OffsetDateTime.now()
-									.minusDays(13));
-
-					if (isBot && hasEmbeds && notPinned && createdBeforeNow && lessThan2Weeks) {
-						MessageEmbed embed = msg.getEmbeds().get(0);
-						if (embed.getTitle() != null) {
-							return embed.getTitle().contains("Now Playing") || embed.getTitle().contains("Queue") || embed.getTitle().contains("Nothing Playing");
-						}
-					}
-					return false;
-				})
+				.filter(msg -> msg.getAuthor().isBot())
+				.filter(msg -> !msg.isPinned())
+				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
+				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now().plusDays(14)))
+				.filter(msg -> !msg.getEmbeds().isEmpty() && msg.getEmbeds().get(0).getTitle() != null)
+				.filter(msg -> Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Now Playing"))
+				.filter(msg -> Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Queue"))
+				.filter(msg -> Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Nothing Playing"))
 				.collect(Collectors.toList());
 
-		/* Using blocking method to preserve execution order in class - Print queue attempts to rewrite a message that gets deleted here before success */
 		if (msgList.size() > 1) {
-			textChannel.deleteMessages(msgList).complete();
+			textChannel.deleteMessages(msgList).queue();
 		} else if (msgList.size() == 1) {
-			textChannel.deleteMessageById(msgList.get(0).getId()).complete();
+			textChannel.deleteMessageById(msgList.get(0).getId()).queue();
 		}
 	}
 
@@ -213,7 +226,7 @@ public class PlayerPrinter {
 			embed.appendDescription("```");
 		}
 
-		embed.appendDescription(" ```fix\nUp Next: " + queue.get(queue.size() - 1).getInfo().title + "```");
+		embed.appendDescription(" ```\n1. " + queue.get(queue.size() - 1).getInfo().title + "```");
 
 		channel.sendMessageEmbeds(embed.build()).queue();
 	}
