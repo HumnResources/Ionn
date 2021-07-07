@@ -140,13 +140,6 @@ public class Play extends Command {
 			audioManager.getScheduler().clearQueue();
 			audioManager.getScheduler().queueList(currentQueue);
 
-			GuildContext.get(guildID)
-					.playerPrinter()
-					.printQueue(GuildContext.get(guildID).audioManager(), event.getChannel());
-
-			GuildContext.get(guildID)
-					.playerPrinter()
-					.printNowPlaying(GuildContext.get(guildID).audioManager(), event.getChannel());
 		} else {
 			trackLoader.load(event.getChannel(), voiceChannel, song);
 		}

@@ -4,27 +4,23 @@ import com.sedmelluq.discord.lavaplayer.player.event.AudioEvent;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventListener;
 import com.sedmelluq.discord.lavaplayer.player.event.TrackExceptionEvent;
 import com.sedmelluq.discord.lavaplayer.player.event.TrackStuckEvent;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
 import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.util.Date;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.CompletableFuture;
+import java.util.*;
 
 public class TrackWatcherEventListener extends ListenerAdapter implements AudioEventListener {
 
-	private final Timer  nowPlayingTimer = new Timer("nowPlayingTimer");
+	private static final int MAX_REACTIONS = 6;
+	private final Timer nowPlayingTimer    = new Timer("nowPlayingTimer");
 	private final String id;
 
 	public TrackWatcherEventListener(AudioManager audioManager, String guildID) {
@@ -45,15 +41,34 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 		event.getReaction().getReactionEmote().getName();
 
 		if (eventMessage.getIdLong() == currentNPMessage.getIdLong()) {
+			AudioManager manager = GuildContext.get(event.getGuild().getId()).audioManager();
+
 			switch (event.getReaction().getReactionEmote().getName()) {
-				case "\uD83D\uDD00":
-					LoggerFactory.getLogger(this.getClass()).info("Shuffle call - {}", Thread.currentThread());
-					break;
+				// Shuffle
+				case "\uD83D\uDD00" -> {
+					ArrayList<AudioTrack> currentQueue = manager.getScheduler().getQueue();
+					Collections.shuffle(currentQueue);
+					manager.getScheduler().clearQueue();
+					manager.getScheduler().queueList(currentQueue);
+				}
+				// repeat
+				case "\uD83D\uDD01" -> manager.getScheduler().setRepeat(!manager.getScheduler().isRepeat());
+				// Prev. Track
+				case "⏮" -> manager.getScheduler().prevTrack();
+				// Play/Pause
+				case "⏯" -> manager.getPlayer().setPaused(!manager.getPlayer().isPaused());
+				// Next Track
+				case "⏭" -> manager.getScheduler().nextTrack();
+				// Stop All
+				case "⏹" -> {
+					manager.getScheduler().clearQueue();
+					manager.getPlayer().stopTrack();
+				}
 			}
 		}
 
 		event.getReaction().clearReactions().complete();
-		addReactions(event.getChannel());
+		addReactions(GuildContext.get(event.getGuild().getId()).playerPrinter(), event.getChannel());
 	}
 
 
@@ -81,67 +96,36 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 			activeChannel.getJDA().getDirectAudioController().disconnect(activeChannel.getGuild());
 		} else {
 			/* Set up a timer to continually update the running time of the song */
-			int nowPlayingTimerRateMs = 1200;
+			int nowPlayingTimerRateMs = 7500;
 			nowPlayingTimer.scheduleAtFixedRate(new TimerTask() {
 				@Override
 				public void run() {
 					if (audioEvent.player.getPlayingTrack() != null) {
 						if (audioEvent.player.getPlayingTrack().getPosition() < audioEvent.player.getPlayingTrack().getDuration()) {
 							printer.printNowPlaying(audioManager, activeChannel);
+							addReactions(printer, activeChannel);
 						}
 					}
 				}
-			}, Date.from(Instant.now().plusSeconds(5)), nowPlayingTimerRateMs);
-
-			printer.printNowPlaying(audioManager, activeChannel);
-			addReactions(activeChannel);
+			}, Date.from(Instant.now().plusMillis(nowPlayingTimerRateMs)), nowPlayingTimerRateMs);
 		}
 	}
 
-	@Override
-	public void onGuildMessageReceived(@NotNull GuildMessageReceivedEvent event) {
-		Message eventMessage     = event.getMessage();
-		Message currentNPMessage = GuildContext.get(id).playerPrinter().getCurrentNowPlayingMsg(event.getChannel());
 
-		/* If we have a new Now Playing message, add reactions */
-		if (currentNPMessage != null && eventMessage.getIdLong() == currentNPMessage.getIdLong()) {
-			addReactions(event.getChannel());
-		}
-	}
-
-	@Override
-	public void onGuildMessageUpdate(@NotNull GuildMessageUpdateEvent event) {
-			Message eventMessage     = event.getMessage();
-			Message currentNPMessage = GuildContext.get(id).playerPrinter().getCurrentNowPlayingMsg(event.getChannel());
-
-			/* If we have a new Now Playing message, add reactions */
-			if (currentNPMessage != null && eventMessage.getIdLong() == currentNPMessage.getIdLong()) {
-				addReactions(event.getChannel());
-			}
-	}
-
-	private void addReactions(TextChannel activeChannel) {
+	private void addReactions(PlayerPrinter printer, TextChannel channel) {
 		/* Small wait to allow printer to display song info if needed */
-		OffsetDateTime start   = OffsetDateTime.now();
-		PlayerPrinter  printer = GuildContext.get(id).playerPrinter();
+		Message currentMsg = printer.getCurrentNowPlayingMsg(channel);
 
-		CompletableFuture.runAsync(() -> {
-			/* Check if we have a Now PLaying dialogue box */
-			Message currentMsg = printer.getCurrentNowPlayingMsg(activeChannel);
+		if (currentMsg == null || currentMsg.getType() == MessageType.UNKNOWN || currentMsg.getReactions().size() == MAX_REACTIONS) {
+			return;
+		}
 
-			while (currentMsg == null) {
-				currentMsg = printer.getCurrentNowPlayingMsg(activeChannel);
-				/* Set a timeout to avoid infinite loop */
-				if (start.isAfter(OffsetDateTime.now().plusSeconds(30))) {
-					return;
-				}
-			}
-			/* Add reactions to represent controls */
-			currentMsg.addReaction("\uD83D\uDD00").queue(); // :twisted_rightwards_arrows:
-			currentMsg.addReaction("\uD83D\uDD01").queue(); // :repeat:
-			currentMsg.addReaction("⏮").queue();
-			currentMsg.addReaction("⏯").queue();
-			currentMsg.addReaction("⏭").queue();
-		});
+		/* Add reactions to represent controls */
+		currentMsg.addReaction("\uD83D\uDD00").queue(); // :twisted_rightwards_arrows:
+		currentMsg.addReaction("\uD83D\uDD01").queue(); // :repeat:
+		currentMsg.addReaction("⏮").queue();
+		currentMsg.addReaction("⏯").queue();
+		currentMsg.addReaction("⏭").queue();
+		currentMsg.addReaction("⏹").queue();
 	}
 }

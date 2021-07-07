@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.TextChannel;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.time.OffsetDateTime;
@@ -79,7 +80,7 @@ public class PlayerPrinter {
 
 
 		if (currentMsg != null) {
-			channel.editMessageById(currentMsg.getId(), message).queue();
+			channel.editMessageById(currentMsg.getId(), message).queue(null, err -> LoggerFactory.getLogger(this.getClass()).info("Error deleting message, likely already deleted."));
 		} else {
 			channel.sendMessage(message).queue();
 		}
