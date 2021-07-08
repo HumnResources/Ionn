@@ -40,6 +40,7 @@ public class Bot {
 		}
 
 		jda.getPresence().setActivity(Activity.listening(" commands."));
+		jda.getGuilds().forEach(DBQueryHandler::addGuild);
 		jda.getGuilds().forEach(GuildContext::new);
 		jda.addEventListener(new CommandEventListener());
 	}
