@@ -6,6 +6,7 @@ import com.sedmelluq.discord.lavaplayer.player.event.TrackExceptionEvent;
 import com.sedmelluq.discord.lavaplayer.player.event.TrackStuckEvent;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.DBQueryHandler;
+import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageType;
@@ -18,17 +19,12 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.zischase.discordbot.audioplayer.MediaControls.*;
+
 public class TrackWatcherEventListener extends ListenerAdapter implements AudioEventListener {
 
 	private static final int          NOW_PLAYING_TIMER_RATE_MS = 5000;
 	private static final int          MAX_REACTIONS             = 6;
-	private final        String       shuffle                   = "\uD83D\uDD00";
-	private final        String       repeat                    = "\uD83D\uDD01";
-	private final        String       prev                      = "⏮";
-	private final        String       playPause                 = "⏯";
-	private final        String       next                      = "⏭";
-	private final        String       stop                      = "⏹";
-	private final        List<String> reactions                 = List.of(shuffle, repeat, prev, playPause, next, stop);
 	private final        Timer        nowPlayingTimer           = new Timer("nowPlayingTimer");
 	private final        GuildContext ctx;
 
@@ -52,22 +48,20 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 
 			switch (event.getReaction().getReactionEmote().getName()) {
 				/* Shuffle */
-				case shuffle -> {
-					ArrayList<AudioTrack> currentQueue = manager.getScheduler().getQueue();
-					Collections.shuffle(currentQueue);
-					manager.getScheduler().clearQueue();
-					manager.getScheduler().queueList(currentQueue);
+				case SHUFFLE -> {
+					((Shuffle) Objects.requireNonNull(ctx.commandHandler().getCommand("Shuffle"))).shuffle(ctx.getID(), manager);
+					ctx.playerPrinter().printQueue(manager, currentNPMessage.getTextChannel());
 				}
 				/* repeat */
-				case repeat -> manager.getScheduler().setRepeat(!manager.getScheduler().isRepeat());
+				case REPEAT -> manager.getScheduler().setRepeat(!manager.getScheduler().isRepeat());
 				/* Prev. Track */
-				case prev -> manager.getScheduler().prevTrack();
+				case PREV -> manager.getScheduler().prevTrack();
 				/* Play/Pause */
-				case playPause -> manager.getPlayer().setPaused(!manager.getPlayer().isPaused());
+				case PLAY_PAUSE -> manager.getPlayer().setPaused(!manager.getPlayer().isPaused());
 				/* Next Track */
-				case next -> manager.getScheduler().nextTrack();
+				case NEXT -> manager.getScheduler().nextTrack();
 				/* Stop */
-				case stop -> {
+				case STOP -> {
 					manager.getScheduler().clearQueue();
 					manager.getPlayer().stopTrack();
 				}
@@ -90,12 +84,15 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 		/* Ensure we have somewhere to send the message, check for errors */
 		assert activeChannel != null;
 		if (audioEvent instanceof TrackStuckEvent) {
+			printer.getCurrentNowPlayingMsg(activeChannel).clearReactions().complete();
 			activeChannel.sendMessage("Audio track stuck! Ending track and continuing").queue();
 			audioEvent.player.stopTrack();
 		} else if (audioEvent instanceof TrackExceptionEvent) {
+			printer.getCurrentNowPlayingMsg(activeChannel).clearReactions().complete();
 			activeChannel.sendMessage("Error loading the audio.").queue();
 			((TrackExceptionEvent) audioEvent).exception.printStackTrace();
 		} else if (audioEvent.player.getPlayingTrack() == null) {
+			printer.getCurrentNowPlayingMsg(activeChannel).clearReactions().complete();
 			printer.deletePrevious(activeChannel);
 			printer.printNowPlaying(audioManager, activeChannel);
 			activeChannel.getJDA().getDirectAudioController().disconnect(activeChannel.getGuild());
@@ -107,8 +104,8 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 					AudioTrack track = audioEvent.player.getPlayingTrack();
 					if (track != null) {
 						if (track.getPosition() < track.getDuration()) {
-							printer.printNowPlaying(audioManager, activeChannel);
 							addReactions(printer, activeChannel);
+							printer.printNowPlaying(audioManager, activeChannel);
 						}
 					}
 				}
@@ -131,9 +128,9 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 				.collect(Collectors.toList());
 
 		/* Only add a reaction if it's missing. Saves on queues submit to discord API */
-		for (String r : reactions) {
-			if (!reactionsPresent.contains(r)) {
-				nowPlayingMsg.addReaction(r).queue();
+		for (String reaction : MediaControls.getReactions()) {
+			if (!reactionsPresent.contains(reaction)) {
+				nowPlayingMsg.addReaction(reaction).queue();
 			}
 		}
 	}

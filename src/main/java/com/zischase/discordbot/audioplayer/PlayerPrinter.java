@@ -16,14 +16,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class PlayerPrinter {
 
 	private final int   historyPollLimit = 7;
-
-	private final AtomicReference<Message> nowPlayingMessage = new AtomicReference<>(null);
 
 	public PlayerPrinter() {
 
@@ -34,16 +31,14 @@ public class PlayerPrinter {
 	}
 
 	public synchronized void printNowPlaying(AudioManager audioManager, TextChannel channel, boolean forcePrint) {
-		Message currentMsg;
-		Message newMessage;
+		Message currentMsg = getCurrentNowPlayingMsg(channel);
 
 		if (forcePrint) {
-			currentMsg = getCurrentNowPlayingMsg(channel);
 			channel.sendMessage(currentMsg).queue();
 			return;
 		}
 
-		newMessage = buildNewMessage(audioManager);
+		Message newMessage = buildNewMessage(audioManager);
 		currentMsg = getCurrentNowPlayingMsg(channel);
 
 		if (currentMsg != null) {
@@ -67,8 +62,8 @@ public class PlayerPrinter {
 			AudioTrackInfo info      = track.getInfo();
 			long           duration  = info.length / 1000;
 			long           position  = track.getPosition() / 1000;
-			String         paused    = player.isPaused() ? "⏸" : "▶";
-			String         repeat    = audioManager.getScheduler().isRepeat() ? " \uD83D\uDD01" : ""; // Repeat sign
+			String         paused    = player.isPaused() ? MediaControls.PAUSE : MediaControls.PLAY;
+			String         repeat    = audioManager.getScheduler().isRepeat() ? MediaControls.REPEAT : "";
 			String         timeTotal = String.format("%d:%02d:%02d", duration / 3600, (duration % 3600) / 60, (duration % 60));
 			String timeCurrent = String.format("%d:%02d:%02d",
 					position / 3600,
@@ -79,25 +74,25 @@ public class PlayerPrinter {
 			String title = info.title;
 			String author = info.author;
 			if (title != null && !title.isEmpty()) {
-				embed.appendDescription(title + "\n\n");
+				embed.appendDescription("\n**%s**\n\n".formatted(title));
 			} else if (author != null && !author.isEmpty()) {
-				embed.appendDescription(author + "\n\n");
+				embed.appendDescription("**%s**\n\n".formatted(author));
 			} else {
 				embed.appendDescription("-----\n\n");
 			}
 
 			/* Checks to see if it's a live stream */
 			if (track.getDuration() == Long.MAX_VALUE) {
-				embed.appendDescription("\uD83C\uDF99"); // Microphone
+				embed.appendDescription(MediaControls.MICROPHONE); // Microphone
 			} else {
-				embed.appendDescription(timeCurrent + " - " + timeTotal + "");
+				embed.appendDescription(timeCurrent + " - " + timeTotal);
 				String progressBar = progressPercentage((int) position, (int) duration);
 				embed.appendDescription(System.lineSeparator() + progressBar);
 			}
 			embed.setColor(Color.CYAN);
-			embed.setTitle("\uD83D\uDCFB \uD83C\uDFB6 Now Playing \uD83C\uDFB6 \uD83D\uDCFB "); // Music Notes
-			embed.appendDescription("\n\n" + paused + " " + repeat);
-			embed.addField("", "\n\uD83D\uDD0A " + audioManager.getPlayer().getVolume(), true); // Volume
+			embed.setTitle("%s%s  Now Playing  %s%s".formatted(MediaControls.RADIO, MediaControls.NOTES_ONE, MediaControls.NOTES_ONE, MediaControls.RADIO)); // Music Notes
+			embed.appendDescription("\n\n%s  %s".formatted(paused, repeat));
+			embed.addField("", "\n%s    **%s**".formatted(MediaControls.VOLUME_HIGH, audioManager.getPlayer().getVolume()), true); // Volume
 		}
 
 		return new MessageBuilder().setEmbeds(embed.build()).build();
@@ -105,16 +100,11 @@ public class PlayerPrinter {
 
 	@Nullable
 	Message getCurrentNowPlayingMsg(TextChannel textChannel) {
-		List<Message> messages = textChannel
+		return textChannel
 				.getHistory()
 				.retrievePast(historyPollLimit)
-				.complete();
-//
-//		if (nowPlayingMessage.get() != null && messages.contains(nowPlayingMessage.get())) {
-//			return nowPlayingMessage.get();
-//		}
-
-		Message message = messages.stream()
+				.complete()
+				.stream()
 				.filter(msg -> msg.getAuthor().isBot())
 				.filter(msg -> !msg.getEmbeds().isEmpty())
 				.filter(msg -> !msg.isPinned())
@@ -123,9 +113,6 @@ public class PlayerPrinter {
 				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Now Playing"))
 				.findFirst()
 				.orElse(null);
-
-		this.nowPlayingMessage.set(message);
-		return message;
 	}
 
 	void deletePrevious(TextChannel textChannel) {
@@ -152,11 +139,9 @@ public class PlayerPrinter {
 	}
 
 	private String progressPercentage(int done, int total) {
-		int    size              = 30;
-		String iconLeftBoundary  = "|";
-		String iconDone          = "=";
-		String iconRemain        = "\u00A0. \u200b"; // '&nbsp. <zero-width-sp>'
-		String iconRightBoundary = "|";
+		int    size              = 17;
+		String iconDone          = "⬜";
+		String iconRemain        = "⬛";
 
 		if (done > total) {
 			throw new IllegalArgumentException();
@@ -164,7 +149,7 @@ public class PlayerPrinter {
 		int donePercent = (100 * done) / total;
 		int doneLength  = (size * donePercent) / 100;
 
-		StringBuilder bar = new StringBuilder(iconLeftBoundary);
+		StringBuilder bar = new StringBuilder();
 		for (int i = 0; i < size; i++) {
 			if (i < doneLength) {
 				bar.append(iconDone);
@@ -172,8 +157,6 @@ public class PlayerPrinter {
 				bar.append(iconRemain);
 			}
 		}
-		bar.append(iconRightBoundary);
-
 		return bar.toString();
 	}
 
@@ -226,9 +209,12 @@ public class PlayerPrinter {
 			embed.appendDescription("```");
 		}
 
+
+
 		embed.appendDescription(" ```\n1. " + queue.get(queue.size() - 1).getInfo().title + "```");
 
-		channel.sendMessageEmbeds(embed.build()).queue();
+		channel.sendMessageEmbeds(embed.build()).complete();
+		printNowPlaying(audioManager, channel, true);
 	}
 
 }
