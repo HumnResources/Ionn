@@ -8,7 +8,6 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.time.OffsetDateTime;
@@ -16,11 +15,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 public class PlayerPrinter {
 
-	private final int  historyPollLimit = 7;
+	private final int       historyPollLimit = 7;
+	private final Semaphore semaphore        = new Semaphore(1);
 
 	public PlayerPrinter() {
 
@@ -32,26 +33,33 @@ public class PlayerPrinter {
 
 	public void printNowPlaying(AudioManager audioManager, TextChannel channel, boolean forcePrint) {
 
+		try {
+			semaphore.acquire();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		Message newMessage = buildNewMessage(audioManager);
 
 		if (forcePrint) {
 			channel.sendMessage(newMessage).queue();
+			semaphore.release();
 			return;
 		}
 
 		Message currentMsg = getCurrentNowPlayingMsg(channel);
 
 		if (currentMsg != null) {
-			channel.editMessageById(currentMsg.getId(), newMessage).queue(null, err -> LoggerFactory.getLogger(this.getClass()).info("Error editing message, probably deleted."));
+			channel.editMessageById(currentMsg.getId(), newMessage).complete();
 		} else {
-			channel.sendMessage(newMessage).queue();
+			channel.sendMessage(newMessage).complete();
 		}
+		semaphore.release();
 	}
 
 	private Message buildNewMessage(AudioManager audioManager) {
 		AudioPlayer  player = audioManager.getPlayer();
 		EmbedBuilder embed  = new EmbedBuilder();
-		AudioTrack track = player.getPlayingTrack();
+		AudioTrack   track  = player.getPlayingTrack();
 
 
 		if (track == null) {
@@ -71,7 +79,7 @@ public class PlayerPrinter {
 					(position % 60)
 			);
 
-			String title = info.title;
+			String title  = info.title;
 			String author = info.author;
 			if (title != null && !title.isEmpty()) {
 				embed.appendDescription("\n**%s**\n\n".formatted(title));
@@ -126,9 +134,10 @@ public class PlayerPrinter {
 				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
 				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
 				.filter(msg -> !msg.getEmbeds().isEmpty())
-				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Now Playing"))
-				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Nothing Playing"))
-				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Queue"))
+				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Now Playing") ||
+						msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Nothing Playing") ||
+						msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Queue")
+				)
 				.collect(Collectors.toList());
 
 		if (msgList.size() > 1) {
@@ -139,9 +148,9 @@ public class PlayerPrinter {
 	}
 
 	private String progressPercentage(int done, int total) {
-		int    size              = 19;
-		String iconDone          = "⬜";
-		String iconRemain        = "⬛";
+		int    size       = 19;
+		String iconDone   = "⬜";
+		String iconRemain = "⬛";
 
 		if (done > total) {
 			throw new IllegalArgumentException();
@@ -161,7 +170,11 @@ public class PlayerPrinter {
 	}
 
 	public void printQueue(AudioManager audioManager, TextChannel channel) {
-
+		try {
+			semaphore.acquire();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		ArrayList<AudioTrack> queue = audioManager.getScheduler()
 				.getQueue();
 
@@ -209,7 +222,8 @@ public class PlayerPrinter {
 		}
 		embed.appendDescription(" ```\n1. " + queue.get(queue.size() - 1).getInfo().title + "```");
 
-		channel.sendMessageEmbeds(embed.build()).queue();
+		channel.sendMessageEmbeds(embed.build()).complete();
+		semaphore.release();
 	}
 
 }
