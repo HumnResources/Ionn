@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class Play extends Command {
 
@@ -71,14 +72,14 @@ public class Play extends Command {
 			AudioPlayer player = GuildContext.get(guildID)
 					.audioManager()
 					.getPlayer();
-
 			player.setPaused(!player.isPaused());
 		} else if (args.get(0).matches("(?i)-(next|n)")) {
 			String song = String.join(" ", args.subList(1, args.size()));
 			playNext(song, ctx.getEvent(), trackLoader);
+			ctx.getChannel().sendMessage("Playing `%s` next!".formatted(song)).queue(m -> m.delete().queueAfter(3000, TimeUnit.MILLISECONDS), null);
 		}
 		/* Checks to see if we have a potential link in the message */
-		if (args.get(0).matches("(?i)-(url)")) {
+		else if (args.get(0).matches("(?i)-(url)")) {
 			List<Message.Attachment> attachments = ctx.getEvent()
 					.getMessage()
 					.getAttachments();
