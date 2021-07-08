@@ -6,6 +6,7 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
+import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Guild;
 import org.slf4j.Logger;
@@ -40,7 +41,9 @@ public class TrackScheduler extends AudioEventAdapter {
 	}
 
 	public void setRepeat(boolean repeat) {
-		this.repeat = repeat;
+		if (DBQueryHandler.getPremiumStatus(guildID)) {
+			this.repeat = repeat;
+		}
 	}
 
 	public void queueAudio(AudioTrack track) {
