@@ -20,17 +20,18 @@ import java.util.stream.Collectors;
 
 public class PlayerPrinter {
 
-	private final int   historyPollLimit = 7;
+	private final int  historyPollLimit = 7;
 
 	public PlayerPrinter() {
 
 	}
 
-	public synchronized void printNowPlaying(AudioManager audioManager, TextChannel channel) {
+	public void printNowPlaying(AudioManager audioManager, TextChannel channel) {
 		printNowPlaying(audioManager, channel, false);
 	}
 
-	public synchronized void printNowPlaying(AudioManager audioManager, TextChannel channel, boolean forcePrint) {
+	public void printNowPlaying(AudioManager audioManager, TextChannel channel, boolean forcePrint) {
+
 		Message newMessage = buildNewMessage(audioManager);
 
 		if (forcePrint) {
@@ -98,7 +99,7 @@ public class PlayerPrinter {
 	}
 
 	@Nullable
-	Message getCurrentNowPlayingMsg(TextChannel textChannel) {
+	public Message getCurrentNowPlayingMsg(TextChannel textChannel) {
 		return textChannel
 				.getHistory()
 				.retrievePast(historyPollLimit)
@@ -108,7 +109,7 @@ public class PlayerPrinter {
 				.filter(msg -> !msg.getEmbeds().isEmpty())
 				.filter(msg -> !msg.isPinned())
 				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
-				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now().plusDays(14)))
+				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
 				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Now Playing"))
 				.findFirst()
 				.orElse(null);
@@ -123,22 +124,22 @@ public class PlayerPrinter {
 				.filter(msg -> msg.getAuthor().isBot())
 				.filter(msg -> !msg.isPinned())
 				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
-				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now().plusDays(14)))
-				.filter(msg -> !msg.getEmbeds().isEmpty() && msg.getEmbeds().get(0).getTitle() != null)
-				.filter(msg -> Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Now Playing"))
-				.filter(msg -> Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Queue"))
-				.filter(msg -> Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Nothing Playing"))
+				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
+				.filter(msg -> !msg.getEmbeds().isEmpty())
+				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Now Playing"))
+				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Nothing Playing"))
+				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Queue"))
 				.collect(Collectors.toList());
 
 		if (msgList.size() > 1) {
-			textChannel.deleteMessages(msgList).queue();
+			textChannel.deleteMessages(msgList).complete();
 		} else if (msgList.size() == 1) {
-			textChannel.deleteMessageById(msgList.get(0).getId()).queue();
+			textChannel.deleteMessageById(msgList.get(0).getId()).complete();
 		}
 	}
 
 	private String progressPercentage(int done, int total) {
-		int    size              = 17;
+		int    size              = 19;
 		String iconDone          = "⬜";
 		String iconRemain        = "⬛";
 
@@ -176,7 +177,6 @@ public class PlayerPrinter {
 			return;
 		}
 
-
 		if (queue.size() > 1) {
 			Collections.reverse(queue);
 
@@ -207,13 +207,9 @@ public class PlayerPrinter {
 			}
 			embed.appendDescription("```");
 		}
-
-
-
 		embed.appendDescription(" ```\n1. " + queue.get(queue.size() - 1).getInfo().title + "```");
 
-		channel.sendMessageEmbeds(embed.build()).complete();
-		printNowPlaying(audioManager, channel, true);
+		channel.sendMessageEmbeds(embed.build()).queue();
 	}
 
 }
