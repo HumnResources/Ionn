@@ -17,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static com.zischase.discordbot.audioplayer.MediaControls.*;
@@ -40,34 +41,34 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 				event.getReaction().isSelf() || !ctx.getID().equalsIgnoreCase(event.getGuild().getId())) {
 			return;
 		}
+			CompletableFuture.runAsync(() -> {
+			Message currentNPMessage = ctx.playerPrinter().getCurrentNowPlayingMsg(event.getChannel());
 
-		Message currentNPMessage = ctx.playerPrinter().getCurrentNowPlayingMsg(event.getChannel());
+			if (eventMessage.getIdLong() == currentNPMessage.getIdLong()) {
+				AudioManager manager = ctx.audioManager();
 
-		if (eventMessage.getIdLong() == currentNPMessage.getIdLong()) {
-			AudioManager manager = ctx.audioManager();
-
-			switch (event.getReaction().getReactionEmote().getName()) {
-				/* Shuffle */
-				case SHUFFLE -> {
-					((Shuffle) Objects.requireNonNull(ctx.commandHandler().getCommand("Shuffle"))).shuffle(ctx.getID(), manager);
-					ctx.playerPrinter().printQueue(manager, currentNPMessage.getTextChannel());
-				}
-				/* repeat */
-				case REPEAT -> manager.getScheduler().setRepeat(!manager.getScheduler().isRepeat());
-				/* Prev. Track */
-				case PREV -> manager.getScheduler().prevTrack();
-				/* Play/Pause */
-				case PLAY_PAUSE -> manager.getPlayer().setPaused(!manager.getPlayer().isPaused());
-				/* Next Track */
-				case NEXT -> manager.getScheduler().nextTrack();
-				/* Stop */
-				case STOP -> {
-					manager.getScheduler().clearQueue();
-					manager.getPlayer().stopTrack();
+				switch (event.getReaction().getReactionEmote().getName()) {
+					/* Shuffle */
+					case SHUFFLE -> {
+						((Shuffle) Objects.requireNonNull(ctx.commandHandler().getCommand("Shuffle"))).shuffle(ctx.getID(), manager);
+						ctx.playerPrinter().printQueue(manager, currentNPMessage.getTextChannel());
+					}
+					/* repeat */
+					case REPEAT -> manager.getScheduler().setRepeat(!manager.getScheduler().isRepeat());
+					/* Prev. Track */
+					case PREV -> manager.getScheduler().prevTrack();
+					/* Play/Pause */
+					case PLAY_PAUSE -> manager.getPlayer().setPaused(!manager.getPlayer().isPaused());
+					/* Next Track */
+					case NEXT -> manager.getScheduler().nextTrack();
+					/* Stop */
+					case STOP -> {
+						manager.getScheduler().clearQueue();
+						manager.getPlayer().stopTrack();
+					}
 				}
 			}
-		}
-		addReactions(ctx.playerPrinter(), event.getChannel());
+		});
 	}
 
 	@Override
@@ -81,10 +82,17 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 		/* Clear the current timer, we got a new event to handle */
 		nowPlayingTimer.purge();
 
+		if (activeChannel == null) {
+			return;
+		}
+
+		Message npMessage = printer.getCurrentNowPlayingMsg(activeChannel);
+		if (npMessage != null) {
+			npMessage.clearReactions().complete();
+		}
+
 		/* Ensure we have somewhere to send the message, check for errors */
-		assert activeChannel != null;
 		if (audioEvent instanceof TrackStuckEvent) {
-			printer.getCurrentNowPlayingMsg(activeChannel).clearReactions().complete();
 			activeChannel.sendMessage("Audio track stuck! Ending track and continuing").queue();
 			audioEvent.player.stopTrack();
 		} else if (audioEvent instanceof TrackExceptionEvent) {
@@ -92,11 +100,13 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 			activeChannel.sendMessage("Error loading the audio.").queue();
 			((TrackExceptionEvent) audioEvent).exception.printStackTrace();
 		} else if (audioEvent.player.getPlayingTrack() == null) {
-			printer.getCurrentNowPlayingMsg(activeChannel).clearReactions().complete();
 			printer.deletePrevious(activeChannel);
 			printer.printNowPlaying(audioManager, activeChannel);
 			activeChannel.getJDA().getDirectAudioController().disconnect(activeChannel.getGuild());
 		} else {
+			if (!audioManager.getScheduler().getQueue().isEmpty()) {
+				printer.printQueue(audioManager, activeChannel);
+			}
 			/* Set up a timer to continually update the running time of the song */
 			nowPlayingTimer.scheduleAtFixedRate(new TimerTask() {
 				@Override
@@ -104,8 +114,8 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 					AudioTrack track = audioEvent.player.getPlayingTrack();
 					if (track != null) {
 						if (track.getPosition() < track.getDuration()) {
-							addReactions(printer, activeChannel);
 							printer.printNowPlaying(audioManager, activeChannel);
+							addReactions(printer, activeChannel);
 						}
 					}
 				}

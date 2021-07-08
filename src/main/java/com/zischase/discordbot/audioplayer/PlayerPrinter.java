@@ -31,15 +31,14 @@ public class PlayerPrinter {
 	}
 
 	public synchronized void printNowPlaying(AudioManager audioManager, TextChannel channel, boolean forcePrint) {
-		Message currentMsg = getCurrentNowPlayingMsg(channel);
+		Message newMessage = buildNewMessage(audioManager);
 
 		if (forcePrint) {
-			channel.sendMessage(currentMsg).queue();
+			channel.sendMessage(newMessage).queue();
 			return;
 		}
 
-		Message newMessage = buildNewMessage(audioManager);
-		currentMsg = getCurrentNowPlayingMsg(channel);
+		Message currentMsg = getCurrentNowPlayingMsg(channel);
 
 		if (currentMsg != null) {
 			channel.editMessageById(currentMsg.getId(), newMessage).queue(null, err -> LoggerFactory.getLogger(this.getClass()).info("Error editing message, probably deleted."));
