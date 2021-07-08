@@ -7,28 +7,27 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class CommandContext implements ICommandContext {
 
 	private final GuildMessageReceivedEvent event;
 	private final List<String>              args;
-	private final AtomicReference<Member>   eventInitiator = new AtomicReference<>(null);
+	private final Member                    eventInitiator;
 
 	public CommandContext(GuildMessageReceivedEvent event, List<String> args) {
-		this.event = event;
-		this.args  = args;
-		this.eventInitiator.set(event.getMember());
+		this.event          = event;
+		this.args           = args;
+		this.eventInitiator = event.getMember();
 	}
 
 	public CommandContext(GuildMessageReceivedEvent event, List<String> args, Member initiator) {
-		this.event = event;
-		this.args  = args;
-		this.eventInitiator.set(initiator);
+		this.event          = event;
+		this.args           = args;
+		this.eventInitiator = initiator;
 	}
 
 	public Member getEventInitiator() {
-		return eventInitiator.get();
+		return eventInitiator;
 	}
 
 	@Override
