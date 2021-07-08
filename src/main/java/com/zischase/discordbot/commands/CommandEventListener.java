@@ -75,7 +75,7 @@ public class CommandEventListener extends ListenerAdapter {
 			/* Delete the command issued by the bot */
 			event.getChannel().sendMessage(mb.build()).queue((cmdMsg) -> cmdMsg.delete().queue());
 			event.getHook().deleteOriginal().queue();
-		});
+		}, err -> LOGGER.warn("Timeout for command {} !", event.getName()));
 	}
 
 	@Override
