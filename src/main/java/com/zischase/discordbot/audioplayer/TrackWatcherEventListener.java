@@ -29,8 +29,8 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 	private static final int          MAX_REACTIONS             = 6;
 	private final        GuildContext ctx;
 
-	private final Semaphore semaphore = new Semaphore(1);
-	private final ScheduledThreadPoolExecutor exec = new ScheduledThreadPoolExecutor(1);
+	private final Semaphore                   semaphore = new Semaphore(1);
+	private final ScheduledThreadPoolExecutor exec      = new ScheduledThreadPoolExecutor(1);
 
 	public TrackWatcherEventListener(GuildContext ctx) {
 		this.ctx = ctx;
@@ -46,32 +46,31 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 				event.getReaction().isSelf() || !ctx.getID().equalsIgnoreCase(event.getGuild().getId())) {
 			return;
 		}
-			Message currentNPMessage = ctx.playerPrinter().getCurrentNowPlayingMsg(event.getChannel());
+		Message currentNPMessage = ctx.playerPrinter().getCurrentNowPlayingMsg(event.getChannel());
+		if (currentNPMessage != null && eventMessage.getId().equals(currentNPMessage.getId())) {
+			AudioManager manager = ctx.audioManager();
 
-			if (eventMessage.getIdLong() == currentNPMessage.getIdLong()) {
-				AudioManager manager = ctx.audioManager();
-
-				switch (event.getReaction().getReactionEmote().getName()) {
-					/* Shuffle */
-					case SHUFFLE -> {
-						((Shuffle) Objects.requireNonNull(ctx.commandHandler().getCommand("Shuffle"))).shuffle(ctx.getID(), manager);
-						ctx.playerPrinter().printQueue(manager, currentNPMessage.getTextChannel());
-					}
-					/* repeat */
-					case REPEAT -> manager.getScheduler().setRepeat(!manager.getScheduler().isRepeat());
-					/* Prev. Track */
-					case PREV -> manager.getScheduler().prevTrack();
-					/* Play/Pause */
-					case PLAY_PAUSE -> manager.getPlayer().setPaused(!manager.getPlayer().isPaused());
-					/* Next Track */
-					case NEXT -> manager.getScheduler().nextTrack();
-					/* Stop */
-					case STOP -> {
-						manager.getScheduler().clearQueue();
-						manager.getPlayer().stopTrack();
-					}
+			switch (event.getReaction().getReactionEmote().getName()) {
+				/* Shuffle */
+				case SHUFFLE -> {
+					((Shuffle) Objects.requireNonNull(ctx.commandHandler().getCommand("Shuffle"))).shuffle(ctx.getID(), manager);
+					ctx.playerPrinter().printQueue(manager, eventMessage.getTextChannel());
+				}
+				/* repeat */
+				case REPEAT -> manager.getScheduler().setRepeat(!manager.getScheduler().isRepeat());
+				/* Prev. Track */
+				case PREV -> manager.getScheduler().prevTrack();
+				/* Play/Pause */
+				case PLAY_PAUSE -> manager.getPlayer().setPaused(!manager.getPlayer().isPaused());
+				/* Next Track */
+				case NEXT -> manager.getScheduler().nextTrack();
+				/* Stop */
+				case STOP -> {
+					manager.getScheduler().clearQueue();
+					manager.getPlayer().stopTrack();
 				}
 			}
+		}
 	}
 
 	@Override
@@ -86,18 +85,13 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 			return;
 		}
 
-		Message npMessage = printer.getCurrentNowPlayingMsg(activeChannel);
-		if (npMessage != null) {
-			npMessage.clearReactions().complete();
-		}
-
 		/* Ensure we have somewhere to send the message, check for errors */
 		if (audioEvent instanceof TrackStuckEvent) {
 
 			activeChannel.sendMessage("Audio track stuck! Ending track and continuing").queue();
-			audioEvent.player.stopTrack();
+			audioManager.getScheduler().nextTrack();
 
-			/* Clear the current timer, we got a new event to handle */
+			/* Clear the current daemon, we got a new event to handle */
 			exec.purge();
 		} else if (audioEvent instanceof TrackExceptionEvent) {
 
@@ -105,17 +99,18 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 			activeChannel.sendMessage("Error loading the audio.").queue();
 			((TrackExceptionEvent) audioEvent).exception.printStackTrace();
 
-			/* Clear the current timer, we got a new event to handle */
 			exec.purge();
 		} else if (audioEvent.player.getPlayingTrack() == null) {
-
+			Message npMessage = printer.getCurrentNowPlayingMsg(activeChannel);
+			if (npMessage != null ) {
+				npMessage.clearReactions().complete();
+			}
 			printer.deletePrevious(activeChannel);
 			printer.printNowPlaying(audioManager, activeChannel);
 			activeChannel.getJDA().getDirectAudioController().disconnect(activeChannel.getGuild());
 
-			/* Clear the current timer, we got a new event to handle */
 			exec.purge();
-		} else if (audioEvent instanceof TrackStartEvent){
+		} else if (audioEvent instanceof TrackStartEvent) {
 			exec.purge();
 
 			boolean inChannel = ctx.guild().getSelfMember().getVoiceState() != null && Objects.requireNonNull(ctx.guild().getSelfMember().getVoiceState()).inVoiceChannel();
@@ -135,10 +130,8 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 
 			if (!audioManager.getScheduler().getQueue().isEmpty()) {
 				printer.printQueue(audioManager, activeChannel);
-				printer.printNowPlaying(audioManager, activeChannel);
 				printer.printNowPlaying(audioManager, activeChannel, true);
-			}
-			else {
+			} else {
 				printer.deletePrevious(activeChannel);
 			}
 			semaphore.release();
