@@ -12,9 +12,12 @@ import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.message.guild.react.GenericGuildMessageReactionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +27,7 @@ import static com.zischase.discordbot.audioplayer.MediaControls.*;
 
 public class TrackWatcherEventListener extends ListenerAdapter implements AudioEventListener {
 
+	private static final Logger       LOGGER                    = LoggerFactory.getLogger(TrackWatcherEventListener.class);
 	private static final int          NOW_PLAYING_TIMER_RATE_MS = 5000;
 	private final        GuildContext ctx;
 
@@ -39,14 +43,16 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 
 	@Override
 	public void onGenericGuildMessageReaction(@NotNull GenericGuildMessageReactionEvent event) {
-			Message eventMessage = event.retrieveMessage().complete();
+		List<Message> messages = event.getChannel().getHistory().retrievePast(10).complete();
 
-			if (!eventMessage.getAuthor().isBot() || event.retrieveUser().complete().isBot() ||
+		event.retrieveMessage().queue(msg -> {
+			if (!msg.getAuthor().isBot() || event.retrieveUser().complete().isBot() ||
 					event.getReaction().isSelf() || !ctx.getID().equalsIgnoreCase(event.getGuild().getId())) {
 				return;
 			}
-			Message currentNPMessage = ctx.playerPrinter().getCurrentNowPlayingMsg(event.getChannel());
-			if (currentNPMessage != null && eventMessage.getId().equals(currentNPMessage.getId())) {
+			Message currentNPMessage = ctx.playerPrinter().getNPMsg().apply(messages);
+
+			if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
 				AudioManager manager = ctx.audioManager();
 
 				String reaction = event.getReaction().getReactionEmote().getName();
@@ -54,7 +60,7 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 				switch (reaction) {
 					case SHUFFLE -> {
 						((Shuffle) Objects.requireNonNull(ctx.commandHandler().getCommand("Shuffle"))).shuffle(ctx.getID(), manager);
-						ctx.playerPrinter().printQueue(manager, eventMessage.getTextChannel());
+						ctx.playerPrinter().printQueue(manager, msg.getTextChannel());
 					}
 					case REPEAT_QUEUE -> manager.getScheduler().setRepeatQueue(!manager.getScheduler().isRepeatQueue());
 					case REPEAT_ONE -> manager.getScheduler().setRepeatSong(!manager.getScheduler().isRepeatSong());
@@ -67,15 +73,11 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 					}
 				}
 			}
+		});
 	}
 
 	@Override
 	public void onEvent(AudioEvent audioEvent) {
-		try {
-			semaphore.acquire();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 
 		/* Check for available channel to display Now PLaying prompt */
 		String        dbQuery       = DBQueryHandler.get(ctx.getID(), "media_settings", "textChannel");
@@ -101,7 +103,7 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 
 		} else if (audioEvent instanceof TrackEndEvent && audioManager.getScheduler().getQueue().isEmpty()) {
 			Message npMessage = printer.getCurrentNowPlayingMsg(activeChannel);
-			if (npMessage != null ) {
+			if (npMessage != null) {
 				npMessage.clearReactions().complete();
 			}
 			printer.deletePrevious(activeChannel);
@@ -144,8 +146,6 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 			};
 			exec.scheduleAtFixedRate(runnable, NOW_PLAYING_TIMER_RATE_MS, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
 		}
-
-		semaphore.release();
 	}
 
 	@Override
@@ -157,8 +157,11 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 	}
 
 	private void addReactions(PlayerPrinter printer, TextChannel channel) {
+		List<Message> messages = channel.getHistory().retrievePast(10).complete();
+		CompletableFuture.runAsync(() -> {
 			/* Small wait to allow printer to display song info if needed */
-			Message nowPlayingMsg = printer.getCurrentNowPlayingMsg(channel);
+			Message nowPlayingMsg = printer.getNPMsg().apply(messages);
+
 
 			if (nowPlayingMsg == null || nowPlayingMsg.getType() == MessageType.UNKNOWN || nowPlayingMsg.getReactions().size() == MediaControls.getReactions().size()) {
 				return;
@@ -175,6 +178,7 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 					nowPlayingMsg.addReaction(reaction).queue();
 				}
 			}
+		});
 	}
 
 }

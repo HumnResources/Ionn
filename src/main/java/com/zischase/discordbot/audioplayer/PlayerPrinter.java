@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class PlayerPrinter {
@@ -113,6 +114,19 @@ public class PlayerPrinter {
 				.getHistory()
 				.retrievePast(historyPollLimit)
 				.complete()
+				.stream()
+				.filter(msg -> msg.getAuthor().isBot())
+				.filter(msg -> !msg.getEmbeds().isEmpty())
+				.filter(msg -> !msg.isPinned())
+				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
+				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
+				.filter(msg -> msg.getEmbeds().get(0).getTitle() != null && Objects.requireNonNull(msg.getEmbeds().get(0).getTitle()).contains("Now Playing"))
+				.findFirst()
+				.orElse(null);
+	}
+
+	public Function<List<Message>, Message> getNPMsg() {
+		return messages -> messages
 				.stream()
 				.filter(msg -> msg.getAuthor().isBot())
 				.filter(msg -> !msg.getEmbeds().isEmpty())
