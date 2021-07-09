@@ -12,7 +12,6 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.apache.commons.collections4.map.LinkedMap;
-import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -56,13 +55,17 @@ public class TrackLoader implements AudioLoadResultHandler {
 			}
 			/* No Match - Search YouTube instead */
 			catch (MalformedURLException e) {
-				LoggerFactory.getLogger(this.getClass()).info("No url provided, searching youtube instead. - {}", uri);
-
 				GuildContext.get(guildID)
 						.audioManager()
 						.getPlayerManager()
 						.loadItem("ytsearch: " + uri, new FunctionalResultHandler(this::trackLoaded, (playlist) -> trackLoaded(playlist.getTracks().get(0)), this::noMatches, this::loadFailed));
 			}
+		}
+	}
+
+	public void load(VoiceChannel voiceChannel, TextChannel textChannel, AudioTrack audioTrack) {
+		if (joinChannels(voiceChannel, textChannel)) {
+			GuildContext.get(guildID).audioManager().getPlayer().startTrack(audioTrack, true);
 		}
 	}
 
