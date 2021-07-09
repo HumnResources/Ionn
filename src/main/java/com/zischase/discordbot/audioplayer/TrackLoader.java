@@ -65,7 +65,7 @@ public class TrackLoader implements AudioLoadResultHandler {
 
 	public void load(VoiceChannel voiceChannel, TextChannel textChannel, AudioTrack audioTrack) {
 		if (joinChannels(voiceChannel, textChannel)) {
-			GuildContext.get(guildID).audioManager().getPlayer().startTrack(audioTrack, true);
+			this.trackLoaded(audioTrack);
 		}
 	}
 
