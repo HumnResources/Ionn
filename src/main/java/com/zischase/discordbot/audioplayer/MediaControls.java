@@ -17,6 +17,7 @@ public class MediaControls {
 	public static final String        RADIO                 = "📻";
 	public static final String        MICROPHONE            = "🎙";
 	public static final String        VOLUME_HIGH           = "🔊";
+	public static final String		  RED_RECORDING_DOT	 	= "🔴";
 	private static final List<String> NOW_PLAYING_REACTIONS = List.of(SHUFFLE, REPEAT_QUEUE, REPEAT_ONE, PREV, PLAY_PAUSE, NEXT);
 
 	MediaControls() {
