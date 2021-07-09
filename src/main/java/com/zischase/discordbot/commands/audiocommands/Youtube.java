@@ -9,10 +9,8 @@ import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
-import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,7 +22,7 @@ public class Youtube extends Command {
 
 	@Override
 	public @NotNull String shortDescription() {
-		return "Plays or searches for a song from youtube";
+		return "Searches YouTube - Reply with number";
 	}
 
 	@Override
@@ -34,7 +32,7 @@ public class Youtube extends Command {
 
 	@Override
 	public String helpText() {
-		return "`Youtube [Search Query] : Search youtube for a song. Then adds it to the queue`\n" + "`Youtube -[search|s] : Provides a list of songs. Reply with a number to choose.`\n" + "`Aliases: " + String
+		return "`Youtube [Search Query] : Search youtube, then adds selected choice to the queue. Reply with number to choose`\n`Aliases: " + String
 				.join(" ", getAliases()) + "`";
 	}
 
@@ -42,10 +40,7 @@ public class Youtube extends Command {
 	public CommandData getCommandData() {
 		OptionData query = new OptionData(OptionType.STRING, "query", "Displays a list from search result", true);
 
-		return super.getCommandData().addSubcommands(
-				new SubcommandData("list", "Display list of songs").addOptions(query),
-				new SubcommandData("search", "Play a song").addOptions(query.setDescription("Add first song from search result"))
-		);
+		return super.getCommandData().addOptions(query);
 	}
 
 	@Override
@@ -72,7 +67,7 @@ public class Youtube extends Command {
 						new FunctionalResultHandler(
 								(audioTrack) -> g_ctx.audioManager().getTrackLoader().load(voiceChannel, ctx.getChannel(), audioTrack),
 								(playlist) -> {
-									List<ISearchable> searchables = new ArrayList<>();
+									List<ISearchable> searchables;
 									searchables = playlist.getTracks()
 											.stream()
 											.map(SearchInfo::new)
