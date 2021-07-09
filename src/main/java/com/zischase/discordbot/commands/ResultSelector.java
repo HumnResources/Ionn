@@ -2,71 +2,80 @@ package com.zischase.discordbot.commands;
 
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 import com.jagrosh.jdautilities.menu.Paginator;
+import com.sun.istack.Nullable;
+import com.zischase.discordbot.audioplayer.MediaControls;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.events.message.guild.react.GenericGuildMessageReactionEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import java.awt.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
-public class ResultSelector extends ListenerAdapter {
+public class ResultSelector {
+
+	/* Constants for defining behavior of searches */
+	private static final int  MAX_SEARCHES_PER_GUILD        = 1;
+	private static final long TIMEOUT_CHECK_STALE_LOCKS_SEC = 100;
+	private static final Logger LOGGER = LoggerFactory.getLogger(ResultSelector.class);
 
 	private final CompletableFuture<ISearchable> futureResult = new CompletableFuture<>();
-	private final Semaphore                      semaphore    = new Semaphore(1);
-//	private final Paginator.Builder              builder      = new Paginator.Builder();
-//	private final EventWaiter                    waiter       = new EventWaiter();
+	private final Semaphore                      semaphore    = new Semaphore(MAX_SEARCHES_PER_GUILD);
+	private       Color                          embedColor   = Color.PINK;
 	private final List<ISearchable>              searches;
 	private final TextChannel                    textChannel;
 	private final JDA                            jda;
 	private final Member                         initiator;
-	private       LocalDateTime                  start;
+	private       OffsetDateTime                 start;
 
 	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator) {
 		this.searches    = searches;
 		this.textChannel = textChannel;
 		this.jda         = jda;
 		this.initiator   = initiator;
-	}
-
-	@Override
-	public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent tmpEvent) {
-		if (tmpEvent.getMember() == initiator) {
-			Message tmpMessage = tmpEvent.getMessage();
-			String  choice     = tmpMessage.getContentDisplay();
-
-			if (tmpMessage.getChannel() == textChannel && choice.matches("(\\d+).?")) {
-				int num = Integer.parseInt(choice);
-				if (num > 0 && num <= searches.size()) {
-					futureResult.complete(searches.get(num - 1));
-					semaphore.release();
+		new Timer().scheduleAtFixedRate(new TimerTask() {
+			@Override
+			public void run() {
+				if (OffsetDateTime.now().isAfter(start.plusSeconds(TIMEOUT_CHECK_STALE_LOCKS_SEC))) {
+					semaphore.release(MAX_SEARCHES_PER_GUILD);
 				}
 			}
-			semaphore.release();
-		} else if (LocalDateTime.now().isAfter(start.plusSeconds(60))) {
-			semaphore.release();
-		}
+		}, TIMEOUT_CHECK_STALE_LOCKS_SEC, TIMEOUT_CHECK_STALE_LOCKS_SEC);
 	}
 
-	public ISearchable getChoice() {
-		ISearchable result = null;
-		start = LocalDateTime.now();
+	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator, Color color) {
+		this(searches, textChannel, jda, initiator);
+		this.embedColor = color;
+	}
 
-		EventWaiter waiter = new EventWaiter();
-		Message message = new MessageBuilder().append("Search Results").build();
+	@Nullable
+	public ISearchable get() {
+		ISearchable result = null;
+		start = OffsetDateTime.now();
+
+		EventWaiter waiter  = new EventWaiter();
+		Message     message = new MessageBuilder().append("Search Results").build();
 		message = textChannel.sendMessage(message).complete();
+
+		waiter.waitForEvent(GuildMessageReceivedEvent.class, this::checkValidEntry, this::selectEntry, TIMEOUT_CHECK_STALE_LOCKS_SEC, TimeUnit.SECONDS, semaphore::release);
+
+		waiter.waitForEvent(GenericGuildMessageReactionEvent.class, this::CheckUserStop, eventCallback -> semaphore.release());
 
 		Paginator.Builder builder = new Paginator.Builder()
 				.setText(initiator.getAsMention())
-				.setColor(Color.PINK)
+				.setColor(embedColor)
 				.useNumberedItems(true)
 				.showPageNumbers(true)
 				.setColumns(1)
@@ -78,8 +87,8 @@ public class ResultSelector extends ListenerAdapter {
 		searches.forEach(s -> builder.addItems(s.getName()));
 
 		builder.build().display(message);
-		jda.addEventListener(this);
 		jda.addEventListener(waiter);
+
 
 		try {
 			semaphore.acquire();
@@ -88,11 +97,27 @@ public class ResultSelector extends ListenerAdapter {
 			e.printStackTrace();
 		}
 
-		message.delete().queue();
+		jda.removeEventListener(waiter);
 
-		jda.removeEventListener(this);
-		jda.addEventListener(waiter);
+		message.delete().queue((success) -> {/**/}, (err) -> LOGGER.warn("Message delete error - {}", err.getCause().toString()));
+
 		semaphore.release();
 		return result;
+	}
+
+	private boolean CheckUserStop(GenericGuildMessageReactionEvent event) {
+		return event.getMember() == initiator && event.getReactionEmote().getName().equals(MediaControls.STOP);
+	}
+
+	private boolean checkValidEntry(GuildMessageReceivedEvent event) {
+		return event.getMember() == initiator && event.getMessage().getContentDisplay().matches("(\\d+).?");
+	}
+
+	private void selectEntry(GuildMessageReceivedEvent event) {
+		int num = Integer.parseInt(event.getMessage().getContentDisplay());
+		if (num > 0 && num <= searches.size()) {
+			futureResult.complete(searches.get(num - 1));
+			semaphore.release();
+		}
 	}
 }
