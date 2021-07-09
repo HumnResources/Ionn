@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -72,7 +73,7 @@ public class Youtube extends Command {
 											.stream()
 											.map(SearchInfo::new)
 											.collect(Collectors.toList());
-									ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator()).getChoice();
+									ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator(), Color.RED).getChoice();
 
 									AudioTrack track = playlist.getTracks()
 											.stream()
