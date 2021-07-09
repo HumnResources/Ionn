@@ -73,7 +73,7 @@ public class Youtube extends Command {
 											.stream()
 											.map(SearchInfo::new)
 											.collect(Collectors.toList());
-									ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator(), Color.RED).getChoice();
+									ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator(), Color.RED).get();
 
 									AudioTrack track = playlist.getTracks()
 											.stream()
