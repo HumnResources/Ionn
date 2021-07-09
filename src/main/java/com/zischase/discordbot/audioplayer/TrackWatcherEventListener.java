@@ -16,7 +16,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -51,8 +50,6 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 
 	@Override
 	public void onGenericGuildMessageReaction(@NotNull GenericGuildMessageReactionEvent event) {
-		List<Message> messages = event.getChannel().getHistory().retrievePast(10).complete();
-
 		event.retrieveMessage().queue(msg -> {
 			if (!msg.getAuthor().isBot() || event.retrieveUser().complete().isBot() ||
 					event.getReaction().isSelf() || !id.equalsIgnoreCase(event.getGuild().getId())) {
