@@ -1,5 +1,7 @@
 package com.zischase.discordbot.commands;
 
+import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
+import com.jagrosh.jdautilities.menu.Paginator;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
@@ -16,20 +18,19 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 public class ResultSelector extends ListenerAdapter {
 
-	//	private final int                            searchDelayMS       = Integer.parseInt(Config.get("SEARCH_RESULT_DELAY_MS")); // Where delay is the duration until listener gets terminated.
-//	private final int                            searchDisplayTimeMS = Integer.parseInt(Config.get("SEARCH_RESULT_OFFSET_MS")) + searchDelayMS; // Where offset is approximate time to query result.
 	private final CompletableFuture<ISearchable> futureResult = new CompletableFuture<>();
+	private final Semaphore                      semaphore    = new Semaphore(1);
+//	private final Paginator.Builder              builder      = new Paginator.Builder();
+//	private final EventWaiter                    waiter       = new EventWaiter();
 	private final List<ISearchable>              searches;
 	private final TextChannel                    textChannel;
 	private final JDA                            jda;
 	private final Member                         initiator;
-	private final Semaphore                      semaphore    = new Semaphore(1);
-
-	private LocalDateTime start;
-	private Message       resultMessage;
+	private       LocalDateTime                  start;
 
 	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator) {
 		this.searches    = searches;
@@ -51,10 +52,8 @@ public class ResultSelector extends ListenerAdapter {
 					semaphore.release();
 				}
 			}
-			jda.removeEventListener(this);
 			semaphore.release();
 		} else if (LocalDateTime.now().isAfter(start.plusSeconds(60))) {
-			jda.removeEventListener(this);
 			semaphore.release();
 		}
 	}
@@ -62,9 +61,28 @@ public class ResultSelector extends ListenerAdapter {
 	public ISearchable getChoice() {
 		ISearchable result = null;
 		start = LocalDateTime.now();
-		jda.addEventListener(this);
 
-		resultMessage = textChannel.sendMessage(printList()).complete();
+		EventWaiter waiter = new EventWaiter();
+		Message message = new MessageBuilder().setEmbeds(new EmbedBuilder().setTitle("Search Results").build()).build();
+		message = textChannel.sendMessage(message).complete();
+
+		Paginator.Builder builder = new Paginator.Builder()
+				.setText("@"+initiator.getUser().getName())
+				.setColor(Color.PINK)
+				.useNumberedItems(true)
+				.showPageNumbers(true)
+				.setColumns(1)
+				.waitOnSinglePage(true)
+				.setItemsPerPage(10)
+				.setUsers(initiator.getUser())
+				.setTimeout(60, TimeUnit.SECONDS)
+				.setEventWaiter(waiter);
+
+		searches.forEach(s -> builder.addItems(s.getName()));
+
+		builder.build().display(message);
+		jda.addEventListener(this);
+		jda.addEventListener(waiter);
 
 		try {
 			semaphore.acquire();
@@ -73,38 +91,11 @@ public class ResultSelector extends ListenerAdapter {
 			e.printStackTrace();
 		}
 
-		resultMessage.delete().complete();
+		message.delete().queue();
 
 		jda.removeEventListener(this);
+		jda.addEventListener(waiter);
 		semaphore.release();
 		return result;
 	}
-
-	private Message printList() {
-		EmbedBuilder embed = new EmbedBuilder();
-		embed.setColor(Color.DARK_GRAY);
-
-		if (searches.isEmpty()) {
-			embed.appendDescription("No results found !");
-		} else {
-			embed.setFooter("Don't take long!");
-			String length = "";
-			for (ISearchable result : searches) {
-				embed.appendDescription((searches.indexOf(result) + 1) + ". `" + result.getName() + "`");
-				embed.appendDescription(System.lineSeparator());
-
-				length = length.concat((searches.indexOf(result) + 1) + ". `" + result.getName() + "`" + System.lineSeparator());
-
-				if (length.length() >= 2000) {
-					length = "";
-					textChannel.sendMessageEmbeds(embed.build())
-							.queue();
-					embed = new EmbedBuilder();
-					embed.setColor(Color.DARK_GRAY);
-				}
-			}
-		}
-		return new MessageBuilder().setEmbeds(embed.build()).build();
-	}
-
 }

@@ -71,7 +71,8 @@ public class PlayerPrinter {
 			long           duration  = info.length / 1000;
 			long           position  = track.getPosition() / 1000;
 			String         paused    = player.isPaused() ? MediaControls.PAUSE : MediaControls.PLAY;
-			String         repeat    = audioManager.getScheduler().isRepeat() ? MediaControls.REPEAT : "";
+			String         repeatOne = audioManager.getScheduler().isRepeatSong() ? MediaControls.REPEAT_ONE : "";
+			String         repeat    = audioManager.getScheduler().isRepeatQueue() ? MediaControls.REPEAT_QUEUE : "";
 			String         timeTotal = String.format("%d:%02d:%02d", duration / 3600, (duration % 3600) / 60, (duration % 60));
 			String timeCurrent = String.format("%d:%02d:%02d",
 					position / 3600,
@@ -99,8 +100,8 @@ public class PlayerPrinter {
 			}
 			embed.setColor(Color.CYAN);
 			embed.setTitle("%s%s  Now Playing  %s%s".formatted(MediaControls.RADIO, MediaControls.NOTES_ONE, MediaControls.NOTES_ONE, MediaControls.RADIO)); // Music Notes
-			embed.appendDescription("\n\n%s  %s".formatted(paused, repeat));
-			embed.addField("", "\n%s    **%s**".formatted(MediaControls.VOLUME_HIGH, audioManager.getPlayer().getVolume()), true); // Volume
+			embed.addField("", "%s **%s**".formatted(MediaControls.VOLUME_HIGH, audioManager.getPlayer().getVolume()), true); // //  "🔊 <n> ⏸▶ 🔁
+			embed.addField("", "%s %s %s".formatted(paused, repeat, repeatOne), true); // Volume
 		}
 
 		return new MessageBuilder().setEmbeds(embed.build()).build();
@@ -148,7 +149,7 @@ public class PlayerPrinter {
 	}
 
 	private String progressPercentage(int done, int total) {
-		int    size       = 19;
+		int    size       = 16;
 		String iconDone   = "⬜";
 		String iconRemain = "⬛";
 
