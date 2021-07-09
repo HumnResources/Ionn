@@ -64,6 +64,7 @@ public class Queue extends Command {
 				.audioManager()
 				.getScheduler();
 
+		ArrayList<AudioTrack> queue = scheduler.getQueue();
 		if (!args.isEmpty()) {
 			if (args.size() == 1) {
 				if (args.get(0).matches("(?i)-(clear|c)")) {
@@ -77,7 +78,6 @@ public class Queue extends Command {
 							.queue();
 				}
 			} else if (args.size() == 2 && args.get(1).matches("(?i)(\\d+)")) {
-				ArrayList<AudioTrack> queue = scheduler.getQueue();
 				int                   index = Integer.parseInt(args.get(1));
 
 				if (index < 2 || index > queue.size()) {
@@ -109,7 +109,7 @@ public class Queue extends Command {
 
 		GuildContext.get(ctx.getGuild().getId())
 				.playerPrinter()
-				.printQueue(GuildContext.get(ctx.getGuild().getId()).audioManager(), ctx.getChannel());
+				.printQueue(queue, ctx.getChannel());
 
 		GuildContext.get(ctx.getGuild().getId())
 				.playerPrinter()
