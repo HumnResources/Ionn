@@ -10,13 +10,11 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -52,17 +50,12 @@ public class Radio extends Command {
 
 	@Override
 	public CommandData getCommandData() {
-		return super.getCommandData().addSubcommands(
-				new SubcommandData("list", "Display list of radio stations")
-						.addOption(OptionType.STRING, "query", "Displays a list from search result"),
-				new SubcommandData("tag", "Add a radio station to queue matching tag")
-						.addOption(OptionType.STRING, "query", "Add first song from search result")
-		);
+		return super.getCommandData().addOption(OptionType.STRING, "query", "Displays a list from search result", true);
 	}
 
 	@Override
 	public @NotNull String shortDescription() {
-		return "Plays a selected radio station.";
+		return "Plays a selected radio station. Input number to choose";
 	}
 
 	@Override
@@ -73,40 +66,24 @@ public class Radio extends Command {
 	@Override
 	public String helpText() {
 		return String.format("""
-				Radio [genre]
-				Radio [-search|-s] [search term]
+				Radio 
+				Radio [search term]
 				Aliases: %s
 				""", getAliases());
 	}
 
 	@Override
 	public void handle(CommandContext ctx) {
-		List<String> args = ctx.getArgs();
-
-		String guildID = ctx.getGuild().getId();
-		TextChannel textChannel = ctx.getChannel();
+		List<String> args        = ctx.getArgs();
+		String       guildID     = ctx.getGuild().getId();
+		TextChannel  textChannel = ctx.getChannel();
 		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
 				ctx.getEventInitiator().getVoiceState().getChannel() : null;
 
-		if (!args.isEmpty()) {
-			String query = String.join(" ", args).toLowerCase();
-
-			if (args.get(0).matches("(?i)-(list|l)")) {
-
-				query = query.replaceFirst("(?i)-(list|l)", "").trim();
-
-				searchByString(guildID, textChannel, voiceChannel, query, ctx.getEventInitiator());
-				return;
-			}
-			String finalQuery = query;
-			boolean tagFound = STATION_LIST.stream().anyMatch(stn ->
-					stn.getTags().matches("(?i)(" + finalQuery + ")"));
-
-			if (tagFound) {
-				searchByTag(guildID, textChannel, voiceChannel, query);
-			}
-		}
+		String query = String.join(" ", args).toLowerCase();
+		searchByString(guildID, textChannel, voiceChannel, query, ctx.getEventInitiator());
 	}
+
 
 	private void searchByString(String guildID, TextChannel textChannel, VoiceChannel voiceChannel, String query, Member initiator) {
 		// RegEx for negative lookahead searching for only non word characters.
@@ -118,7 +95,7 @@ public class Radio extends Command {
 						.toLowerCase()
 						.replaceAll("(?!\\w|\\s)(\\W)", " ")
 						.contains(finalQuery))
-				.limit(50)
+				.limit(100)
 				.collect(Collectors.toList());
 
 		if (stations.isEmpty()) {
@@ -130,25 +107,10 @@ public class Radio extends Command {
 			results.add(new SearchInfo(s));
 		}
 
-		ISearchable result = new ResultSelector(results, textChannel, textChannel.getJDA(), initiator).getChoice();
+		ISearchable result = new ResultSelector(results, textChannel, textChannel.getJDA(), initiator).get();
 		GuildContext.get(guildID)
 				.audioManager()
 				.getTrackLoader()
 				.load(textChannel, voiceChannel, result.getUrl());
 	}
-
-	private void searchByTag(String guildID, TextChannel textChannel, VoiceChannel voiceChannel, String query) {
-		List<Station> stations = STATION_LIST.stream()
-				.filter(stn -> stn.getTags().matches("(?i)(" + query + ")"))
-				.collect(Collectors.toList());
-		if (stations.isEmpty()) {
-			return;
-		}
-		Collections.shuffle(stations);
-		GuildContext.get(guildID)
-				.audioManager()
-				.getTrackLoader()
-				.load(textChannel, voiceChannel, stations.get(0).getUrl());
-	}
-
 }
