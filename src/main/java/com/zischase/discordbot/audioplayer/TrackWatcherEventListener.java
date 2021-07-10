@@ -5,6 +5,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import com.zischase.discordbot.guildcontrol.GuildContext;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.message.guild.react.GenericGuildMessageReactionEvent;
@@ -21,31 +22,20 @@ import java.util.concurrent.TimeUnit;
 
 import static com.zischase.discordbot.audioplayer.MediaControls.*;
 
-public class TrackWatcherEventListener extends ListenerAdapter implements AudioEventListener {
+public class TrackWatcherEventListener extends ListenerAdapter {
 
-	private static final Logger LOGGER                    = LoggerFactory.getLogger(TrackWatcherEventListener.class);
-	private static final int    NOW_PLAYING_TIMER_RATE_MS = 10000;
+//	private static final Logger LOGGER                    = LoggerFactory.getLogger(TrackWatcherEventListener.class);
 
 	private final String        id;
 	private final PlayerPrinter printer;
 	private final AudioManager  audioManager;
-	private final Guild         guild;
-	private       TextChannel   textChannel;
-	private       VoiceChannel  voiceChannel;
 
-	private final ScheduledThreadPoolExecutor exec = new ScheduledThreadPoolExecutor(1);
-	private final Semaphore semaphore = new Semaphore(1);
 
-	public TrackWatcherEventListener(GuildContext ctx) {
-		this.id           = ctx.getID();
-		this.guild        = ctx.guild();
-		this.printer      = ctx.playerPrinter();
-		this.audioManager = ctx.audioManager();
-		this.textChannel  = ctx.guild().getTextChannelById(DBQueryHandler.get(ctx.getID(), "media_settings", "textChannel"));
-		this.voiceChannel  = ctx.guild().getVoiceChannelById(DBQueryHandler.get(ctx.getID(), "media_settings", "voicechannel"));
-		this.exec.setMaximumPoolSize(1);
-		ctx.guild().getJDA().addEventListener(this);
-		ctx.audioManager().getPlayer().addListener(this);
+	public TrackWatcherEventListener(JDA jda, PlayerPrinter printer, AudioManager audioManager, String guildID) {
+		this.id           = guildID;
+		this.printer      = printer;
+		this.audioManager = audioManager;
+		jda.addEventListener(this);
 	}
 
 	@Override
@@ -66,8 +56,10 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 			CompletableFuture.runAsync(() -> {
 				switch (reaction) {
 					case SHUFFLE -> {
-						((Shuffle) Objects.requireNonNull(GuildContext.get(id).commandHandler().getCommand("Shuffle"))).shuffle(id, audioManager);
-						printer.printQueue(audioManager.getScheduler().getQueue(), msg.getTextChannel());
+						Shuffle.shuffle(id, audioManager);
+						if (audioManager.getScheduler().getQueue().size() > 0) {
+							printer.printQueue(audioManager.getScheduler().getQueue(), currentNPMessage.getTextChannel());
+						}
 					}
 					case REPEAT_QUEUE -> audioManager.getScheduler().setRepeatQueue(!audioManager.getScheduler().isRepeatQueue());
 					case REPEAT_ONE -> audioManager.getScheduler().setRepeatSong(!audioManager.getScheduler().isRepeatSong());
@@ -79,75 +71,14 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 						audioManager.getPlayer().stopTrack();
 					}
 				}
-			});
-		}
-	}
-
-	@Override
-	public void onEvent(AudioEvent audioEvent) {
-		boolean newEvent = true;
-		/* Check for available channel to display Now PLaying prompt */
-		textChannel = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textChannel"));
-		voiceChannel  = guild.getVoiceChannelById(DBQueryHandler.get(id, "media_settings", "voicechannel"));
-
-		if (textChannel == null) {
-			return;
-		}
-
-		TrackScheduler scheduler = audioManager.getScheduler();
-
-		/* Ensure we have somewhere to send the message, check for errors */
-		if (audioEvent instanceof TrackStuckEvent) {
-			textChannel.sendMessage("Audio track stuck! Ending track and continuing").queue();
-			scheduler.nextTrack();
-
-		} else if (audioEvent instanceof TrackExceptionEvent) {
-			textChannel.sendMessage("Error loading the audio.").queue();
-			((TrackExceptionEvent) audioEvent).exception.printStackTrace();
-			scheduler.nextTrack();
-
-		} else if (audioEvent instanceof TrackEndEvent && scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() != null) {
-			printer.deletePrevious(textChannel);
-			guild.getJDA().getDirectAudioController().disconnect(voiceChannel.getGuild());
-
-		} else if (audioEvent instanceof TrackStartEvent) {
-			boolean inChannel = guild.getSelfMember().getVoiceState() != null && Objects.requireNonNull(guild.getSelfMember().getVoiceState()).inVoiceChannel();
-
-			if (!inChannel) {
-				guild.getJDA().getDirectAudioController().connect(voiceChannel);
-			}
-
-			if (!audioManager.getScheduler().getQueue().isEmpty()) {
-				printer.printQueue(audioManager.getScheduler().getQueue(), textChannel);
-			}
-
-			/* Set up a timer to continually update the running time of the song */
-			Runnable runnable = () -> {
-				AudioTrack track = audioEvent.player.getPlayingTrack();
-				if (track != null) {
-					if (track.getDuration() != Integer.MAX_VALUE && track.getPosition() < track.getDuration()) {
-						try {
-							semaphore.acquire();
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-						printer.printNowPlaying(audioManager, textChannel);
-
-						semaphore.release();
-					}
-				}
-			};
-			exec.scheduleAtFixedRate(runnable, 0, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
-
+			}).thenAccept((v) -> printer.printNowPlaying(audioManager, event.getChannel()));
 		}
 	}
 
 	@Override
 	public void onShutdown(@NotNull ShutdownEvent event) {
-		this.exec.purge();
-		this.exec.shutdown();
-		audioManager.getPlayer().removeListener(this);
 		event.getJDA().removeEventListener(this);
+		super.onShutdown(event);
 	}
 
 }
