@@ -22,14 +22,10 @@ public class GuildContext implements IGuildContext {
 		this.guild        = guild;
 		this.audioManager = new AudioManager(guild);
 		this.commandHandler = new CommandHandler();
-		this.playerPrinter = new PlayerPrinter();
-
+		this.playerPrinter = new PlayerPrinter(this.audioManager, guild);
 
 		/* Update global GuildContext references */
 		setGuild(this);
-
-		/* Add the event watcher to the current guild's audio manager and JDA */
-		new TrackWatcherEventListener(this);
 	}
 
 	private static void setGuild(GuildContext guildContext) {

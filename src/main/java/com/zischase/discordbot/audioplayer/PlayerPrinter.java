@@ -3,20 +3,22 @@ package com.zischase.discordbot.audioplayer;
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 import com.jagrosh.jdautilities.menu.Paginator;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
+import com.sedmelluq.discord.lavaplayer.player.event.*;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
+import com.zischase.discordbot.DBQueryHandler;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageType;
-import net.dv8tion.jda.api.entities.TextChannel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.dv8tion.jda.api.entities.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -24,23 +26,83 @@ import java.util.stream.Collectors;
 
 public class PlayerPrinter {
 
-	private static final int    DEFAULT_ACTION_TIMEOUT_SEC = 30;
-	private static final int    HISTORY_POLL_LIMIT         = 7;
-	private static final int    PROGRESS_BAR_SIZE          = 16;
-	private static final String PROGRESS_BAR_ICON_FILL     = "⬜";
-	private static final String PROGRESS_BAR_ICON_EMPTY    = "⬛";
-	private static final String NOW_PLAYING_MSG_NAME       = "**Now Playing**";
-	private static final String QUEUE_MSG_NAME             = "**Queue**";
-	private static final String NOTHING_PLAYING_MSG_NAME   = "**Nothing Playing**";
-	private static final Logger LOGGER                     = LoggerFactory.getLogger(PlayerPrinter.class);
+	private static final int    MAX_WAITER_THREADS        = 100;
+//	private static final int    WAITER_TIMEOUT_MS         = 30;
+	private static final int    NOW_PLAYING_TIMER_RATE_MS = 5000;
+	private static final int    HISTORY_POLL_LIMIT        = 5;
+	private static final int    PROGRESS_BAR_SIZE         = 16;
+	private static final String PROGRESS_BAR_ICON_FILL    = "⬜";
+	private static final String PROGRESS_BAR_ICON_EMPTY   = "⬛";
+	private static final String NOW_PLAYING_MSG_NAME      = "**Now Playing**";
+	private static final String QUEUE_MSG_NAME            = "**Queue**";
+	private static final String NOTHING_PLAYING_MSG_NAME  = "**Nothing Playing**";
+	private static final ScheduledExecutorService SCHEDULED_EXEC = new ScheduledThreadPoolExecutor(MAX_WAITER_THREADS);
 
-	private final EventWaiter              waiter            = new EventWaiter();
+	private final EventWaiter              waiter            = new EventWaiter(SCHEDULED_EXEC, false);
 	private final AtomicReference<Message> nowPlayingMessage = new AtomicReference<>(null);
 	private final AtomicReference<Message> queueMessage      = new AtomicReference<>(null);
 	private final Lock                     lock              = new ReentrantLock();
+	private final TrackWatcherEventListener trackWatcher;
 
-	public PlayerPrinter() {
+	public PlayerPrinter(AudioManager audioManager, Guild guild) {
+		String id = guild.getId();
 
+		/* Check for available channel to display Now PLaying prompt */
+		/* Ensure we have somewhere to send the message, check for errors */
+		/* Set up a timer to continually update the running time of the song */
+		AudioEventListener audioEventListener = audioEvent -> {
+			/* Check for available channel to display Now PLaying prompt */
+			TextChannel  textChannel  = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textChannel"));
+			VoiceChannel voiceChannel = guild.getVoiceChannelById(DBQueryHandler.get(id, "media_settings", "voicechannel"));
+
+			if (textChannel == null || voiceChannel == null) {
+				return;
+			}
+
+			TrackScheduler scheduler = audioManager.getScheduler();
+
+			/* Ensure we have somewhere to send the message, check for errors */
+			if (audioEvent instanceof TrackStuckEvent) {
+				textChannel.sendMessage("Audio track stuck! Ending track and continuing").queue();
+				scheduler.nextTrack();
+
+			} else if (audioEvent instanceof TrackExceptionEvent) {
+				textChannel.sendMessage("Error loading the audio.").queue();
+				((TrackExceptionEvent) audioEvent).exception.printStackTrace();
+				scheduler.nextTrack();
+
+			} else if (audioEvent instanceof TrackEndEvent && scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() == null) {
+				deletePrevious(textChannel);
+				guild.getJDA().getDirectAudioController().disconnect(guild);
+
+			} else if (audioEvent instanceof TrackStartEvent) {
+				boolean inChannel = guild.getSelfMember().getVoiceState() != null && Objects.requireNonNull(guild.getSelfMember().getVoiceState()).inVoiceChannel();
+
+				if (!inChannel) {
+					guild.getJDA().getDirectAudioController().connect(voiceChannel);
+				}
+
+				if (audioManager.getScheduler().getQueue().size() > 0) {
+					printQueue(audioManager.getScheduler().getQueue(), textChannel);
+				}
+
+				Runnable runnable = () -> {
+					AudioTrack track = audioEvent.player.getPlayingTrack();
+					if (track != null) {
+						if (track.getDuration() != Integer.MAX_VALUE && track.getPosition() < track.getDuration()) {
+							printNowPlaying(audioManager, textChannel);
+						}
+					}
+				};
+				SCHEDULED_EXEC.scheduleAtFixedRate(runnable, NOW_PLAYING_TIMER_RATE_MS, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
+			}
+		};
+
+		/* Add the audio event watcher to the current guild's audio manager */
+		audioManager.getPlayer().addListener(audioEventListener);
+
+		/* Add watcher for reaction response to now playing message */
+		this.trackWatcher = new TrackWatcherEventListener(guild.getJDA(), this, audioManager, id);
 	}
 
 	public Message getNowPlayingMessage() {
@@ -63,9 +125,10 @@ public class PlayerPrinter {
 				addReactions(message);
 				this.nowPlayingMessage.set(message);
 			});
-			printQueue(audioManager.getScheduler().getQueue(), channel);
-		}
-		else {
+			if (audioManager.getScheduler().getQueue().size() > 0) {
+				printQueue(audioManager.getScheduler().getQueue(), channel);
+			}
+		} else {
 			if (this.nowPlayingMessage.get() == null) {
 				channel.sendMessage(builtMessage).queue(message -> {
 					addReactions(message);
@@ -75,14 +138,15 @@ public class PlayerPrinter {
 				channel.editMessageById(this.nowPlayingMessage.get().getId(), builtMessage).queue();
 			}
 		}
+
 		lock.unlock();
 	}
 
-	public void printQueue(List<AudioTrack> queue, TextChannel channel) {
+	public void printQueue(List<AudioTrack> queue, @NotNull TextChannel channel) {
 		buildQueue(queue, channel);
 	}
 
-	public void deletePrevious(TextChannel textChannel) {
+	public void deletePrevious(@NotNull TextChannel textChannel) {
 		List<Message> msgList = textChannel.getHistory()
 				.retrievePast(HISTORY_POLL_LIMIT)
 				.complete()
@@ -103,6 +167,7 @@ public class PlayerPrinter {
 		textChannel.getJDA().removeEventListener(waiter);
 	}
 
+	@NotNull
 	private String progressPercentage(int position, int duration) {
 		if (position > duration) {
 			throw new IllegalArgumentException();
@@ -122,7 +187,7 @@ public class PlayerPrinter {
 		return bar.toString();
 	}
 
-
+	@NotNull
 	private Message buildNowPlaying(AudioManager audioManager) {
 		AudioPlayer    player         = audioManager.getPlayer();
 		AudioTrack     track          = player.getPlayingTrack();
@@ -173,6 +238,7 @@ public class PlayerPrinter {
 		return messageBuilder.setEmbeds(embedBuilder.build()).build();
 	}
 
+	@Nullable
 	private Message getNPMsg(List<Message> messages) {
 		return messages
 				.stream()
@@ -189,22 +255,23 @@ public class PlayerPrinter {
 				.orElse(null);
 	}
 
+	@Nullable
 	public Message getQueueMsg(List<Message> messages) {
-		return	messages.stream()
-						.filter(msg -> msg.getAuthor().isBot())
-						.filter(msg -> !msg.isPinned())
-						.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
-						.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
-						.filter(msg -> msg.getContentDisplay().contains(QUEUE_MSG_NAME))
-						.findFirst()
-						.flatMap(message -> {
-							this.queueMessage.set(message);
-							return Optional.of(message);
-						})
-						.orElse(null);
+		return messages.stream()
+				.filter(msg -> msg.getAuthor().isBot())
+				.filter(msg -> !msg.isPinned())
+				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
+				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
+				.filter(msg -> msg.getContentDisplay().contains(QUEUE_MSG_NAME))
+				.findFirst()
+				.flatMap(message -> {
+					this.queueMessage.set(message);
+					return Optional.of(message);
+				})
+				.orElse(null);
 	}
 
-	private void buildQueue(List<AudioTrack> queue, TextChannel textChannel) {
+	private void buildQueue(@NotNull List<AudioTrack> queue, @NotNull TextChannel textChannel) {
 
 		/* Checks for valid queue */
 		if (queue.size() <= 0) {
@@ -218,24 +285,26 @@ public class PlayerPrinter {
 				.setColor(Color.darkGray)
 				.useNumberedItems(true)
 				.showPageNumbers(true)
-				.setColumns(1)
 				.waitOnSinglePage(true)
+				.allowTextInput(true)
+				.wrapPageEnds(true)
+				.setColumns(1)
 				.setItemsPerPage(10)
 				.setEventWaiter(waiter)
-				.allowTextInput(true)
-				.setFinalAction(msg -> msg.getJDA().removeEventListener(waiter));
+				.setBulkSkipNumber(5);
+
 		queue.forEach(track -> builder.addItems(track.getInfo().title));
 
 		/* If we don't have an event listener, add one */
 		if (!textChannel.getJDA().getRegisteredListeners().contains(waiter)) {
 			textChannel.getJDA().addEventListener(waiter);
 		}
+
 		this.queueMessage.set(getQueueMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
 		/* Checks to see if we have a message to reuse */
 		if (this.queueMessage.get() != null) {
 			builder.build().display(queueMessage.get());
-		}
-		else {
+		} else {
 			textChannel.sendMessage(new MessageBuilder().append(QUEUE_MSG_NAME).build()).queue(message -> {
 				builder.build().display(message);
 				this.queueMessage.set(message);

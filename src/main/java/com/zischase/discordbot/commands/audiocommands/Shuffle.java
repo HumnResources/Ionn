@@ -38,7 +38,7 @@ public class Shuffle extends Command {
 		shuffle(ctx.getGuild().getId(), GuildContext.get(ctx.getGuild().getId()).audioManager());
 	}
 
-	public void shuffle(String guildID, AudioManager audioManager) {
+	public static void shuffle(String guildID, AudioManager audioManager) {
 		if (!DBQueryHandler.getPremiumStatus(guildID)) {
 			return;
 		}
