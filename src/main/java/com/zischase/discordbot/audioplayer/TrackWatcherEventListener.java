@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -50,16 +51,19 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 	@Override
 	public void onGenericGuildMessageReaction(@NotNull GenericGuildMessageReactionEvent event) {
 		Member eventMember = event.getMember();
+		if (eventMember == null || eventMember.getUser().isBot() || event.getReaction().isSelf()) {
+			return;
+		}
+		Message msg = event.retrieveMessage().complete();
+		if (!msg.getAuthor().isBot()) {
+			return;
+		}
+		Message currentNPMessage = printer.getNowPlayingMessage();
 
-		event.retrieveMessage().queue(msg -> {
-			if (!msg.getAuthor().isBot() || eventMember == null || eventMember.getUser().isBot() || event.getReaction().isSelf()) {
-				return;
-			}
-			Message currentNPMessage = printer.getNowPlayingMessage();
+		if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
+			String reaction = event.getReaction().getReactionEmote().getName();
 
-			if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
-				String reaction = event.getReaction().getReactionEmote().getName();
-
+			CompletableFuture.runAsync(() -> {
 				switch (reaction) {
 					case SHUFFLE -> {
 						((Shuffle) Objects.requireNonNull(GuildContext.get(id).commandHandler().getCommand("Shuffle"))).shuffle(id, audioManager);
@@ -75,8 +79,8 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 						audioManager.getPlayer().stopTrack();
 					}
 				}
-			}
-		}, (err) -> LOGGER.warn("Unknown message reference for reaction - {}", err.getCause().toString()));
+			});
+		}
 	}
 
 	@Override
