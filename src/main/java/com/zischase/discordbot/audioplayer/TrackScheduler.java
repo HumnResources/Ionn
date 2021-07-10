@@ -6,7 +6,7 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
-import com.zischase.discordbot.guildcontrol.GuildContext;
+import com.zischase.discordbot.DBQueryHandler;
 import net.dv8tion.jda.api.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +27,8 @@ public class TrackScheduler extends AudioEventAdapter {
 	private final BlockingQueue<AudioTrack> queue;
 	private final String                    guildID;
 	private       AudioTrack                lastTrack;
-	private       boolean                   repeat = false;
+	private       boolean                   repeatQueue = false;
+	private       boolean                   repeatSong  = false;
 
 	public TrackScheduler(AudioPlayer player, Guild guild) {
 		this.guildID = guild.getId();
@@ -35,12 +36,24 @@ public class TrackScheduler extends AudioEventAdapter {
 		this.queue   = new LinkedBlockingQueue<>();
 	}
 
-	public boolean isRepeat() {
-		return repeat;
+	public boolean isRepeatSong() {
+		return repeatSong;
 	}
 
-	public void setRepeat(boolean repeat) {
-		this.repeat = repeat;
+	public void setRepeatSong(boolean repeatSong) {
+		if (DBQueryHandler.getPremiumStatus(guildID)) {
+			this.repeatSong = repeatSong;
+		}
+	}
+
+	public boolean isRepeatQueue() {
+		return repeatQueue;
+	}
+
+	public void setRepeatQueue(boolean repeatQueue) {
+		if (DBQueryHandler.getPremiumStatus(guildID)) {
+			this.repeatQueue = repeatQueue;
+		}
 	}
 
 	public void queueAudio(AudioTrack track) {
@@ -100,24 +113,28 @@ public class TrackScheduler extends AudioEventAdapter {
 
 	@Override
 	public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
-//        if (endReason.equals(AudioTrackEndReason.LOAD_FAILED)) {
-		/* Do Nothing*/
-//        }
-		lastTrack = track;
+		if (endReason.equals(AudioTrackEndReason.LOAD_FAILED)) {
+			/* Do Nothing*/
+			LOGGER.info("Loading failed for audio track {}", track.getInfo().title);
+			return;
+		}
+		this.lastTrack = track;
 
 		if (endReason.mayStartNext) {
 			nextTrack();
-		} else if (queue.isEmpty() && this.player.getPlayingTrack() == null) {
-			GuildContext.get(guildID)
-					.guild()
-					.getJDA()
-					.getDirectAudioController()
-					.disconnect(GuildContext.get(guildID).guild());
 		}
 	}
 
 	public void nextTrack() {
-		if (repeat) {
+		if (repeatSong) {
+			if (player.getPlayingTrack() != null) {
+				this.lastTrack = player.getPlayingTrack();
+			}
+			this.player.startTrack(lastTrack.makeClone(), false);
+			return;
+		}
+
+		if (repeatQueue) {
 			if (this.player.getPlayingTrack() != null) {
 				queue.add(this.player.getPlayingTrack().makeClone());
 			} else if (lastTrack != null) {

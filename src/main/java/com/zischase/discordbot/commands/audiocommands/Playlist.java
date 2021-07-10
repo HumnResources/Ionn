@@ -1,7 +1,6 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.zischase.discordbot.DBConnectionHandler;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
@@ -9,9 +8,10 @@ import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.utils.data.DataObject;
-import org.jdbi.v3.core.Jdbi;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -31,81 +31,17 @@ public class Playlist extends Command {
 		playlists = new HashMap<>();
 	}
 
-	private static boolean checkTable(String guildID, String name) {
-		return Jdbi.create(DBConnectionHandler.getConnection())
-				.withHandle(handle -> {
-					List<String> settings = handle.createQuery( /* Language=PostgreSQL */
-							"SELECT playlist_name FROM youtube_playlists WHERE guild_id = :guildID")
-							.bind("guildID", guildID)
-							.mapTo(String.class)
-							.list();
-
-					handle.close();
-					return settings;
-				})
-				.stream()
-				.anyMatch(s -> s.equalsIgnoreCase(name.trim()));
-	}
-
 	@Override
 	public CommandData getCommandData() {
-		return CommandData.fromData(DataObject.fromJson("""
-				{
-					"name": "playlist",
-					"description": "Provides custom playlist support for youtube songs",
-					"options": [
-						{
-							"name": "play", 
-							"description": "Load a playlist",
-							"type": 1,
-							"options": [
-								{
-									"name": "name",
-									"description": "Load playlist with specified name",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "delete", 
-							"description": "Delete a playlist",
-							"type": 1,
-							"options": [
-								{
-									"name": "name",
-									"description": "Delete playlist with specified name",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "add", 
-							"description": "Add new playlist",
-							"type": 1,
-							"options": [
-								{
-									"name": "name",
-									"description": "Create playlist of current queue with specified name",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "current", 
-							"description": "Create playlist using current queue. Generates simple name",
-							"type": 1
-						},
-						{
-							"name": "display",
-							"description": "Shows a list of available playlists",
-							"type": 1
-						}
-					]
-				}
-				"""));
+		OptionData name = new OptionData(OptionType.STRING, "name", " ", true);
+
+		return super.getCommandData().addSubcommands(
+				new SubcommandData("play", "Displays the current queue").addOptions(name.setDescription("Load playlist with specified name")),
+				new SubcommandData("delete", "Moves the song at the current index to next in queue").addOptions(name.setDescription("Delete playlist with specified name")),
+				new SubcommandData("add", "Add new playlist").addOptions(name.setDescription("Create playlist of current queue with specified name")),
+				new SubcommandData("current", "Create playlist using current queue. Generates simple name"),
+				new SubcommandData("display", "Shows a list of available playlists")
+		);
 	}
 
 	@Override
@@ -132,8 +68,7 @@ public class Playlist extends Command {
 
 	@Override
 	public void handle(CommandContext ctx) {
-		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
-				ctx.getEventInitiator().getVoiceState().getChannel() : null;
+		VoiceChannel voiceChannel = ctx.getVoiceChannel();
 
 		if (!playlistsInitialized) {
 			List<String> dbPlaylists = DBQueryHandler.getList(ctx.getGuild().getId(), "playlists", "name");

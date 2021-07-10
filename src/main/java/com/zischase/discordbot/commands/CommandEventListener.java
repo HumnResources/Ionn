@@ -6,7 +6,6 @@ import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
@@ -21,46 +20,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 public class CommandEventListener extends ListenerAdapter {
 
-	private static final Logger                  LOGGER          = LoggerFactory.getLogger(CommandEventListener.class);
-	private final        AtomicReference<Member> proxyCallMember = new AtomicReference<>(null);
-	private              ThreadPoolExecutor      poolExecutor;
+	private static final Logger LOGGER = LoggerFactory.getLogger(CommandEventListener.class);
 
 	public CommandEventListener() {
 	}
 
 	@Override
 	public void onReady(@Nonnull ReadyEvent event) {
-		event.getJDA()
-				.getGuilds()
-				.forEach(GuildContext::new);
-
-		LOGGER.info("{} is ready", event.getJDA()
-				.getSelfUser()
-				.getAsTag());
-
-		JDA jda = event.getJDA();
-
-		int defaultPoolCount = Integer.parseInt(Config.get("DEFAULT_COMMAND_THREADS"));
-		int POOL_COUNT       = jda.getGuilds().size() * 2;
-
-		if (POOL_COUNT > defaultPoolCount) {
-			poolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(POOL_COUNT);
-		} else {
-			poolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(defaultPoolCount);
-		}
-
-		poolExecutor.setThreadFactory(new CommandThreadFactory(poolExecutor));
-		poolExecutor.setKeepAliveTime(30000, TimeUnit.MILLISECONDS);
+		LOGGER.info("Command Event Listener - Ready");
 	}
 
 	@Override
@@ -71,42 +46,42 @@ public class CommandEventListener extends ListenerAdapter {
 
 	@Override
 	public void onSlashCommand(@NotNull SlashCommandEvent event) {
+		if (event.isAcknowledged()) {
+			return;
+		}
+
 		event.isAcknowledged();
+		event.deferReply(false).queue(
+				(m) -> event.getHook().deleteOriginal().queue(),
+				err -> LOGGER.warn("Timeout for command {} !", event.getName())
+		);
 
-		event.deferReply(false).queue((m) -> {
-			MessageBuilder mb = new MessageBuilder();
+//		event.reply(event.getUser().getAsTag() + " - " + event.getName()).queue(null, err -> LOGGER.warn("Timeout for command {} !", event.getName()));
 
-			/* Using getGuildChannel() instead of getGuild() directly from event. This ensures we have null safety*/
-			String prefix = DBQueryHandler.get(event.getGuildChannel().getGuild().getId(), "prefix");
+		List<String>   args           = new ArrayList<>();
+		MessageBuilder commandMessage = new MessageBuilder();
+		commandMessage.append(event.getName().concat(" "));
 
-			/* Builds a command for the bot to issue : `<prefix><command> -<option> <args>` */
-			mb.append("%s%s ".formatted(prefix, event.getName()));
+		if (event.getSubcommandName() != null) {
+			args.add("-".concat(event.getSubcommandName()));
+		}
 
-			if (event.getSubcommandName() != null) {
-				mb.append("-".concat(event.getSubcommandName()).concat(" "));
+		event.getOptions().forEach((opt) -> {
+			if (opt.getType() == OptionType.STRING || opt.getType() == OptionType.INTEGER) {
+				args.add(opt.getAsString().concat(" "));
 			}
-
-			event.getOptions().forEach((opt) -> {
-				if (opt.getType() == OptionType.STRING || opt.getType() == OptionType.INTEGER) {
-					mb.append(opt.getAsString().concat(" "));
-				}
-			});
-
-			/* Ensure we skip detection of bot message in channel until we start processing the command. */
-			proxyCallMember.set(event.getMember());
-
-			/* Delete the command issued by the bot */
-			event.getChannel().sendMessage(mb.build()).queue((cmdMsg) -> cmdMsg.delete().queue());
-			event.getHook().deleteOriginal().queue();
 		});
+
+		CommandContext ctx = new CommandContext(event.getGuild(), event.getMember(), args, commandMessage.build(), event.getTextChannel(), null);
+		executeCommand(ctx);
+	}
+
+	private void executeCommand(CommandContext ctx) {
+		CompletableFuture.runAsync(() -> GuildContext.get(ctx.getGuild().getId()).commandHandler().invoke(ctx));
 	}
 
 	@Override
 	public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent event) {
-		if (proxyCallMember.get() == null && event.getAuthor().isBot() || event.isWebhookMessage()) {
-			return;
-		}
-
 		String prefix = DBQueryHandler.get(event.getGuild().getId(), "prefix");
 		String raw    = event.getMessage().getContentRaw();
 
@@ -114,23 +89,19 @@ public class CommandEventListener extends ListenerAdapter {
 			String[]     msgArr = raw.replaceFirst("(?i)" + Pattern.quote(prefix), "").split("\\s");
 			List<String> args   = Arrays.asList(msgArr).subList(1, msgArr.length);
 
-			CommandContext ctx = proxyCallMember.get() != null ? new CommandContext(event, args, proxyCallMember.get()) : new CommandContext(event, args);
+			CommandContext ctx = new CommandContext(event.getGuild(), event.getMember(), args, event.getMessage(), event.getChannel(), null);
 
 			if (event.getAuthor().getId().equals(Config.get("OWNER_ID"))) {
 				if (msgArr[0].equalsIgnoreCase("slash")) {
 					updateSlashCommands(event.getJDA());
-					LOGGER.info("Creating slash commands.");
 					return;
 				}
 				if (msgArr[0].equalsIgnoreCase("delslash")) {
 					deleteSlashCommands(event.getJDA());
-					LOGGER.info("Delete slash commands.");
 					return;
 				}
 			}
-
-			proxyCallMember.set(null);
-			poolExecutor.execute(() -> GuildContext.get(ctx.getGuild().getId()).commandHandler().invoke(ctx));
+			executeCommand(ctx);
 		}
 	}
 
@@ -147,37 +118,35 @@ public class CommandEventListener extends ListenerAdapter {
 	}
 
 	private void updateSlashCommands(JDA jda) {
+		LOGGER.info("Creating slash commands.");
+		/* Loop through guilds to replace command */
+		for (Guild g : jda.getGuilds()) {
 
-		poolExecutor.execute(() -> {
-			/* Loop through guilds to replace command */
-			for (Guild g : jda.getGuilds()) {
+			/* Get list of already installed commands */
+			List<Command> slashCommands = g.retrieveCommands().complete();
 
-				/* Get list of already installed commands */
-				List<Command> slashCommands = g.retrieveCommands().complete();
+			/* Reinitialize the commands */
+			for (com.zischase.discordbot.commands.Command c : GuildContext.get(g.getId()).commandHandler().getCommandList()) {
 
-				/* Reinitialize the commands */
-				for (com.zischase.discordbot.commands.Command c : GuildContext.get(g.getId()).commandHandler().getCommandList()) {
-					/* Comparator to ensure we don't overwrite */
-					if (slashCommands.stream().noneMatch((sc) -> sc.getName().equals(c.getName()) && sc.getDescription().equals(c.getCommandData().getDescription())))
-						g.upsertCommand(c.getCommandData()).queue((cmd) -> LOGGER.info("Added slash command {} to server {} ", cmd.getName(), g.getName()));
-				}
+				/* Comparator to ensure we don't overwrite */
+				if (slashCommands.stream().noneMatch((sc) -> sc.getName().equals(c.getCommandData().getName()) && sc.getDescription().equals(c.getCommandData().getDescription())))
+					g.upsertCommand(c.getCommandData()).queue((cmd) -> LOGGER.info("Added slash command {} to server {} ", cmd.getName(), g.getName()));
 			}
-		});
+		}
 	}
 
 	private void deleteSlashCommands(JDA jda) {
-		poolExecutor.execute(() -> {
-			/* Delete all global commands */
-			for (Command c : jda.retrieveCommands().complete()) {
-				c.delete().complete();
+		LOGGER.info("Delete slash commands.");
+		/* Delete all global commands */
+		for (Command c : jda.retrieveCommands().complete()) {
+			c.delete().complete();
+		}
+		for (Guild g : jda.getGuilds()) {
+			/* Delete entire list of commands for guild */
+			for (Command c : g.retrieveCommands().complete()) {
+				/* Logs the successful deletion of a command. Returns null if delete fails */
+				c.delete().queue((nul) -> LOGGER.info("Deleted command {} from server {}", c.getName(), g.getName()), null);
 			}
-			for (Guild g : jda.getGuilds()) {
-				/* Delete entire list of commands for guild */
-				for (Command c : g.retrieveCommands().complete()) {
-					/* Logs the successful deletion of a command. Returns null if delete fails */
-					c.delete().queue((nul) -> LOGGER.info("Deleted command {} from server {}", c.getName(), g.getName()), null);
-				}
-			}
-		});
+		}
 	}
 }

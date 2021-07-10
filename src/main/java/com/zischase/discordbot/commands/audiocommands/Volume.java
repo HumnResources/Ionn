@@ -47,15 +47,14 @@ public class Volume extends Command {
 		List<String> args    = ctx.getArgs();
 
 		if (this.maxVol.get() == -1) {
-			if (DBQueryHandler.get(guildID, "premium").equals("true"))
+			if (ctx.isPremiumGuild())
 				this.maxVol.set(100);
 			else
 				this.maxVol.set(25);
 		}
 
 		if (args.isEmpty()) {
-			ctx.getEvent()
-					.getChannel()
+			ctx.getChannel()
 					.sendMessage("Volume is currently at: `" + getVolume(guildID) + "`")
 					.queue();
 			return;
@@ -67,16 +66,14 @@ public class Volume extends Command {
 			if (validNum) {
 				setVolume(guildID, num);
 
-				ctx.getEvent()
-						.getChannel()
+				ctx.getChannel()
 						.sendMessage("The volume has been set to `" + num + "`")
 						.queue();
 
 				return;
 			}
 		}
-		ctx.getEvent()
-				.getChannel()
+		ctx.getChannel()
 				.sendMessage("Please input a number between 0-" + maxVol.get())
 				.queue();
 	}

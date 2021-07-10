@@ -33,7 +33,7 @@ public class Join extends Command {
 
 		if (!voiceChannels.isEmpty()) {
 			for (VoiceChannel c : voiceChannels) {
-				if (c.getMembers().contains(ctx.getEventInitiator())) {
+				if (c.getMembers().contains(ctx.getMember())) {
 					c.getGuild()
 							.getJDA()
 							.getDirectAudioController()

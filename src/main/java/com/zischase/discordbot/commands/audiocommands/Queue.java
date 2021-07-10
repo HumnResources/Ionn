@@ -6,8 +6,10 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.utils.data.DataObject;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -22,57 +24,14 @@ public class Queue extends Command {
 
 	@Override
 	public CommandData getCommandData() {
-		return CommandData.fromData(DataObject.fromJson("""
-				{
-					"name": "queue",
-					"description": "Displays the current queue",
-					"options": [
-					    {
-							"name": "show",
-							"description": "Displays the current queue",
-							"type": 1
-						},
-						{
-							"name": "next",
-							"description": "Moves the song at the current index to next in queue",
-							"type": 1,
-							"options": [
-								{
-									"name": "index",
-									"description": "Use queue command to get index numbers",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "jump",
-							"description": "Shifts the queue to the index number - See queue",
-							"type": 1,
-							"options": [
-								{
-									"name": "index",
-									"description": "Use queue command to get index numbers",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "clear",
-							"description": "Clears the current queue",
-							"type": 1,
-							"options": [
-								{
-									"name": "index",
-									"description": "Deletes song from specified index number - See queue",
-									"type": 3
-								}
-							]
-						}
-					]
-				}
-				"""));
+		OptionData index = new OptionData(OptionType.STRING, "index", "Use queue command to get index numbers", true);
+
+		return super.getCommandData().addSubcommands(
+				new SubcommandData("show", "Displays the current queue"),
+				new SubcommandData("next", "Moves the song at the current index to next in queue").addOptions(index),
+				new SubcommandData("jump", "Shifts the queue to the index number - See queue").addOptions(index),
+				new SubcommandData("clear", "Clears the current queue").addOptions(index.setRequired(false).setDescription("Delete specific song using index"))
+		);
 	}
 
 	@Override
@@ -105,6 +64,7 @@ public class Queue extends Command {
 				.audioManager()
 				.getScheduler();
 
+		ArrayList<AudioTrack> queue = scheduler.getQueue();
 		if (!args.isEmpty()) {
 			if (args.size() == 1) {
 				if (args.get(0).matches("(?i)-(clear|c)")) {
@@ -118,7 +78,6 @@ public class Queue extends Command {
 							.queue();
 				}
 			} else if (args.size() == 2 && args.get(1).matches("(?i)(\\d+)")) {
-				ArrayList<AudioTrack> queue = scheduler.getQueue();
 				int                   index = Integer.parseInt(args.get(1));
 
 				if (index < 2 || index > queue.size()) {
@@ -150,7 +109,7 @@ public class Queue extends Command {
 
 		GuildContext.get(ctx.getGuild().getId())
 				.playerPrinter()
-				.printQueue(GuildContext.get(ctx.getGuild().getId()).audioManager(), ctx.getChannel());
+				.printQueue(queue, ctx.getChannel());
 
 		GuildContext.get(ctx.getGuild().getId())
 				.playerPrinter()

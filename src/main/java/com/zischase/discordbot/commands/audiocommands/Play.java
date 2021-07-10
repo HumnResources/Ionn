@@ -2,21 +2,23 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.utils.data.DataObject;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class Play extends Command {
 
@@ -26,72 +28,17 @@ public class Play extends Command {
 
 	@Override
 	public CommandData getCommandData() {
-		/* Parse JSON using Discord slash command API docs as reference */
-		return CommandData.fromData(DataObject.fromJson("""
-				{
-					"name": "play",
-					"description": "Plays a song from youtube or link",
-					"options": [
-						{
-							"name": "song",
-							"description": "search song name",
-							"type": 1,
-							"options": [
-								{
-									"name": "name",
-									"description": "Plays song by name",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "url",
-							"description": "Link to audio track",
-							"type": 1,
-							"options": [
-								{
-									"name": "link",
-									"description": "Plays audio by url",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "ytplaylist",
-							"description": "Adds a playlist of songs from provided search",
-							"type": 1,
-							"options": [
-								{
-									"name": "search",
-									"description": "Youtube search query",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "next",
-							"description": "Play requested song next",
-							"type": 1,
-							"options": [
-								{
-									"name": "name",
-									"description": "Title of song to move.",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "pause",
-							"description": "Play or pause current track",
-							"type": 1
-						}
-					]
-				}
-				"""));
+		OptionData name = new OptionData(OptionType.STRING, "name", "Plays song by name", true);
+		OptionData link = new OptionData(OptionType.STRING, "link", "Plays audio by url", true);
+		OptionData search = new OptionData(OptionType.STRING, "search", "Youtube search query", true);
+
+		return super.getCommandData().addSubcommands(
+				new SubcommandData("song", "search song name").addOptions(name),
+				new SubcommandData("url", "Link to audio track").addOptions(link),
+				new SubcommandData("ytplaylist", "Adds a playlist of songs from provided search").addOptions(search),
+				new SubcommandData("next", "Play requested song next").addOptions(name.setDescription("Title of song to move.")),
+				new SubcommandData("pause", "Play or pause current track")
+		);
 	}
 
 	@Override
@@ -112,8 +59,8 @@ public class Play extends Command {
 
 	@Override
 	public void handle(CommandContext ctx) {
-		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
-				ctx.getEventInitiator().getVoiceState().getChannel() : null;
+		VoiceChannel voiceChannel = ctx.getMember().getVoiceState() != null ?
+				ctx.getMember().getVoiceState().getChannel() : null;
 
 		List<String> args    = ctx.getArgs();
 		String       guildID = ctx.getGuild().getId();
@@ -121,27 +68,20 @@ public class Play extends Command {
 				.audioManager()
 				.getTrackLoader();
 
-		if (voiceChannel != null) {
-			DBQueryHandler.set(guildID, "media_settings", "voiceChannel", voiceChannel.getId());
-		}
-		DBQueryHandler.set(guildID, "media_settings", "textChannel", ctx.getChannel().getId());
-
-
 		if (args.isEmpty() || args.get(0).matches("(?i)-(pause)")) {
 			AudioPlayer player = GuildContext.get(guildID)
 					.audioManager()
 					.getPlayer();
-
 			player.setPaused(!player.isPaused());
 		} else if (args.get(0).matches("(?i)-(next|n)")) {
 			String song = String.join(" ", args.subList(1, args.size()));
-			playNext(song, ctx.getEvent(), trackLoader);
+			playNext(song, ctx.getVoiceChannel(), ctx.getChannel(), trackLoader);
+			ctx.getChannel().sendMessage("Playing `%s` next!".formatted(song)).queue(m -> m.delete().queueAfter(3000, TimeUnit.MILLISECONDS), null);
 		}
 		/* Checks to see if we have a potential link in the message */
-		if (args.get(0).matches("(?i)-(url)")) {
-			List<Message.Attachment> attachments = ctx.getEvent()
-					.getMessage()
-					.getAttachments();
+		else if (args.get(0).matches("(?i)-(url)")) {
+			List<Message.Attachment> attachments = ctx.getMessage().getAttachments();
+
 			if (!attachments.isEmpty()) {
 				trackLoader.load(ctx.getChannel(), voiceChannel, attachments.get(0).getProxyUrl());
 			}
@@ -171,11 +111,9 @@ public class Play extends Command {
 		}
 	}
 
-	private void playNext(String song, GuildMessageReceivedEvent event, TrackLoader trackLoader) {
-		VoiceChannel voiceChannel = event.getMember() != null && event.getMember().getVoiceState() != null ?
-				event.getMember().getVoiceState().getChannel() : null;
+	private void playNext(String song, VoiceChannel voiceChannel, TextChannel textChannel, TrackLoader trackLoader) {
 
-		String                guildID      = event.getGuild().getId();
+		String                guildID      = textChannel.getGuild().getId();
 		AudioManager          audioManager = GuildContext.get(guildID).audioManager();
 		ArrayList<AudioTrack> currentQueue = audioManager.getScheduler().getQueue();
 		AudioTrack            nextTrack    = null;
@@ -200,15 +138,8 @@ public class Play extends Command {
 			audioManager.getScheduler().clearQueue();
 			audioManager.getScheduler().queueList(currentQueue);
 
-			GuildContext.get(guildID)
-					.playerPrinter()
-					.printQueue(GuildContext.get(guildID).audioManager(), event.getChannel());
-
-			GuildContext.get(guildID)
-					.playerPrinter()
-					.printNowPlaying(GuildContext.get(guildID).audioManager(), event.getChannel());
 		} else {
-			trackLoader.load(event.getChannel(), voiceChannel, song);
+			trackLoader.load(textChannel, voiceChannel, song);
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package com.zischase.discordbot;
 
 import com.zischase.discordbot.commands.CommandEventListener;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import me.duncte123.botcommons.BotCommons;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -30,8 +31,18 @@ public class Bot {
 		}
 
 		setShutdownHook(jda);
+		jda.getPresence().setActivity(Activity.listening(" starting..."));
+
+		try {
+			jda.awaitReady();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		jda.getPresence().setActivity(Activity.listening(" commands."));
+		jda.getGuilds().forEach(DBQueryHandler::addGuild);
+		jda.getGuilds().forEach(GuildContext::new);
 		jda.addEventListener(new CommandEventListener());
-		jda.getPresence().setActivity(Activity.listening(" music"));
 	}
 
 	private static void setShutdownHook(JDA jda) {

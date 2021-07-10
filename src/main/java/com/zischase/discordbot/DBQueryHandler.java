@@ -1,5 +1,6 @@
 package com.zischase.discordbot;
 
+import net.dv8tion.jda.api.entities.Guild;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
@@ -14,7 +15,7 @@ public final class DBQueryHandler {
 
 	/* Using generic object to pass data types to database - This means you must know the sata type being used however */
 	public static void set(String guildID, String setting, Object value) {
-		if (setting.matches("(?i)(premium|id|guild_id)")) {
+		if (setting.matches("(?i)(premium|id|guild_id|is_valid|expiry_date)")) {
 			try {
 				throw new IllegalAccessException();
 			} catch (IllegalAccessException e) {
@@ -63,7 +64,7 @@ public final class DBQueryHandler {
 	}
 
 	public static void set(String guildID, String table, String setting, Object value) {
-		if (setting.matches("(?i)(premium|id|guild_id)")) {
+		if (setting.matches("(?i)(premium|id|guild_id|is_valid|expiry_date)")) {
 			try {
 				throw new IllegalAccessException();
 			} catch (IllegalAccessException e) {
@@ -177,6 +178,33 @@ public final class DBQueryHandler {
 					.bind(0, guildID)
 					.bind(1, name)
 					.mapTo(String.class)
+					.first();
+			h.close();
+			return r;
+		});
+	}
+
+	public static void addGuild(Guild guild) {
+		boolean add = DBQueryHandler.get(guild.getId(), "prefix").isEmpty();
+		if (add) {
+			Jdbi.create(DBConnectionHandler::getConnection)
+					.useHandle(handle ->
+							handle.createUpdate("""
+									INSERT INTO guilds(id, name) VALUES (:guildID, :name);
+									INSERT INTO media_settings(guild_id) VALUES (:guildID);
+									INSERT INTO guild_settings(guild_id) VALUES (:guildID);
+									""")
+									.bind("name", guild.getName())
+									.bind("guildID", guild.getId())
+									.execute());
+		}
+	}
+
+	public static boolean getPremiumStatus(String guildID) {
+		return Jdbi.create(DBConnectionHandler::getConnection).withHandle((h) -> {
+			boolean r = h.createQuery("SELECT is_valid FROM premium_status WHERE guild_id = :id")
+					.bind("id", guildID)
+					.mapTo(boolean.class)
 					.first();
 			h.close();
 			return r;

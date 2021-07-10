@@ -1,31 +1,20 @@
 package com.zischase.discordbot.commands.audiocommands;
 
+import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
+import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.zischase.discordbot.DBQueryHandler;
-import com.zischase.discordbot.audioplayer.TrackLoader;
-import com.zischase.discordbot.audioplayer.TrackScheduler;
 import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.utils.data.DataObject;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import java.awt.*;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class Youtube extends Command {
-
-	private static final Logger LOGGER = LoggerFactory.getLogger(Youtube.class);
 
 	public Youtube() {
 		super(false);
@@ -33,7 +22,7 @@ public class Youtube extends Command {
 
 	@Override
 	public @NotNull String shortDescription() {
-		return "Plays or searches for a song from youtube";
+		return "Searches YouTube - Reply with number";
 	}
 
 	@Override
@@ -43,46 +32,15 @@ public class Youtube extends Command {
 
 	@Override
 	public String helpText() {
-		return "`Youtube [Search Query] : Search youtube for a song. Then adds it to the queue`\n" + "`Youtube -[search|s] : Provides a list of songs. Reply with a number to choose.`\n" + "`Aliases: " + String
+		return "`Youtube [Search Query] : Search youtube, then adds selected choice to the queue. Reply with number to choose`\n`Aliases: " + String
 				.join(" ", getAliases()) + "`";
 	}
 
 	@Override
 	public CommandData getCommandData() {
-		return CommandData.fromData(DataObject.fromJson("""
-				{
-					"name": "youtube",
-					"description": "%s",
-					"options": [
-						{
-							"name": "list",
-							"description": "Searches YouTube",
-							"type": 1,
-							"options": [
-								{
-									"name": "query",
-									"description": "Displays a list from search result. ~30s to decide.",
-									"type": 3,
-									"required": true
-								}
-							]
-						},
-						{
-							"name": "search",
-							"description": "Adds first result from YouTube search to queue.",
-							"type": 1,
-							"options": [
-								{
-									"name": "query",
-									"description": "Displays a list from search result. ~30s to decide.",
-									"type": 3,
-									"required": true
-								}
-							]
-						}
-					]
-				}
-				""".formatted(shortDescription())));
+		OptionData query = new OptionData(OptionType.STRING, "query", "Displays a list from search result", true);
+
+		return super.getCommandData().addOptions(query);
 	}
 
 	@Override
@@ -91,116 +49,154 @@ public class Youtube extends Command {
 		if (args.isEmpty()) {
 			return;
 		}
-
-		String      guildID     = ctx.getGuild().getId();
-		TextChannel textChannel = ctx.getChannel();
-		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
-				ctx.getEventInitiator().getVoiceState().getChannel() : null;
-
-		List<ISearchable> songList = new ArrayList<>();
-		String            videoUrl = "https://www.youtube.com/watch?v=";
-		String            videoID  = "";
-		Document          doc      = null;
-
-		if (voiceChannel != null) {
-			DBQueryHandler.set(guildID, "media_settings", "voicechannel", voiceChannel.getId());
-		} else {
-			voiceChannel = ctx.getGuild().getVoiceChannelById(DBQueryHandler.get(guildID, "media_settings", "voicechannel"));
-		}
-
-		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
-
-		boolean listResults = args.get(0).matches("(?i)-(list)");
-		boolean hasNextFlag = args.stream().anyMatch(arg -> arg.matches("(?i)-(n|next)"));
-
-		String query = String.join("+", args)
+		String query = String.join(" ", args)
 				.replaceFirst("(?i)-(list|url|name)", "")
-				.replaceFirst("(?i)-(n)", "")
+				.replaceFirst("(?i)-(n|next)", "")
+				.replaceFirst("(?i)-(search)", "")
 				.trim();
 
-		String url = "http://youtube.com/results?search_query=" + query;
-		TrackLoader trackLoader = GuildContext.get(guildID)
-				.audioManager()
-				.getTrackLoader();
-		try {
-			doc = Jsoup.connect(url)
-					.get();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		GuildContext g_ctx = GuildContext.get(ctx.getGuild().getId());
 
-		if (doc != null) {
-			Element element = new Element("script");
-			doc.select("script")
-					.forEach(e -> element.append(e.html()));
+		g_ctx.audioManager().getPlayerManager().source(YoutubeAudioSourceManager.class).setPlaylistPageCount(30);
 
-			//			RegEx
-//			(?im)            - caseInsensitive, Multiline
-//			(?<="videoId":") - Negative lookbehind for finding video ID key
-//			.+?              - Any character up to ?.
-//			(?=")            - ? = ".
-			Pattern videoIDPattern = Pattern.compile("(?im)(?<=\"videoId\":\").+?(?=\")");
-			Matcher videoMatcher   = videoIDPattern.matcher(element.html());
+		g_ctx.audioManager().getPlayerManager()
+				.loadItem("ytsearch: "+query,
+						new FunctionalResultHandler(
+								(audioTrack) -> g_ctx.audioManager().getTrackLoader().load(ctx.getVoiceChannel(), ctx.getChannel(), audioTrack),
+								(playlist) -> {
+									List<ISearchable> searchables;
+									searchables = playlist.getTracks()
+											.stream()
+											.map(SearchInfo::new)
+											.collect(Collectors.toList());
+									ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getMember(), Color.RED).get();
 
-			Pattern songName_Pattern;
-			Matcher nameMatcher;
+									AudioTrack track = playlist.getTracks()
+											.stream()
+											.filter(audioTrack -> audioTrack.getInfo().title.equalsIgnoreCase(choice.getName()))
+											.limit(1)
+											.findFirst()
+											.orElseThrow();
 
-			while (videoMatcher.find()) {
-				if (videoID.matches(videoMatcher.group(0))) {
-					continue;
-				}
-				videoID = videoMatcher.group(0);
-
-//				RegEx. . . again . . . 				 - https://regex101.com/r/1c2wAQ/1
-//				(?im)                                - caseInsensitive, Multiline
-//				(?=i.ytimg.com/vi/"+uri+").{1,300}   - Positive lookahead to contain video ID near title. Arbitrarily up to 300 chars
-//				(?<="title":\{"runs":\[\{"text":")   - Positive lookbehind to contain text prior to title.
-//				(.+?(?=\"}]))                        - Extract song name. Any character up to the next "}]. - This closes the js object on YT end.
-				songName_Pattern = Pattern.compile("(?im)(?=vi/" + videoID + "/).{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?)(?=\"}])");
-				nameMatcher      = songName_Pattern.matcher(element.html());
-				if (nameMatcher.find()) {
-					if (listResults) {
-						songList.add(new SearchInfo(nameMatcher.group(1),
-								"https://www.youtube.com/watch?v=" + videoID
+									g_ctx.audioManager().getTrackLoader().load(ctx.getVoiceChannel(), ctx.getChannel(), track);
+								},
+								g_ctx.audioManager().getTrackLoader()::noMatches,
+								g_ctx.audioManager().getTrackLoader()::loadFailed
 						));
 
-						if (songList.size() >= 12) {
-							/* Waits for user input - blocking - commands handled asynchronously */
-							ISearchable searchable = new ResultSelector(songList, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator()).getChoice();
-							videoUrl = searchable.getUrl();
-							break;
-						}
-					} else {
-						videoUrl = videoUrl.concat(videoID);
-						break;
-					}
-				}
-			}
-			trackLoader.load(ctx.getChannel(), voiceChannel, videoUrl);
-			/* while end */
-		}
-		if (ctx.getArgs().size() <= 2) {
 
-			if (hasNextFlag) {
-				TrackScheduler scheduler = GuildContext.get(guildID)
-						.audioManager()
-						.getScheduler();
 
-				ArrayList<AudioTrack> queue = scheduler.getQueue();
-
-				int index = queue.size() - 1; // Subtract 1 for '0' based numeration.
-
-				queue.add(0, queue.get(index));
-				queue.remove(index + 1); // Adding one to account for -> shift of list
-
-				scheduler.clearQueue();
-				scheduler.queueList(queue);
-
-				GuildContext.get(guildID)
-						.playerPrinter()
-						.printQueue(GuildContext.get(guildID).audioManager(), ctx.getChannel());
-			}
-		}
+//		## DEPRECATED ##
+//
+//		String      guildID     = ctx.getGuild().getId();
+//		TextChannel textChannel = ctx.getChannel();
+//		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
+//				ctx.getEventInitiator().getVoiceState().getChannel() : null;
+//
+//		List<ISearchable> songList = new ArrayList<>();
+//		String            videoUrl = "https://www.youtube.com/watch?v=";
+//		String            videoID  = "";
+//		Document          doc      = null;
+//
+//		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
+//
+//		boolean listResults = args.get(0).matches("(?i)-(list)");
+//		boolean hasNextFlag = args.stream().anyMatch(arg -> arg.matches("(?i)-(n|next)"));
+//
+////		String query = String.join("+", args)
+////				.replaceFirst("(?i)-(list|url|name)", "")
+////				.replaceFirst("(?i)-(n|next)", "")
+////				.replaceFirst("(?i)-(search)", "")
+////				.trim();
+//
+//		String url = "http://youtube.com/results?search_query=" + query;
+//		TrackLoader trackLoader = GuildContext.get(guildID)
+//				.audioManager()
+//				.getTrackLoader();
+//		try {
+//			doc = Jsoup.connect(url)
+//					.get();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//
+//		if (doc != null) {
+//			Element element = new Element("script");
+//			doc.select("script")
+//					.forEach(e -> element.append(e.html()));
+//
+//			//			RegEx
+////			(?im)            - caseInsensitive, Multiline
+////			(?<="videoId":") - Negative lookbehind for finding video ID key
+////			.+?              - Any character up to ?.
+////			(?=")            - ? = ".
+//			Pattern videoIDPattern = Pattern.compile("(?im)(?<=\"videoId\":\").+?(?=\")");
+//			Matcher videoMatcher   = videoIDPattern.matcher(element.html());
+//
+//			Pattern songName_Pattern;
+//			Matcher nameMatcher;
+//
+//			while (videoMatcher.find()) {
+//				if (videoID.matches(videoMatcher.group(0))) {
+//					continue;
+//				}
+//				videoID = videoMatcher.group(0);
+//
+////				RegEx. . . again . . . 				 - https://regex101.com/r/1c2wAQ/1
+////				(?im)                                - caseInsensitive, Multiline
+////				(?=i.ytimg.com/vi/"+uri+").{1,300}   - Positive lookahead to contain video ID near title. Arbitrarily up to 300 chars
+////				(?<="title":\{"runs":\[\{"text":")   - Positive lookbehind to contain text prior to title.
+////				(.+?(?=\"}]))                        - Extract song name. Any character up to the next "}]. - This closes the js object on YT end.
+//				songName_Pattern = Pattern.compile("(?im)(?=vi/" + videoID + "/).{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?)(?=\"}])");
+//				nameMatcher      = songName_Pattern.matcher(element.html());
+//				if (nameMatcher.find()) {
+//					if (listResults) {
+//						songList.add(new SearchInfo(nameMatcher.group(1),
+//								"https://www.youtube.com/watch?v=" + videoID
+//						));
+//
+//						if (songList.size() >= 12) {
+//							/* Waits for user input - blocking - commands handled asynchronously */
+//							ISearchable searchable = new ResultSelector(songList, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator()).getChoice();
+//
+//							if (searchable == null) {
+//								return;
+//							}
+//
+//							videoUrl = searchable.getUrl();
+//							break;
+//						}
+//					} else {
+//						videoUrl = videoUrl.concat(videoID);
+//						break;
+//					}
+//				}
+//			}
+//			trackLoader.load(ctx.getChannel(), voiceChannel, videoUrl);
+//			/* while end */
+//		}
+//		if (ctx.getArgs().size() <= 2) {
+//
+//			if (hasNextFlag) {
+//				TrackScheduler scheduler = GuildContext.get(guildID)
+//						.audioManager()
+//						.getScheduler();
+//
+//				ArrayList<AudioTrack> queue = scheduler.getQueue();
+//
+//				int index = queue.size() - 1; // Subtract 1 for '0' based numeration.
+//
+//				if (index < 0 || index > queue.size()) {
+//					return;
+//				}
+//
+//				queue.add(0, queue.get(index));
+//				queue.remove(index + 1); // Adding one to account for -> shift of list
+//
+//				scheduler.clearQueue();
+//				scheduler.queueList(queue);
+//			}
+//		}
 	}
 
 }
