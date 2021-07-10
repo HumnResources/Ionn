@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import static com.zischase.discordbot.audioplayer.MediaControls.*;
@@ -35,6 +36,7 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 	private       VoiceChannel  voiceChannel;
 
 	private final ScheduledThreadPoolExecutor exec = new ScheduledThreadPoolExecutor(1);
+	private final Semaphore semaphore = new Semaphore(1);
 
 	public TrackWatcherEventListener(GuildContext ctx) {
 		this.id           = ctx.getID();
@@ -81,7 +83,7 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 
 	@Override
 	public void onEvent(AudioEvent audioEvent) {
-
+		boolean newEvent = true;
 		/* Check for available channel to display Now PLaying prompt */
 		textChannel = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textChannel"));
 		voiceChannel  = guild.getVoiceChannelById(DBQueryHandler.get(id, "media_settings", "voicechannel"));
@@ -116,16 +118,25 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 			if (!audioManager.getScheduler().getQueue().isEmpty()) {
 				printer.printQueue(audioManager.getScheduler().getQueue(), textChannel);
 			}
+
 			/* Set up a timer to continually update the running time of the song */
 			Runnable runnable = () -> {
 				AudioTrack track = audioEvent.player.getPlayingTrack();
 				if (track != null) {
 					if (track.getDuration() != Integer.MAX_VALUE && track.getPosition() < track.getDuration()) {
+						try {
+							semaphore.acquire();
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
 						printer.printNowPlaying(audioManager, textChannel);
+
+						semaphore.release();
 					}
 				}
 			};
 			exec.scheduleAtFixedRate(runnable, 0, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
+
 		}
 	}
 

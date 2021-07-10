@@ -17,8 +17,9 @@ import java.awt.*;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 public class PlayerPrinter {
@@ -36,8 +37,7 @@ public class PlayerPrinter {
 	private final EventWaiter              waiter              = new EventWaiter();
 	private final AtomicReference<Message> nowPlayingMessage   = new AtomicReference<>(null);
 	private final AtomicReference<Message> queueMessage        = new AtomicReference<>(null);
-	private final Semaphore                nowPlayingSemaphore = new Semaphore(1);
-	private final Semaphore                queueSemaphore      = new Semaphore(1);
+	private final Lock lock = new ReentrantLock();
 
 	public PlayerPrinter() {
 
@@ -52,45 +52,36 @@ public class PlayerPrinter {
 	}
 
 	public void printNowPlaying(AudioManager audioManager, TextChannel channel, boolean forcePrint) {
-		try {
-			nowPlayingSemaphore.acquire();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-
+		lock.lock();
 		this.nowPlayingMessage.set(getNPMsg(channel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
 
 		Message builtMessage = buildNowPlaying(audioManager);
 
-
 		if (forcePrint) {
 			deletePrevious(channel);
-			channel.sendMessage(builtMessage).queue(this.nowPlayingMessage::set);
+			channel.sendMessage(builtMessage).queue(message -> {
+				addReactions(message);
+				this.nowPlayingMessage.set(message);
+			});
 			printQueue(audioManager.getScheduler().getQueue(), channel);
-			addReactions();
 		}
 		else {
-			if (this.nowPlayingMessage.get() == builtMessage) {
-				channel.sendMessage(builtMessage).queue(this.nowPlayingMessage::set);
-				addReactions();
+			if (this.nowPlayingMessage.get() == null) {
+				channel.sendMessage(builtMessage).queue(message -> {
+					addReactions(message);
+					this.nowPlayingMessage.set(message);
+				});
 			} else {
 				channel.editMessageById(this.nowPlayingMessage.get().getId(), builtMessage).queue();
 			}
 		}
-
-		nowPlayingSemaphore.release();
+		lock.unlock();
 	}
 
 	public void printQueue(List<AudioTrack> queue, TextChannel channel) {
-		try {
-			queueSemaphore.acquire();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-
+		lock.lock();
 		buildQueue(queue, channel);
-
-		queueSemaphore.release();
+		lock.unlock();
 	}
 
 	public void deletePrevious(TextChannel textChannel) {
@@ -110,6 +101,8 @@ public class PlayerPrinter {
 		} else if (msgList.size() == 1) {
 			textChannel.deleteMessageById(msgList.get(0).getId()).complete();
 		}
+
+		textChannel.getJDA().removeEventListener(waiter);
 	}
 
 	private String progressPercentage(int position, int duration) {
@@ -131,26 +124,6 @@ public class PlayerPrinter {
 		return bar.toString();
 	}
 
-	private void addReactions() {
-		/* Small wait to allow printer to display song info if needed */
-		Message nowPlayingMsg = this.nowPlayingMessage.get();
-
-		if (nowPlayingMsg == null || nowPlayingMsg.getType() == MessageType.UNKNOWN) {
-			return;
-		}
-
-		List<String> reactionsPresent = nowPlayingMsg.getReactions()
-				.stream()
-				.map(reaction -> reaction.getReactionEmote().getName())
-				.collect(Collectors.toList());
-
-		/* Only add a reaction if it's missing. Saves on queues submit to discord API */
-		for (String reaction : MediaControls.getReactions()) {
-			if (!reactionsPresent.contains(reaction)) {
-				nowPlayingMsg.addReaction(reaction).queue();
-			}
-		}
-	}
 
 	private Message buildNowPlaying(AudioManager audioManager) {
 		AudioPlayer    player         = audioManager.getPlayer();
@@ -213,7 +186,6 @@ public class PlayerPrinter {
 				.findFirst()
 				.flatMap(message -> {
 					this.nowPlayingMessage.set(message);
-					this.nowPlayingSemaphore.release();
 					return Optional.of(message);
 				})
 				.orElse(null);
@@ -229,7 +201,6 @@ public class PlayerPrinter {
 						.findFirst()
 						.flatMap(message -> {
 							this.queueMessage.set(message);
-							this.queueSemaphore.release();
 							return Optional.of(message);
 						})
 						.orElse(null);
@@ -271,6 +242,26 @@ public class PlayerPrinter {
 				builder.build().display(message);
 				this.queueMessage.set(message);
 			});
+		}
+	}
+
+	private void addReactions(Message nowPlayingMsg) {
+		/* Small wait to allow printer to display song info if needed */
+
+		if (nowPlayingMsg == null || nowPlayingMsg.getType() == MessageType.UNKNOWN) {
+			return;
+		}
+
+		List<String> reactionsPresent = nowPlayingMsg.getReactions()
+				.stream()
+				.map(reaction -> reaction.getReactionEmote().getName())
+				.collect(Collectors.toList());
+
+		/* Only add a reaction if it's missing. Saves on queues submit to discord API */
+		for (String reaction : MediaControls.getReactions()) {
+			if (!reactionsPresent.contains(reaction)) {
+				nowPlayingMsg.addReaction(reaction).queue();
+			}
 		}
 	}
 }
