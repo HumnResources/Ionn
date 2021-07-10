@@ -8,8 +8,8 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -59,8 +59,8 @@ public class Play extends Command {
 
 	@Override
 	public void handle(CommandContext ctx) {
-		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
-				ctx.getEventInitiator().getVoiceState().getChannel() : null;
+		VoiceChannel voiceChannel = ctx.getMember().getVoiceState() != null ?
+				ctx.getMember().getVoiceState().getChannel() : null;
 
 		List<String> args    = ctx.getArgs();
 		String       guildID = ctx.getGuild().getId();
@@ -75,14 +75,13 @@ public class Play extends Command {
 			player.setPaused(!player.isPaused());
 		} else if (args.get(0).matches("(?i)-(next|n)")) {
 			String song = String.join(" ", args.subList(1, args.size()));
-			playNext(song, ctx.getEvent(), trackLoader);
+			playNext(song, ctx.getVoiceChannel(), ctx.getChannel(), trackLoader);
 			ctx.getChannel().sendMessage("Playing `%s` next!".formatted(song)).queue(m -> m.delete().queueAfter(3000, TimeUnit.MILLISECONDS), null);
 		}
 		/* Checks to see if we have a potential link in the message */
 		else if (args.get(0).matches("(?i)-(url)")) {
-			List<Message.Attachment> attachments = ctx.getEvent()
-					.getMessage()
-					.getAttachments();
+			List<Message.Attachment> attachments = ctx.getMessage().getAttachments();
+
 			if (!attachments.isEmpty()) {
 				trackLoader.load(ctx.getChannel(), voiceChannel, attachments.get(0).getProxyUrl());
 			}
@@ -112,11 +111,9 @@ public class Play extends Command {
 		}
 	}
 
-	private void playNext(String song, GuildMessageReceivedEvent event, TrackLoader trackLoader) {
-		VoiceChannel voiceChannel = event.getMember() != null && event.getMember().getVoiceState() != null ?
-				event.getMember().getVoiceState().getChannel() : null;
+	private void playNext(String song, VoiceChannel voiceChannel, TextChannel textChannel, TrackLoader trackLoader) {
 
-		String                guildID      = event.getGuild().getId();
+		String                guildID      = textChannel.getGuild().getId();
 		AudioManager          audioManager = GuildContext.get(guildID).audioManager();
 		ArrayList<AudioTrack> currentQueue = audioManager.getScheduler().getQueue();
 		AudioTrack            nextTrack    = null;
@@ -142,7 +139,7 @@ public class Play extends Command {
 			audioManager.getScheduler().queueList(currentQueue);
 
 		} else {
-			trackLoader.load(event.getChannel(), voiceChannel, song);
+			trackLoader.load(textChannel, voiceChannel, song);
 		}
 	}
 }

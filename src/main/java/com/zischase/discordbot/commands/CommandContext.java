@@ -1,50 +1,87 @@
 package com.zischase.discordbot.commands;
 
+import com.sun.istack.Nullable;
 import com.zischase.discordbot.DBQueryHandler;
-import me.duncte123.botcommons.commands.ICommandContext;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.sharding.ShardManager;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.List;
 
-public class CommandContext implements ICommandContext {
+public class CommandContext {
 
-	private final GuildMessageReceivedEvent event;
-	private final List<String>              args;
-	private final Member                    eventInitiator;
+	private final TextChannel textChannel;
+	private final VoiceChannel voiceChannel;
+	private final Guild guild;
+	private final Member initiator;
+	private final Message message;
+	private final List<String> args;
 
-	public CommandContext(GuildMessageReceivedEvent event, List<String> args) {
-		this.event          = event;
-		this.args           = args;
-		this.eventInitiator = event.getMember();
+	CommandContext(Guild guild, Member initiator, List<String> args, Message commandMessage, TextChannel textChannel, @Nullable VoiceChannel voiceChannel) {
+		this.initiator = initiator;
+		this.message = commandMessage;
+		this.args = args;
+		this.guild = guild;
+		this.textChannel = textChannel;
+
+		if (voiceChannel != null) {
+			this.voiceChannel = voiceChannel;
+		}
+		else {
+			this.voiceChannel = initiator.getVoiceState() != null ? initiator.getVoiceState().getChannel() : null;
+		}
 	}
 
-	public CommandContext(GuildMessageReceivedEvent event, List<String> args, Member initiator) {
-		this.event          = event;
-		this.args           = args;
-		this.eventInitiator = initiator;
-	}
-
-	public Member getEventInitiator() {
-		return eventInitiator;
-	}
-
-	@Override
-	public Guild getGuild() {
-		return event.getGuild();
-	}
-
-	@Override
-	public GuildMessageReceivedEvent getEvent() {
-		return event;
+	public final boolean isPremiumGuild() {
+		return DBQueryHandler.getPremiumStatus(getGuild().getId());
 	}
 
 	public List<String> getArgs() {
 		return args;
 	}
 
-	public final boolean isPremiumGuild() {
-		return DBQueryHandler.getPremiumStatus(getGuild().getId());
+	@NonNull
+	public Guild getGuild() {
+		return this.guild;
+	}
+
+	@Nullable
+	public VoiceChannel getVoiceChannel() {
+		return this.voiceChannel;
+	}
+
+	@NonNull
+	public TextChannel getChannel() {
+		return this.textChannel;
+	}
+
+	@Nullable
+	public Message getMessage() {
+		return this.message;
+	}
+
+	public Member getMember() {
+		return this.initiator;
+	}
+
+	@NonNull
+	public JDA getJDA() {
+		return this.initiator.getJDA();
+	}
+
+	@NonNull
+	public User getSelfUser() {
+		return this.getJDA().getSelfUser();
+	}
+
+	@NonNull
+	public Member getSelfMember() {
+		return this.getGuild().getSelfMember();
+	}
+
+	@Nullable
+	public ShardManager getShardManager() {
+		return this.getJDA().getShardManager();
 	}
 }

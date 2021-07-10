@@ -68,8 +68,7 @@ public class Playlist extends Command {
 
 	@Override
 	public void handle(CommandContext ctx) {
-		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
-				ctx.getEventInitiator().getVoiceState().getChannel() : null;
+		VoiceChannel voiceChannel = ctx.getVoiceChannel();
 
 		if (!playlistsInitialized) {
 			List<String> dbPlaylists = DBQueryHandler.getList(ctx.getGuild().getId(), "playlists", "name");

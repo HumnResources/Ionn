@@ -5,7 +5,6 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -58,22 +57,19 @@ public class Youtube extends Command {
 
 		GuildContext g_ctx = GuildContext.get(ctx.getGuild().getId());
 
-		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
-				ctx.getEventInitiator().getVoiceState().getChannel() : null;
-
 		g_ctx.audioManager().getPlayerManager().source(YoutubeAudioSourceManager.class).setPlaylistPageCount(30);
 
 		g_ctx.audioManager().getPlayerManager()
 				.loadItem("ytsearch: "+query,
 						new FunctionalResultHandler(
-								(audioTrack) -> g_ctx.audioManager().getTrackLoader().load(voiceChannel, ctx.getChannel(), audioTrack),
+								(audioTrack) -> g_ctx.audioManager().getTrackLoader().load(ctx.getVoiceChannel(), ctx.getChannel(), audioTrack),
 								(playlist) -> {
 									List<ISearchable> searchables;
 									searchables = playlist.getTracks()
 											.stream()
 											.map(SearchInfo::new)
 											.collect(Collectors.toList());
-									ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getEventInitiator(), Color.RED).get();
+									ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getMember(), Color.RED).get();
 
 									AudioTrack track = playlist.getTracks()
 											.stream()
@@ -82,7 +78,7 @@ public class Youtube extends Command {
 											.findFirst()
 											.orElseThrow();
 
-									g_ctx.audioManager().getTrackLoader().load(voiceChannel, ctx.getChannel(), track);
+									g_ctx.audioManager().getTrackLoader().load(ctx.getVoiceChannel(), ctx.getChannel(), track);
 								},
 								g_ctx.audioManager().getTrackLoader()::noMatches,
 								g_ctx.audioManager().getTrackLoader()::loadFailed

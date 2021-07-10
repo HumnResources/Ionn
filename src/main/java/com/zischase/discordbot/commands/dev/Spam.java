@@ -23,7 +23,7 @@ public class Spam extends Command {
 
 	@Override
 	public void handle(CommandContext ctx) {
-		if (ctx.getEventInitiator().getId().equals(Config.get("OWNER_ID"))) {
+		if (ctx.getMember().getId().equals(Config.get("OWNER_ID"))) {
 			if (ctx.getArgs().size() >= 1 && ctx.getArgs().get(0).matches("\\d+")) {
 				int num = Integer.parseInt(ctx.getArgs().get(0));
 				for (int i = 0; i < num; i++) {

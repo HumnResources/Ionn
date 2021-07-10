@@ -77,11 +77,10 @@ public class Radio extends Command {
 		List<String> args        = ctx.getArgs();
 		String       guildID     = ctx.getGuild().getId();
 		TextChannel  textChannel = ctx.getChannel();
-		VoiceChannel voiceChannel = ctx.getEventInitiator().getVoiceState() != null ?
-				ctx.getEventInitiator().getVoiceState().getChannel() : null;
+		VoiceChannel voiceChannel = ctx.getVoiceChannel();
 
 		String query = String.join(" ", args).toLowerCase();
-		searchByString(guildID, textChannel, voiceChannel, query, ctx.getEventInitiator());
+		searchByString(guildID, textChannel, voiceChannel, query, ctx.getMember());
 	}
 
 

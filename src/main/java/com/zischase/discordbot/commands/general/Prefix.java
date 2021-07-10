@@ -40,8 +40,7 @@ public class Prefix extends Command {
 		String prefix = DBQueryHandler.get(guild.getId(), "prefix");
 
 		if (args.isEmpty()) {
-			ctx.getEvent()
-					.getChannel()
+			ctx.getChannel()
 					.sendMessage("The current prefix is `" + prefix + "`")
 					.queue();
 			return;
@@ -50,8 +49,7 @@ public class Prefix extends Command {
 		DBQueryHandler.set(guild.getId(), "prefix", args.get(0));
 		prefix = DBQueryHandler.get(guild.getId(), "prefix");
 
-		ctx.getEvent()
-				.getChannel()
+		ctx.getChannel()
 				.sendMessage("The new prefix has been set to `" + prefix + "`")
 				.queue();
 	}

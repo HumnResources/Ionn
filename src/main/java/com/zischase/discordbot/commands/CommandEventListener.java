@@ -21,9 +21,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -49,41 +50,34 @@ public class CommandEventListener extends ListenerAdapter {
 	@Override
 	public void onSlashCommand(@NotNull SlashCommandEvent event) {
 		event.isAcknowledged();
-
 		event.deferReply(false).queue((m) -> {
-			MessageBuilder mb = new MessageBuilder();
-
-			/* Using getGuildChannel() instead of getGuild() directly from event. This ensures we have null safety*/
-			String prefix = DBQueryHandler.get(event.getGuildChannel().getGuild().getId(), "prefix");
-
-			/* Builds a command for the bot to issue : `<prefix><command> -<option> <args>` */
-			mb.append("%s%s ".formatted(prefix, event.getName()));
+			List<String> args = new ArrayList<>();
+			MessageBuilder commandMessage = new MessageBuilder();
+			commandMessage.append(event.getName().concat(" "));
 
 			if (event.getSubcommandName() != null) {
-				mb.append("-".concat(event.getSubcommandName()).concat(" "));
+				args.add("-".concat(event.getSubcommandName()));
 			}
 
 			event.getOptions().forEach((opt) -> {
 				if (opt.getType() == OptionType.STRING || opt.getType() == OptionType.INTEGER) {
-					mb.append(opt.getAsString().concat(" "));
+					args.add(opt.getAsString().concat(" "));
 				}
 			});
 
-			/* Ensure we skip detection of bot message in channel until we start processing the command. */
-			this.proxyCallMember.set(event.getMember());
+			CommandContext ctx = new CommandContext(event.getGuild(), event.getMember(), args, commandMessage.build(), event.getTextChannel(), null);
+			executeCommand(ctx);
 
-			/* Delete the command issued by the bot */
-			event.getChannel().sendMessage(mb.build()).queue((cmdMsg) -> cmdMsg.delete().queue());
 			event.getHook().deleteOriginal().queue();
 		}, err -> LOGGER.warn("Timeout for command {} !", event.getName()));
 	}
 
+	private void executeCommand(CommandContext ctx) {
+		CompletableFuture.runAsync(() -> GuildContext.get(ctx.getGuild().getId()).commandHandler().invoke(ctx));
+	}
+
 	@Override
 	public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent event) {
-		if (proxyCallMember.get() == null && event.getAuthor().isBot() || event.isWebhookMessage()) {
-			return;
-		}
-
 		String prefix = DBQueryHandler.get(event.getGuild().getId(), "prefix");
 		String raw    = event.getMessage().getContentRaw();
 
@@ -91,7 +85,7 @@ public class CommandEventListener extends ListenerAdapter {
 			String[]     msgArr = raw.replaceFirst("(?i)" + Pattern.quote(prefix), "").split("\\s");
 			List<String> args   = Arrays.asList(msgArr).subList(1, msgArr.length);
 
-			CommandContext ctx = proxyCallMember.get() != null ? new CommandContext(event, args, proxyCallMember.get()) : new CommandContext(event, args);
+			CommandContext ctx = new CommandContext(event.getGuild(), event.getMember(), args, event.getMessage(), event.getChannel(), null);
 
 			if (event.getAuthor().getId().equals(Config.get("OWNER_ID"))) {
 				if (msgArr[0].equalsIgnoreCase("slash")) {
@@ -103,10 +97,7 @@ public class CommandEventListener extends ListenerAdapter {
 					return;
 				}
 			}
-
-			this.proxyCallMember.set(null);
-
-			CompletableFuture.runAsync(() -> GuildContext.get(ctx.getGuild().getId()).commandHandler().invoke(ctx));
+			executeCommand(ctx);
 		}
 	}
 
