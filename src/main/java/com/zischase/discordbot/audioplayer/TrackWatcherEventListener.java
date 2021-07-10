@@ -5,10 +5,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.message.guild.react.GenericGuildMessageReactionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -52,9 +49,10 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 
 	@Override
 	public void onGenericGuildMessageReaction(@NotNull GenericGuildMessageReactionEvent event) {
+		Member eventMember = event.getMember();
+
 		event.retrieveMessage().queue(msg -> {
-			if (!msg.getAuthor().isBot() || event.retrieveUser().complete().isBot() ||
-					event.getReaction().isSelf() || !id.equalsIgnoreCase(event.getGuild().getId())) {
+			if (!msg.getAuthor().isBot() || eventMember == null || eventMember.getUser().isBot() || event.getReaction().isSelf()) {
 				return;
 			}
 			Message currentNPMessage = printer.getNowPlayingMessage();
