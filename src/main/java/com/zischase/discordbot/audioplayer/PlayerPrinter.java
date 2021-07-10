@@ -34,10 +34,10 @@ public class PlayerPrinter {
 	private static final String NOTHING_PLAYING_MSG_NAME   = "**Nothing Playing**";
 	private static final Logger LOGGER                     = LoggerFactory.getLogger(PlayerPrinter.class);
 
-	private final EventWaiter              waiter              = new EventWaiter();
-	private final AtomicReference<Message> nowPlayingMessage   = new AtomicReference<>(null);
-	private final AtomicReference<Message> queueMessage        = new AtomicReference<>(null);
-	private final Lock lock = new ReentrantLock();
+	private final EventWaiter              waiter            = new EventWaiter();
+	private final AtomicReference<Message> nowPlayingMessage = new AtomicReference<>(null);
+	private final AtomicReference<Message> queueMessage      = new AtomicReference<>(null);
+	private final Lock                     lock              = new ReentrantLock();
 
 	public PlayerPrinter() {
 
@@ -79,9 +79,7 @@ public class PlayerPrinter {
 	}
 
 	public void printQueue(List<AudioTrack> queue, TextChannel channel) {
-		lock.lock();
 		buildQueue(queue, channel);
-		lock.unlock();
 	}
 
 	public void deletePrevious(TextChannel textChannel) {
@@ -232,7 +230,7 @@ public class PlayerPrinter {
 		if (!textChannel.getJDA().getRegisteredListeners().contains(waiter)) {
 			textChannel.getJDA().addEventListener(waiter);
 		}
-
+		this.queueMessage.set(getQueueMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
 		/* Checks to see if we have a message to reuse */
 		if (this.queueMessage.get() != null) {
 			builder.build().display(queueMessage.get());
