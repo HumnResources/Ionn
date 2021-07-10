@@ -6,7 +6,6 @@ import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
@@ -25,13 +24,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 public class CommandEventListener extends ListenerAdapter {
 
-	private static final Logger                  LOGGER          = LoggerFactory.getLogger(CommandEventListener.class);
-	private final        AtomicReference<Member> proxyCallMember = new AtomicReference<>(null);
+	private static final Logger LOGGER = LoggerFactory.getLogger(CommandEventListener.class);
 
 	public CommandEventListener() {
 	}
@@ -49,27 +46,34 @@ public class CommandEventListener extends ListenerAdapter {
 
 	@Override
 	public void onSlashCommand(@NotNull SlashCommandEvent event) {
+		if (event.isAcknowledged()) {
+			return;
+		}
+
 		event.isAcknowledged();
-		event.deferReply(false).queue((m) -> {
-			List<String> args = new ArrayList<>();
-			MessageBuilder commandMessage = new MessageBuilder();
-			commandMessage.append(event.getName().concat(" "));
+		event.deferReply(false).queue(
+				(m) -> event.getHook().deleteOriginal().queue(),
+				err -> LOGGER.warn("Timeout for command {} !", event.getName())
+		);
 
-			if (event.getSubcommandName() != null) {
-				args.add("-".concat(event.getSubcommandName()));
+//		event.reply(event.getUser().getAsTag() + " - " + event.getName()).queue(null, err -> LOGGER.warn("Timeout for command {} !", event.getName()));
+
+		List<String>   args           = new ArrayList<>();
+		MessageBuilder commandMessage = new MessageBuilder();
+		commandMessage.append(event.getName().concat(" "));
+
+		if (event.getSubcommandName() != null) {
+			args.add("-".concat(event.getSubcommandName()));
+		}
+
+		event.getOptions().forEach((opt) -> {
+			if (opt.getType() == OptionType.STRING || opt.getType() == OptionType.INTEGER) {
+				args.add(opt.getAsString().concat(" "));
 			}
+		});
 
-			event.getOptions().forEach((opt) -> {
-				if (opt.getType() == OptionType.STRING || opt.getType() == OptionType.INTEGER) {
-					args.add(opt.getAsString().concat(" "));
-				}
-			});
-
-			CommandContext ctx = new CommandContext(event.getGuild(), event.getMember(), args, commandMessage.build(), event.getTextChannel(), null);
-			executeCommand(ctx);
-
-			event.getHook().deleteOriginal().queue();
-		}, err -> LOGGER.warn("Timeout for command {} !", event.getName()));
+		CommandContext ctx = new CommandContext(event.getGuild(), event.getMember(), args, commandMessage.build(), event.getTextChannel(), null);
+		executeCommand(ctx);
 	}
 
 	private void executeCommand(CommandContext ctx) {
