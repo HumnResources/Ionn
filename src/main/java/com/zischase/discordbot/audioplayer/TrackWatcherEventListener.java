@@ -55,7 +55,7 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 					event.getReaction().isSelf() || !id.equalsIgnoreCase(event.getGuild().getId())) {
 				return;
 			}
-			Message currentNPMessage = printer.getCurrentNPMessage(textChannel);
+			Message currentNPMessage = printer.getNowPlayingMessage();
 
 			if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
 				String reaction = event.getReaction().getReactionEmote().getName();
@@ -90,20 +90,19 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 			return;
 		}
 
+		TrackScheduler scheduler = audioManager.getScheduler();
+
 		/* Ensure we have somewhere to send the message, check for errors */
 		if (audioEvent instanceof TrackStuckEvent) {
 			textChannel.sendMessage("Audio track stuck! Ending track and continuing").queue();
-			audioManager.getScheduler().nextTrack();
+			scheduler.nextTrack();
+
 		} else if (audioEvent instanceof TrackExceptionEvent) {
 			textChannel.sendMessage("Error loading the audio.").queue();
 			((TrackExceptionEvent) audioEvent).exception.printStackTrace();
-			audioManager.getScheduler().nextTrack();
-		} else if (audioEvent instanceof TrackEndEvent && audioManager.getScheduler().getQueue().isEmpty()) {
-			Message npMessage = printer.getCurrentNPMessage(textChannel);
-			if (npMessage != null) {
-				npMessage.clearReactions().complete();
-			}
+			scheduler.nextTrack();
 
+		} else if (audioEvent instanceof TrackEndEvent && scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() != null) {
 			printer.deletePrevious(textChannel);
 			guild.getJDA().getDirectAudioController().disconnect(voiceChannel.getGuild());
 
@@ -111,9 +110,9 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 			boolean inChannel = guild.getSelfMember().getVoiceState() != null && Objects.requireNonNull(guild.getSelfMember().getVoiceState()).inVoiceChannel();
 
 			if (!inChannel) {
-				guild.getJDA().getDirectAudioController()
-						.connect(voiceChannel);
+				guild.getJDA().getDirectAudioController().connect(voiceChannel);
 			}
+
 			if (!audioManager.getScheduler().getQueue().isEmpty()) {
 				printer.printQueue(audioManager.getScheduler().getQueue(), textChannel);
 			}
@@ -126,7 +125,7 @@ public class TrackWatcherEventListener extends ListenerAdapter implements AudioE
 					}
 				}
 			};
-			exec.scheduleAtFixedRate(runnable, NOW_PLAYING_TIMER_RATE_MS, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
+			exec.scheduleAtFixedRate(runnable, 0, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
 		}
 	}
 
