@@ -71,7 +71,7 @@ public class PlayerPrinter {
 				((TrackExceptionEvent) audioEvent).exception.printStackTrace();
 				scheduler.nextTrack();
 
-			} else if (audioEvent instanceof TrackEndEvent && scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() != null) {
+			} else if (audioEvent instanceof TrackEndEvent && scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() == null) {
 				deletePrevious(textChannel);
 				guild.getJDA().getDirectAudioController().disconnect(guild);
 
@@ -94,7 +94,7 @@ public class PlayerPrinter {
 						}
 					}
 				};
-				SCHEDULED_EXEC.scheduleAtFixedRate(runnable, 0, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
+				SCHEDULED_EXEC.scheduleAtFixedRate(runnable, NOW_PLAYING_TIMER_RATE_MS, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
 			}
 		};
 
@@ -125,6 +125,9 @@ public class PlayerPrinter {
 				addReactions(message);
 				this.nowPlayingMessage.set(message);
 			});
+			if (audioManager.getScheduler().getQueue().size() > 0) {
+				printQueue(audioManager.getScheduler().getQueue(), channel);
+			}
 		} else {
 			if (this.nowPlayingMessage.get() == null) {
 				channel.sendMessage(builtMessage).queue(message -> {
