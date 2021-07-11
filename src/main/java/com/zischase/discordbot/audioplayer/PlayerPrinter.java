@@ -15,9 +15,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.time.OffsetDateTime;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -26,7 +25,7 @@ import java.util.stream.Collectors;
 
 public class PlayerPrinter {
 
-	private static final int    MAX_WAITER_THREADS        = 100;
+	private static final int    MAX_WAITER_THREADS        = 1;
 //	private static final int    WAITER_TIMEOUT_MS         = 30;
 	private static final int    NOW_PLAYING_TIMER_RATE_MS = 5000;
 	private static final int    HISTORY_POLL_LIMIT        = 5;
@@ -42,7 +41,7 @@ public class PlayerPrinter {
 	private final AtomicReference<Message> nowPlayingMessage = new AtomicReference<>(null);
 	private final AtomicReference<Message> queueMessage      = new AtomicReference<>(null);
 	private final Lock                     lock              = new ReentrantLock();
-	private final TrackWatcherEventListener trackWatcher;
+	private final Semaphore semaphore = new Semaphore(1);
 
 	public PlayerPrinter(AudioManager audioManager, Guild guild) {
 		String id = guild.getId();
@@ -102,7 +101,7 @@ public class PlayerPrinter {
 		audioManager.getPlayer().addListener(audioEventListener);
 
 		/* Add watcher for reaction response to now playing message */
-		this.trackWatcher = new TrackWatcherEventListener(guild.getJDA(), this, audioManager, id);
+		TrackWatcherEventListener trackWatcher = new TrackWatcherEventListener(guild.getJDA(), this, audioManager, id);
 	}
 
 	public Message getNowPlayingMessage() {
@@ -114,13 +113,17 @@ public class PlayerPrinter {
 	}
 
 	public void printNowPlaying(AudioManager audioManager, TextChannel channel, boolean forcePrint) {
-		lock.lock();
+		if (!semaphore.tryAcquire()) {
+			return;
+		}
 		this.nowPlayingMessage.set(getNPMsg(channel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
-
 		Message builtMessage = buildNowPlaying(audioManager);
 
 		if (forcePrint) {
 			deletePrevious(channel);
+			if (audioManager.getScheduler().getQueue().size() > 0) {
+				printQueue(audioManager.getScheduler().getQueue(), channel);
+			}
 			channel.sendMessage(builtMessage).queue(message -> {
 				addReactions(message);
 				this.nowPlayingMessage.set(message);
@@ -138,8 +141,7 @@ public class PlayerPrinter {
 				channel.editMessageById(this.nowPlayingMessage.get().getId(), builtMessage).queue();
 			}
 		}
-
-		lock.unlock();
+		semaphore.release();
 	}
 
 	public void printQueue(List<AudioTrack> queue, @NotNull TextChannel channel) {
@@ -283,17 +285,44 @@ public class PlayerPrinter {
 		Paginator.Builder builder = new Paginator.Builder()
 				.setText(QUEUE_MSG_NAME)
 				.setColor(Color.darkGray)
-				.useNumberedItems(true)
+//				.useNumberedItems(true)
 				.showPageNumbers(true)
 				.waitOnSinglePage(true)
 				.allowTextInput(true)
 				.wrapPageEnds(true)
 				.setColumns(1)
-				.setItemsPerPage(10)
+				.setItemsPerPage(12)
+				.setBulkSkipNumber(5)
 				.setEventWaiter(waiter)
-				.setBulkSkipNumber(5);
+				.setFinalAction(msg -> {/* Do Nothing */});
 
-		queue.forEach(track -> builder.addItems(track.getInfo().title));
+//		queue.forEach(track -> builder.addItems(track.getInfo().title));
+
+		int pageSize = 12;
+		boolean hasMorePages;
+		List<AudioTrack> pageList;
+		int nRemaining = queue.size();
+		int nAdded = 0;
+		int songCounter = 0;
+		while (nRemaining >= queue.size()) {
+			hasMorePages = queue.size() > pageSize;
+			int numToAdd = nRemaining;
+			if (hasMorePages) {
+				numToAdd = pageSize;
+			}
+
+
+			pageList = queue.subList(nAdded, nAdded + numToAdd);
+
+			for (AudioTrack track: pageList) {
+				builder.addItems("`%s.` %s".formatted(nAdded - songCounter, track.getInfo().title));
+				songCounter++;
+			}
+			Collections.reverse(pageList);
+
+			nAdded += numToAdd;
+			nRemaining -= nAdded;
+		}
 
 		/* If we don't have an event listener, add one */
 		if (!textChannel.getJDA().getRegisteredListeners().contains(waiter)) {
