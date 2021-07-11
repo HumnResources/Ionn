@@ -31,20 +31,47 @@ public class PlayerPrinter {
 	private static final int                      NOW_PLAYING_TIMER_RATE_MS = 7500;
 	private static final int                      HISTORY_POLL_LIMIT        = 5;
 	private static final int                      PROGRESS_BAR_SIZE         = 16;
+	private static final int                      QUEUE_COLUMN_COUNT        = 1;
+	private static final int                      QUEUE_PAGE_COUNT          = 10;
+	private static final int                      QUEUE_BULK_SKIP_AMOUNT    = 5;
 	private static final String                   PROGRESS_BAR_ICON_FILL    = "⬜";
 	private static final String                   PROGRESS_BAR_ICON_EMPTY   = "⬛";
 	private static final String                   NOW_PLAYING_MSG_NAME      = "**Now Playing**";
 	private static final String                   QUEUE_MSG_NAME            = "**Queue**";
 	private static final String                   NOTHING_PLAYING_MSG_NAME  = "**Nothing Playing**";
+	private static final String                   QUEUE_RIGHT_TEXT          = "Skip 5 Pages Right.";
+	private static final String                   QUEUE_LEFT_TEXT           = "Skip 5 Pages Left";
 	private static final ScheduledExecutorService SCHEDULED_EXEC            = new ScheduledThreadPoolExecutor(MAX_WAITER_THREADS);
 
-	private final EventWaiter              waiter            = new EventWaiter(SCHEDULED_EXEC, false);
-	private final AtomicReference<Message> nowPlayingMessage = new AtomicReference<>(null);
-	private final AtomicReference<Message> queueMessage      = new AtomicReference<>(null);
-	private final Semaphore                semaphore         = new Semaphore(1);
+	private final EventWaiter              waiter              = new EventWaiter(SCHEDULED_EXEC, false);
+	private final AtomicReference<Message> nowPlayingMessage   = new AtomicReference<>(null);
+	private final AtomicReference<String>  nowPlayingMessageID = new AtomicReference<>(null);
+	private final AtomicReference<Message> queueMessage        = new AtomicReference<>(null);
+	private final AtomicReference<String>  queueMessageID      = new AtomicReference<>(null);
+
+	private final Semaphore    nowPlayingSemaphore = new Semaphore(1);
+	private final Semaphore    queueSemaphore      = new Semaphore(1);
+	private final AudioManager audioManager;
+
+	/* Initialize pagination */
+	private final Paginator.Builder builder = new Paginator.Builder()
+			.setText(QUEUE_MSG_NAME)
+			.setColor(Color.darkGray)
+			.showPageNumbers(true)
+			.useNumberedItems(true)
+			.waitOnSinglePage(true)
+			.allowTextInput(true)
+			.wrapPageEnds(true)
+			.setColumns(QUEUE_COLUMN_COUNT)
+			.setItemsPerPage(QUEUE_PAGE_COUNT)
+			.setBulkSkipNumber(QUEUE_BULK_SKIP_AMOUNT)
+			.setLeftRightText(QUEUE_LEFT_TEXT, QUEUE_RIGHT_TEXT)
+			.setEventWaiter(waiter)
+			.setFinalAction(msg -> msg.getJDA().removeEventListener(waiter));
 
 	public PlayerPrinter(AudioManager audioManager, Guild guild) {
 		String id = guild.getId();
+		this.audioManager = audioManager;
 
 		/* Check for available channel to display Now PLaying prompt */
 		/* Ensure we have somewhere to send the message, check for errors */
@@ -82,7 +109,7 @@ public class PlayerPrinter {
 				}
 
 				if (audioManager.getScheduler().getQueue().size() > 0) {
-					printQueue(audioManager.getScheduler().getQueue(), textChannel);
+					printQueue(textChannel);
 				}
 
 				Runnable runnable = () -> {
@@ -105,6 +132,22 @@ public class PlayerPrinter {
 		guild.getJDA().addEventListener(trackWatcher);
 	}
 
+	public Message getQueueMessage(TextChannel textChannel) {
+		if (queueMessage.get() == null) {
+			buildQueue(audioManager.getScheduler().getQueue(), textChannel);
+			while (queueMessage.get() == null) {
+				/* Waiting for update via rest action in buildQueue() call. Don't have to compute*/
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return queueMessage.get();
+	}
+
 	public Message getNowPlayingMessage() {
 		return nowPlayingMessage.get();
 	}
@@ -114,7 +157,7 @@ public class PlayerPrinter {
 	}
 
 	public void printNowPlaying(AudioManager audioManager, TextChannel channel, boolean forcePrint) {
-		if (!semaphore.tryAcquire()) {
+		if (!nowPlayingSemaphore.tryAcquire()) {
 			return;
 		}
 		this.nowPlayingMessage.set(getNPMsg(channel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
@@ -123,30 +166,37 @@ public class PlayerPrinter {
 		if (forcePrint) {
 			deletePrevious(channel);
 			if (audioManager.getScheduler().getQueue().size() > 0) {
-				printQueue(audioManager.getScheduler().getQueue(), channel);
+				printQueue(channel);
 			}
 			channel.sendMessage(builtMessage).queue(message -> {
 				addReactions(message);
 				this.nowPlayingMessage.set(message);
 			});
-			if (audioManager.getScheduler().getQueue().size() > 0) {
-				printQueue(audioManager.getScheduler().getQueue(), channel);
-			}
 		} else {
 			if (this.nowPlayingMessage.get() == null) {
-				channel.sendMessage(builtMessage).queue(message -> {
-					addReactions(message);
-					this.nowPlayingMessage.set(message);
-				});
+//				channel.sendMessage(builtMessage).queue(message -> {
+//					addReactions(message);
+//					this.nowPlayingMessage.set(message);
+//				});
+				sendAndSetMessage(channel, builtMessage);
+				addReactions(this.nowPlayingMessage.get());
 			} else {
-				channel.editMessageById(this.nowPlayingMessage.get().getId(), builtMessage).queue();
+				editAndSetMessage(this.nowPlayingMessage.get().getId(), channel, builtMessage);
+//				channel.editMessageById(this.nowPlayingMessage.get().getId(), builtMessage).queue();
 			}
+
 		}
-		semaphore.release();
+		nowPlayingSemaphore.release();
 	}
 
-	public void printQueue(List<AudioTrack> queue, @NotNull TextChannel channel) {
-		buildQueue(queue, channel);
+	public void printQueue(@NotNull TextChannel channel) {
+		if (!queueSemaphore.tryAcquire()) {
+			return;
+		}
+
+		channel.sendMessage(getQueueMessage(channel)).queue();
+
+		queueSemaphore.release();
 	}
 
 	public void deletePrevious(@NotNull TextChannel textChannel) {
@@ -166,7 +216,7 @@ public class PlayerPrinter {
 		} else if (msgList.size() == 1) {
 			textChannel.deleteMessageById(msgList.get(0).getId()).complete();
 		}
-
+		builder.setEventWaiter(null);
 		textChannel.getJDA().removeEventListener(waiter);
 	}
 
@@ -259,7 +309,7 @@ public class PlayerPrinter {
 	}
 
 	@Nullable
-	public Message getQueueMsg(List<Message> messages) {
+	private Message getQueueMsg(List<Message> messages) {
 		return messages.stream()
 				.filter(msg -> msg.getAuthor().isBot())
 				.filter(msg -> !msg.isPinned())
@@ -277,69 +327,59 @@ public class PlayerPrinter {
 	private void buildQueue(@NotNull List<AudioTrack> queue, @NotNull TextChannel textChannel) {
 		/* Checks for valid queue */
 		if (queue.size() <= 0) {
-			this.queueMessage.set(null);
+			this.queueMessageID.set(null);
 			return;
 		}
 
-		/* Initialize pagination */
-		Paginator.Builder builder = new Paginator.Builder()
-				.setText(QUEUE_MSG_NAME)
-				.setColor(Color.darkGray)
-				.showPageNumbers(true)
-				.waitOnSinglePage(true)
-				.allowTextInput(true)
-				.wrapPageEnds(true)
-				.setColumns(1)
-				.setItemsPerPage(12)
-				.setBulkSkipNumber(5)
-				.setEventWaiter(waiter)
-				.setFinalAction(msg -> {/* Do Nothing */});
+		builder.clearItems();
+		queue.forEach(song -> builder.addItems(song.getInfo().title));
 
-
-		int numToAdd;
-		int              nAdded      = 0;
-		int              songCounter = 0;
-		int              pageSize    = 12;
-		int              nRemaining  = queue.size();
-		List<AudioTrack> pageList;
-		List<String> songs;
-
-		while (nRemaining > 0) {
-			songs = new ArrayList<>();
-			numToAdd = Math.min(nRemaining, pageSize);
-			pageList = queue.subList(nAdded, nAdded + numToAdd);
-
-			String s;
-			for (AudioTrack track : pageList) {
-				s = "`%s.` %s".formatted(songCounter, track.getInfo().title);
-				songs.add(s);
-				songCounter++;
-			}
-
-			Collections.reverse(songs);
-
-			for (String song:songs) {
-				builder.addItems(song);
-			}
-
-			nAdded += numToAdd;
-			nRemaining -= nAdded;
-		}
+//		int numToAdd;
+//		int              nAdded      = 0;
+//		int              songCounter = 0;
+//		int              nRemaining  = queue.size();
+//		List<AudioTrack> pageList;
+//		List<String> songs;
+//
+//		while (nRemaining > 0) {
+//			songs = new ArrayList<>();
+//			numToAdd = Math.min(nRemaining, pageSize);
+//			pageList = queue.subList(nAdded, nAdded + numToAdd);
+//
+//			String s;
+//			for (AudioTrack track : pageList) {
+//
+//				s = "`%s.` %s".formatted(songCounter, track.getInfo().title);
+//				songs.add(s);
+//				songCounter++;
+//			}
+//
+//			Collections.reverse(songs);
+//
+//			for (String song:songs) {
+//				builder.addItems(song);
+//			}
+//
+//			nAdded += numToAdd;
+//			nRemaining -= nAdded;
+//		}
 
 		/* If we don't have an event listener, add one */
 		if (!textChannel.getJDA().getRegisteredListeners().contains(waiter)) {
 			textChannel.getJDA().addEventListener(waiter);
 		}
 
-		this.queueMessage.set(getQueueMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
+//		this.queueMessage.set(getQueueMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
 		/* Checks to see if we have a message to reuse */
-		if (this.queueMessage.get() != null) {
-			builder.build().display(queueMessage.get());
+		if (this.queueMessageID.get() != null) {
+//			builder.build().display(queueMessage.get());
+			editAndSetMessage(this.queueMessageID.get(), textChannel, new MessageBuilder().append(QUEUE_MSG_NAME).build());
 		} else {
-			textChannel.sendMessage(new MessageBuilder().append(QUEUE_MSG_NAME).build()).queue(message -> {
-				builder.build().display(message);
-				this.queueMessage.set(message);
-			});
+//			textChannel.sendMessage(new MessageBuilder().append(QUEUE_MSG_NAME).build()).queue(message -> {
+//				builder.build().display(message);
+//				this.queueMessage.set(message);
+//			});
+			sendAndSetMessage(textChannel, new MessageBuilder().append(QUEUE_MSG_NAME).build());
 		}
 	}
 
@@ -360,6 +400,37 @@ public class PlayerPrinter {
 			if (!reactionsPresent.contains(reaction)) {
 				nowPlayingMsg.addReaction(reaction).queue();
 			}
+		}
+	}
+
+	private void editAndSetMessage(String msgID, TextChannel textChannel, Message newMessageData) {
+		Message message = textChannel.getHistory().getMessageById(msgID);
+		if (message != null) {
+			if (message.getContentRaw().contains(NOW_PLAYING_MSG_NAME)) {
+//				message.editMessage(newMessageData).queue(this.nowPlayingMessage::set);
+				message.editMessage(textChannel.getHistory().getMessageById(msgID)).queue(msg -> {
+					this.nowPlayingMessageID.set(msg.getId());
+					addReactions(message);
+				});
+			} else if (message.getContentRaw().contains(QUEUE_MSG_NAME)) {
+//				message.editMessage(newMessageData).queue(this.queueMessage::set);
+				message.editMessage(textChannel.getHistory().getMessageById(msgID)).queue(msg -> {
+					this.queueMessageID.set(msg.getId());
+				});
+			}
+		}
+	}
+
+	private void sendAndSetMessage(TextChannel textChannel, Message message) {
+		if (message.getContentRaw().contains(NOW_PLAYING_MSG_NAME)) {
+			textChannel.sendMessage(message).queue(msg -> {
+//				this.nowPlayingMessage.set(msg);
+//				addReactions(msg);
+				this.nowPlayingMessageID.set(msg.getId());
+			});
+		} else if (message.getContentRaw().contains(QUEUE_MSG_NAME)) {
+//			textChannel.sendMessage(message).queue(this.queueMessage::set);
+			textChannel.sendMessage(message).queue(msg -> this.queueMessageID.set(msg.getId()));
 		}
 	}
 }

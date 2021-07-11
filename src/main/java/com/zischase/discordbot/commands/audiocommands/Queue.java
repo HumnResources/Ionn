@@ -112,7 +112,7 @@ public class Queue extends Command {
 				.printNowPlaying(GuildContext.get(ctx.getGuild().getId()).audioManager(), ctx.getChannel());
 		GuildContext.get(ctx.getGuild().getId())
 				.playerPrinter()
-				.printQueue(queue, ctx.getChannel());
+				.printQueue(ctx.getChannel());
 
 	}
 

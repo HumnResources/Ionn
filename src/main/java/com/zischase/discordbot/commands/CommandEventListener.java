@@ -56,8 +56,6 @@ public class CommandEventListener extends ListenerAdapter {
 				err -> LOGGER.warn("Timeout for command {} !", event.getName())
 		);
 
-//		event.reply(event.getUser().getAsTag() + " - " + event.getName()).queue(null, err -> LOGGER.warn("Timeout for command {} !", event.getName()));
-
 		List<String>   args           = new ArrayList<>();
 		MessageBuilder commandMessage = new MessageBuilder();
 		commandMessage.append(event.getName().concat(" "));

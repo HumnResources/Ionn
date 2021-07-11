@@ -24,6 +24,8 @@ public class TrackWatcherEventListener extends ListenerAdapter {
 		this.audioManager = audioManager;
 	}
 
+
+
 	@Override
 	public void onGenericGuildMessageReaction(@NotNull GenericGuildMessageReactionEvent event) {
 		Member eventMember = event.getMember();
@@ -39,12 +41,12 @@ public class TrackWatcherEventListener extends ListenerAdapter {
 		if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
 			String reaction = event.getReaction().getReactionEmote().getName();
 
-			CompletableFuture.runAsync(() -> {
+//			CompletableFuture.runAsync(() -> {
 				switch (reaction) {
 					case SHUFFLE -> {
 						Shuffle.shuffle(id, audioManager);
 						if (audioManager.getScheduler().getQueue().size() > 0) {
-							printer.printQueue(audioManager.getScheduler().getQueue(), currentNPMessage.getTextChannel());
+							printer.printQueue(currentNPMessage.getTextChannel());
 						}
 					}
 					case REPEAT_QUEUE -> audioManager.getScheduler().setRepeatQueue(!audioManager.getScheduler().isRepeatQueue());
@@ -57,7 +59,7 @@ public class TrackWatcherEventListener extends ListenerAdapter {
 						audioManager.getPlayer().stopTrack();
 					}
 				}
-			}).thenAccept((v) -> printer.printNowPlaying(audioManager, event.getChannel()));
+//			}).thenAccept((v) -> printer.printNowPlaying(audioManager, event.getChannel()));
 		}
 	}
 
