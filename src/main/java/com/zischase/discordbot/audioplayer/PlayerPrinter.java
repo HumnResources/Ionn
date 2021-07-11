@@ -17,31 +17,31 @@ import java.awt.*;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 public class PlayerPrinter {
 
-	private static final int    MAX_WAITER_THREADS        = 1;
-//	private static final int    WAITER_TIMEOUT_MS         = 30;
-	private static final int    NOW_PLAYING_TIMER_RATE_MS = 5000;
-	private static final int    HISTORY_POLL_LIMIT        = 5;
-	private static final int    PROGRESS_BAR_SIZE         = 16;
-	private static final String PROGRESS_BAR_ICON_FILL    = "⬜";
-	private static final String PROGRESS_BAR_ICON_EMPTY   = "⬛";
-	private static final String NOW_PLAYING_MSG_NAME      = "**Now Playing**";
-	private static final String QUEUE_MSG_NAME            = "**Queue**";
-	private static final String NOTHING_PLAYING_MSG_NAME  = "**Nothing Playing**";
-	private static final ScheduledExecutorService SCHEDULED_EXEC = new ScheduledThreadPoolExecutor(MAX_WAITER_THREADS);
+	//	private static final int    WAITER_TIMEOUT_MS         = 30;
+	private static final int                      MAX_WAITER_THREADS        = 1;
+	private static final int                      NOW_PLAYING_TIMER_RATE_MS = 7500;
+	private static final int                      HISTORY_POLL_LIMIT        = 5;
+	private static final int                      PROGRESS_BAR_SIZE         = 16;
+	private static final String                   PROGRESS_BAR_ICON_FILL    = "⬜";
+	private static final String                   PROGRESS_BAR_ICON_EMPTY   = "⬛";
+	private static final String                   NOW_PLAYING_MSG_NAME      = "**Now Playing**";
+	private static final String                   QUEUE_MSG_NAME            = "**Queue**";
+	private static final String                   NOTHING_PLAYING_MSG_NAME  = "**Nothing Playing**";
+	private static final ScheduledExecutorService SCHEDULED_EXEC            = new ScheduledThreadPoolExecutor(MAX_WAITER_THREADS);
 
 	private final EventWaiter              waiter            = new EventWaiter(SCHEDULED_EXEC, false);
 	private final AtomicReference<Message> nowPlayingMessage = new AtomicReference<>(null);
 	private final AtomicReference<Message> queueMessage      = new AtomicReference<>(null);
-	private final Lock                     lock              = new ReentrantLock();
-	private final Semaphore semaphore = new Semaphore(1);
+	private final Semaphore                semaphore         = new Semaphore(1);
 
 	public PlayerPrinter(AudioManager audioManager, Guild guild) {
 		String id = guild.getId();
@@ -101,7 +101,8 @@ public class PlayerPrinter {
 		audioManager.getPlayer().addListener(audioEventListener);
 
 		/* Add watcher for reaction response to now playing message */
-		TrackWatcherEventListener trackWatcher = new TrackWatcherEventListener(guild.getJDA(), this, audioManager, id);
+		TrackWatcherEventListener trackWatcher = new TrackWatcherEventListener(this, audioManager, id);
+		guild.getJDA().addEventListener(trackWatcher);
 	}
 
 	public Message getNowPlayingMessage() {
@@ -274,7 +275,6 @@ public class PlayerPrinter {
 	}
 
 	private void buildQueue(@NotNull List<AudioTrack> queue, @NotNull TextChannel textChannel) {
-
 		/* Checks for valid queue */
 		if (queue.size() <= 0) {
 			this.queueMessage.set(null);
@@ -285,7 +285,6 @@ public class PlayerPrinter {
 		Paginator.Builder builder = new Paginator.Builder()
 				.setText(QUEUE_MSG_NAME)
 				.setColor(Color.darkGray)
-//				.useNumberedItems(true)
 				.showPageNumbers(true)
 				.waitOnSinglePage(true)
 				.allowTextInput(true)
@@ -296,29 +295,32 @@ public class PlayerPrinter {
 				.setEventWaiter(waiter)
 				.setFinalAction(msg -> {/* Do Nothing */});
 
-//		queue.forEach(track -> builder.addItems(track.getInfo().title));
 
-		int pageSize = 12;
-		boolean hasMorePages;
+		int numToAdd;
+		int              nAdded      = 0;
+		int              songCounter = 0;
+		int              pageSize    = 12;
+		int              nRemaining  = queue.size();
 		List<AudioTrack> pageList;
-		int nRemaining = queue.size();
-		int nAdded = 0;
-		int songCounter = 0;
-		while (nRemaining >= queue.size()) {
-			hasMorePages = queue.size() > pageSize;
-			int numToAdd = nRemaining;
-			if (hasMorePages) {
-				numToAdd = pageSize;
-			}
+		List<String> songs;
 
-
+		while (nRemaining > 0) {
+			songs = new ArrayList<>();
+			numToAdd = Math.min(nRemaining, pageSize);
 			pageList = queue.subList(nAdded, nAdded + numToAdd);
 
-			for (AudioTrack track: pageList) {
-				builder.addItems("`%s.` %s".formatted(nAdded - songCounter, track.getInfo().title));
+			String s;
+			for (AudioTrack track : pageList) {
+				s = "`%s.` %s".formatted(songCounter, track.getInfo().title);
+				songs.add(s);
 				songCounter++;
 			}
-			Collections.reverse(pageList);
+
+			Collections.reverse(songs);
+
+			for (String song:songs) {
+				builder.addItems(song);
+			}
 
 			nAdded += numToAdd;
 			nRemaining -= nAdded;
