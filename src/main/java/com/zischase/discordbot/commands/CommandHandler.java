@@ -76,7 +76,7 @@ public final class CommandHandler {
 
 				if (lastCommand.get() != null && cmd.getName().equalsIgnoreCase(lastCommand.get().getName())) {
 
-					if (lastCommandExecTime.isBefore(OffsetDateTime.now().plusSeconds(COMMAND_TIMEOUT_SEC))) {
+					if (OffsetDateTime.now().isBefore(lastCommandExecTime.plusSeconds(COMMAND_TIMEOUT_SEC))) {
 						lastCommand.set(cmd);
 						ctx.getChannel().sendMessage("Command on cooldown").queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
 						LOGGER.warn("Timeout! - {}:{}:{}", ctx.getGuild().getName(), ctx.getMember().getUser().getName(), cmd.getName());
