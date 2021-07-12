@@ -55,16 +55,15 @@ public class PlayerPrinter {
 	/* Initialize pagination */
 	private final Paginator.Builder builder = new Paginator.Builder()
 			.setText(QUEUE_MSG_NAME)
-			.setColor(Color.darkGray)
+			.setColor(Color.gray)
 			.showPageNumbers(true)
 			.useNumberedItems(true)
 			.waitOnSinglePage(true)
-			.allowTextInput(true)
 			.wrapPageEnds(true)
 			.setColumns(QUEUE_COLUMN_COUNT)
 			.setItemsPerPage(QUEUE_PAGE_COUNT)
 			.setBulkSkipNumber(QUEUE_BULK_SKIP_AMOUNT)
-			.setLeftRightText(QUEUE_LEFT_TEXT, QUEUE_RIGHT_TEXT)
+			.setEventWaiter(waiter)
 			.setFinalAction(msg -> {
 				msg.getJDA().removeEventListener(waiter);
 				this.queueSemaphore.release();
@@ -227,14 +226,19 @@ public class PlayerPrinter {
 			return;
 		}
 
+		long timeoutMS = audioManager.getPlayer().getPlayingTrack().getDuration() - audioManager.getPlayer().getPlayingTrack().getPosition();
 		if (this.queueMessageID.get() == null) {
 			textChannel.sendMessage(builtMessage).queue(msg -> {
-				builder.setEventWaiter(waiter).build().display(msg);
+				builder.setTimeout(timeoutMS, TimeUnit.MILLISECONDS)
+						.build()
+						.display(msg);
 				this.queueMessageID.set(msg.getId());
 			});
 		} else {
 			textChannel.editMessageById(this.queueMessageID.get(), builtMessage).queue(msg -> {
-				builder.setEventWaiter(waiter).build().display(msg);
+				builder.setTimeout(timeoutMS, TimeUnit.MILLISECONDS)
+						.build()
+						.display(msg);
 				this.queueMessageID.set(msg.getId());
 			});
 		}
