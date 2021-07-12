@@ -34,7 +34,7 @@ public class PlayerPrinter {
 	private static final int                      HISTORY_POLL_LIMIT        = 5;
 	private static final int                      PROGRESS_BAR_SIZE         = 16;
 	private static final int                      QUEUE_COLUMN_COUNT        = 1;
-	private static final int                      QUEUE_PAGE_COUNT          = 10;
+	private static final int                      QUEUE_PAGE_COUNT          = 5;
 	private static final int                      QUEUE_BULK_SKIP_AMOUNT    = 5;
 	private static final String                   PROGRESS_BAR_ICON_FILL    = "⬜";
 	private static final String                   PROGRESS_BAR_ICON_EMPTY   = "⬛";
@@ -105,16 +105,23 @@ public class PlayerPrinter {
 					guild.getJDA().getDirectAudioController().connect(voiceChannel);
 				}
 
+				printNowPlaying(textChannel);
+
 				if (audioManager.getScheduler().getQueue().size() > 0) {
 					printQueue(textChannel);
 				}
-				printNowPlaying(textChannel);
 
+				AtomicReference<List<AudioTrack>> copyQueue = new AtomicReference<>(audioManager.getScheduler().getQueue());
 				Runnable runnable = () -> {
 					AudioTrack track = audioEvent.player.getPlayingTrack();
-					if (track != null) {
-						if (track.getDuration() != Integer.MAX_VALUE && track.getPosition() < track.getDuration()) {
-							printNowPlaying(textChannel);
+					if (track != null && track.getDuration() != Integer.MAX_VALUE && track.getPosition() < track.getDuration()) {
+						printNowPlaying(textChannel);
+
+
+
+						if (audioManager.getScheduler().getQueue() != copyQueue.get()) {
+							printQueue(textChannel);
+							copyQueue.set(audioManager.getScheduler().getQueue());
 						}
 					}
 				};
