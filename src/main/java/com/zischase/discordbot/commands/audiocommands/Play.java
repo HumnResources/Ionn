@@ -1,6 +1,7 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
+import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.audioplayer.TrackLoader;
@@ -16,11 +17,15 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Play extends Command {
+
+	private static final int SEARCH_TIMEOUT_SEC = 10;
 
 	public Play() {
 		super(false);
@@ -139,10 +144,25 @@ public class Play extends Command {
 			currentQueue.remove(nextTrack);
 			currentQueue.add(0, nextTrack);
 		} else {
+			AtomicReference<AudioTrack> track = new AtomicReference<>(null);
 			trackLoader.load(textChannel, voiceChannel, song);
+			audioManager.getPlayerManager()
+					.loadItem("ytsearch: " + song, new FunctionalResultHandler(
+							track::set,
+							playlist -> track.set(playlist.getTracks().get(0)),
+							null,
+							null)
+					);
+
+			OffsetDateTime start = OffsetDateTime.now();
+			while (track.get() == null) {
+				if (OffsetDateTime.now().isAfter(start.plusSeconds(SEARCH_TIMEOUT_SEC))) {
+					return;
+				}
+			}
+
 			currentQueue = audioManager.getScheduler().getQueue();
-			AudioTrack track = currentQueue.remove(currentQueue.size() - 1);
-			currentQueue.add(0, track);
+			currentQueue.add(0, track.get());
 		}
 		audioManager.getScheduler().clearQueue();
 		audioManager.getScheduler().queueList(currentQueue);
