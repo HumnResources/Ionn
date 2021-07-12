@@ -68,18 +68,18 @@ public class Play extends Command {
 				.audioManager()
 				.getTrackLoader();
 
-		if (args.isEmpty() || args.get(0).matches("(?i)-(pause)")) {
+		if (args.isEmpty() || args.get(0).equalsIgnoreCase("-pause")) {
 			AudioPlayer player = GuildContext.get(guildID)
 					.audioManager()
 					.getPlayer();
 			player.setPaused(!player.isPaused());
-		} else if (args.get(0).matches("(?i)-(next|n)")) {
+		} else if (args.get(0).equalsIgnoreCase("-next")) {
 			String song = String.join(" ", args.subList(1, args.size()));
 			playNext(song, ctx.getVoiceChannel(), ctx.getChannel(), trackLoader);
 			ctx.getChannel().sendMessage("Playing `%s` next!".formatted(song)).queue(m -> m.delete().queueAfter(3000, TimeUnit.MILLISECONDS), null);
 		}
 		/* Checks to see if we have a potential link in the message */
-		else if (args.get(0).matches("(?i)-(url)")) {
+		else if (args.get(0).equalsIgnoreCase("-url")) {
 			List<Message.Attachment> attachments = ctx.getMessage().getAttachments();
 
 			if (!attachments.isEmpty()) {
@@ -89,7 +89,7 @@ public class Play extends Command {
 				trackLoader.load(ctx.getChannel(), voiceChannel, args.get(1));
 			}
 		}
-		else if (args.get(0).matches("(?i)-(ytplaylist)")) {
+		else if (args.get(0).equalsIgnoreCase("-ytplaylist")) {
 			String search = String.join(" ", args.subList(1, args.size()));
 			GuildContext.get(guildID)
 					.audioManager()
@@ -104,8 +104,8 @@ public class Play extends Command {
 		else {
 			String search;
 			/* Removes the -song flag added by slash command */
-			if (args.get(0).matches("(?i)-(song)")) {
-				search = String.join(" ", args).replaceFirst("(?i)-(song)", "");
+			if (args.get(0).equalsIgnoreCase("-song")) {
+				search = String.join(" ", args).replaceFirst("-(song)", "");
 			}
 			else {
 				search = String.join(" ", args);
@@ -138,11 +138,13 @@ public class Play extends Command {
 		if (songFound) {
 			currentQueue.remove(nextTrack);
 			currentQueue.add(0, nextTrack);
-			audioManager.getScheduler().clearQueue();
-			audioManager.getScheduler().queueList(currentQueue);
-
 		} else {
 			trackLoader.load(textChannel, voiceChannel, song);
+			currentQueue = audioManager.getScheduler().getQueue();
+			AudioTrack track = currentQueue.remove(currentQueue.size() - 1);
+			currentQueue.add(0, track);
 		}
+		audioManager.getScheduler().clearQueue();
+		audioManager.getScheduler().queueList(currentQueue);
 	}
 }
