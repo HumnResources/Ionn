@@ -10,6 +10,7 @@ import com.zischase.discordbot.DBQueryHandler;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.*;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -64,7 +65,10 @@ public class PlayerPrinter {
 			.setItemsPerPage(QUEUE_PAGE_COUNT)
 			.setBulkSkipNumber(QUEUE_BULK_SKIP_AMOUNT)
 			.setLeftRightText(QUEUE_LEFT_TEXT, QUEUE_RIGHT_TEXT)
-			.setFinalAction(msg -> msg.getJDA().removeEventListener(waiter));
+			.setFinalAction(msg -> {
+				msg.getJDA().removeEventListener(waiter);
+				this.queueSemaphore.release();
+			});
 
 	public PlayerPrinter(AudioManager audioManager, Guild guild) {
 		String id = guild.getId();
@@ -117,12 +121,11 @@ public class PlayerPrinter {
 					if (track != null && track.getDuration() != Integer.MAX_VALUE && track.getPosition() < track.getDuration()) {
 						printNowPlaying(textChannel);
 
-
-
-						if (audioManager.getScheduler().getQueue() != copyQueue.get()) {
+						if (listChanged(audioManager.getScheduler().getQueue(), copyQueue.get())) {
 							printQueue(textChannel);
-							copyQueue.set(audioManager.getScheduler().getQueue());
 						}
+
+						copyQueue.set(audioManager.getScheduler().getQueue());
 					}
 				};
 				SCHEDULED_EXEC.scheduleAtFixedRate(runnable, NOW_PLAYING_TIMER_RATE_MS, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
@@ -136,6 +139,16 @@ public class PlayerPrinter {
 		TrackWatcherEventListener trackWatcher = new TrackWatcherEventListener(this, audioManager, id);
 		guild.getJDA().addEventListener(trackWatcher);
 
+	}
+
+	private boolean listChanged(@NonNull List<AudioTrack> trackListOne, @NonNull List<AudioTrack> trackListTwo) {
+		int size = Math.min(trackListOne.size(), trackListTwo.size());
+		for (int i = 0; i < size; i++) {
+			if (trackListOne.get(i) != trackListTwo.get(i)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public String getNowPlayingMessageID() {
