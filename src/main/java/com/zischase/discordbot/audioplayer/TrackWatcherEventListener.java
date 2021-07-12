@@ -16,11 +16,12 @@ import static com.zischase.discordbot.audioplayer.MediaControls.*;
 
 public class TrackWatcherEventListener extends ListenerAdapter {
 
-	private static final int     REACTION_TIMEOUT_S = 3;
+	private static final long    REACTION_TIMEOUT_SEC = 3;
+
 	private final String         id;
 	private final PlayerPrinter  printer;
 	private final AudioManager   audioManager;
-	private       OffsetDateTime lastReactionTime   = OffsetDateTime.now();
+	private       OffsetDateTime lastReactionTime     = OffsetDateTime.now();
 
 	public TrackWatcherEventListener(PlayerPrinter printer, AudioManager audioManager, String guildID) {
 		this.id           = guildID;
@@ -38,24 +39,22 @@ public class TrackWatcherEventListener extends ListenerAdapter {
 		if (!msg.getAuthor().isBot()) {
 			return;
 		}
-		Message currentNPMessage = printer.getNowPlayingMessage();
+		String nowPlayingMessageID = printer.getNowPlayingMessageID();
 
-		if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
+		if (nowPlayingMessageID != null && msg.getId().equals(nowPlayingMessageID)) {
+			String reaction = event.getReaction().getReactionEmote().getName();
 
-			if (OffsetDateTime.now().isBefore(lastReactionTime.plusSeconds(REACTION_TIMEOUT_S))) {
-				event.getChannel().sendMessage("Please wait a few seconds!").queue(message -> message.delete().queueAfter(REACTION_TIMEOUT_S, TimeUnit.SECONDS));
+			if (OffsetDateTime.now().isBefore(lastReactionTime.plusSeconds(REACTION_TIMEOUT_SEC))) {
+				event.getChannel().sendMessage("Please wait a few seconds!").queue(message -> message.delete().queueAfter(REACTION_TIMEOUT_SEC, TimeUnit.SECONDS));
 				return;
 			}
-
-
-			String reaction = event.getReaction().getReactionEmote().getName();
 
 			CompletableFuture.runAsync(() -> {
 				switch (reaction) {
 					case SHUFFLE -> {
 						Shuffle.shuffle(id, audioManager);
 						if (audioManager.getScheduler().getQueue().size() > 0) {
-							printer.printQueue(audioManager.getScheduler().getQueue(), currentNPMessage.getTextChannel());
+							printer.printQueue(event.getChannel());
 						}
 					}
 					case REPEAT_QUEUE -> audioManager.getScheduler().setRepeatQueue(!audioManager.getScheduler().isRepeatQueue());
