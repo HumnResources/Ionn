@@ -7,6 +7,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="DiscordBot.v3" />
+        <module name="Ionn" />
         <module name="DiscordBot.v2" />
       </profile>
     </annotationProcessing>

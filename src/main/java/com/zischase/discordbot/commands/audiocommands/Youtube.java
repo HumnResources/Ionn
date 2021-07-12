@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands.audiocommands;
 
+import com.github.ygimenez.exception.InvalidHandlerException;
 import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
@@ -69,16 +70,23 @@ public class Youtube extends Command {
 											.stream()
 											.map(SearchInfo::new)
 											.collect(Collectors.toList());
-									ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getMember(), Color.RED).get();
 
-									AudioTrack track = playlist.getTracks()
-											.stream()
-											.filter(audioTrack -> audioTrack.getInfo().title.equalsIgnoreCase(choice.getName()))
-											.limit(1)
-											.findFirst()
-											.orElseThrow();
+									try {
+										ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getMember(), Color.RED).get();
 
-									g_ctx.audioManager().getTrackLoader().load(ctx.getVoiceChannel(), ctx.getChannel(), track);
+										AudioTrack track = playlist.getTracks()
+												.stream()
+												.filter(audioTrack -> audioTrack.getInfo().title.equalsIgnoreCase(choice.getName()))
+												.limit(1)
+												.findFirst()
+												.orElseThrow();
+
+										g_ctx.audioManager().getTrackLoader().load(ctx.getVoiceChannel(), ctx.getChannel(), track);
+									} catch (InvalidHandlerException e) {
+										e.printStackTrace();
+									}
+
+
 								},
 								g_ctx.audioManager().getTrackLoader()::noMatches,
 								g_ctx.audioManager().getTrackLoader()::loadFailed

@@ -1,7 +1,11 @@
 package com.zischase.discordbot.commands;
 
-import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
-import com.jagrosh.jdautilities.menu.Paginator;
+import com.github.ygimenez.exception.InvalidHandlerException;
+import com.github.ygimenez.method.Pages;
+import com.github.ygimenez.model.Page;
+import com.github.ygimenez.model.Paginator;
+import com.github.ygimenez.model.PaginatorBuilder;
+import com.github.ygimenez.type.PageType;
 import com.sun.istack.Nullable;
 import com.zischase.discordbot.audioplayer.MediaControls;
 import net.dv8tion.jda.api.JDA;
@@ -16,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -40,22 +45,40 @@ public class ResultSelector {
 	private final Member                         initiator;
 	private       OffsetDateTime                 start;
 
-	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator) {
+	private final Paginator paginator;
+
+	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator) throws InvalidHandlerException {
 		this.searches    = searches;
 		this.textChannel = textChannel;
 		this.jda         = jda;
 		this.initiator   = initiator;
-		new Timer().scheduleAtFixedRate(new TimerTask() {
-			@Override
-			public void run() {
-				if (OffsetDateTime.now().isAfter(start.plusSeconds(TIMEOUT_CHECK_STALE_LOCKS_SEC))) {
-					semaphore.release(MAX_SEARCHES_PER_GUILD);
-				}
-			}
-		}, TIMEOUT_CHECK_STALE_LOCKS_SEC, TIMEOUT_CHECK_STALE_LOCKS_SEC);
+//		new Timer().scheduleAtFixedRate(new TimerTask() {
+//			@Override
+//			public void run() {
+//				if (OffsetDateTime.now().isAfter(start.plusSeconds(TIMEOUT_CHECK_STALE_LOCKS_SEC))) {
+//					semaphore.release(MAX_SEARCHES_PER_GUILD);
+//				}
+//			}
+//		}, TIMEOUT_CHECK_STALE_LOCKS_SEC, TIMEOUT_CHECK_STALE_LOCKS_SEC);
+
+		paginator = PaginatorBuilder.createPaginator().setHandler(jda).build();
+		Pages.activate(paginator);
+		
+		ArrayList<Page> pages = new ArrayList<>();
+		MessageBuilder  mb    = new MessageBuilder();
+
+		//ADDING 10 PAGES TO THE LIST
+		for (int i = 0; i < 10; i++) {
+			mb.clear();
+			mb.setContent("This is entry Nº " + i);
+			pages.add(new Page(mb.build()));
+		}
+
+		textChannel.sendMessage((Message) pages.get(0).getContent()).queue(success ->
+				Pages.paginate(success, pages));
 	}
 
-	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator, Color color) {
+	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator, Color color) throws InvalidHandlerException {
 		this(searches, textChannel, jda, initiator);
 		this.embedColor = color;
 	}
@@ -65,29 +88,29 @@ public class ResultSelector {
 		ISearchable result = null;
 		start = OffsetDateTime.now();
 
-		EventWaiter waiter  = new EventWaiter();
-		Message     message = new MessageBuilder().append("Search Results").build();
-		message = textChannel.sendMessage(message).complete();
-
-		waiter.waitForEvent(GuildMessageReceivedEvent.class, this::checkValidEntry, this::selectEntry, TIMEOUT_CHECK_STALE_LOCKS_SEC, TimeUnit.SECONDS, semaphore::release);
-
-		waiter.waitForEvent(GenericGuildMessageReactionEvent.class, this::CheckUserStop, eventCallback -> semaphore.release());
-
-		Paginator.Builder builder = new Paginator.Builder()
-				.setText(initiator.getAsMention())
-				.setColor(embedColor)
-				.useNumberedItems(true)
-				.showPageNumbers(true)
-				.setColumns(1)
-				.waitOnSinglePage(true)
-				.setItemsPerPage(10)
-				.setUsers(initiator.getUser())
-				.setEventWaiter(waiter);
-
-		searches.forEach(s -> builder.addItems(s.getName()));
-
-		builder.build().display(message);
-		jda.addEventListener(waiter);
+//		EventWaiter waiter  = new EventWaiter();
+//		Message     message = new MessageBuilder().append("Search Results").build();
+//		message = textChannel.sendMessage(message).complete();
+//
+//		waiter.waitForEvent(GuildMessageReceivedEvent.class, this::checkValidEntry, this::selectEntry, TIMEOUT_CHECK_STALE_LOCKS_SEC, TimeUnit.SECONDS, semaphore::release);
+//
+//		waiter.waitForEvent(GenericGuildMessageReactionEvent.class, this::CheckUserStop, eventCallback -> semaphore.release());
+//
+//		Paginator.Builder builder = new Paginator.Builder()
+//				.setText(initiator.getAsMention())
+//				.setColor(embedColor)
+//				.useNumberedItems(true)
+//				.showPageNumbers(true)
+//				.setColumns(1)
+//				.waitOnSinglePage(true)
+//				.setItemsPerPage(10)
+//				.setUsers(initiator.getUser())
+//				.setEventWaiter(waiter);
+//
+//		searches.forEach(s -> builder.addItems(s.getName()));
+//
+//		builder.build().display(message);
+//		jda.addEventListener(waiter);
 
 
 		try {
@@ -97,9 +120,8 @@ public class ResultSelector {
 			e.printStackTrace();
 		}
 
-		jda.removeEventListener(waiter);
-
-		message.delete().queue((success) -> {/**/}, (err) -> LOGGER.warn("Message delete error - {}", err.getCause().toString()));
+//		jda.removeEventListener(waiter);
+//		message.delete().queue((success) -> {/**/}, (err) -> LOGGER.warn("Message delete error - {}", err.getCause().toString()));
 
 		semaphore.release();
 		return result;

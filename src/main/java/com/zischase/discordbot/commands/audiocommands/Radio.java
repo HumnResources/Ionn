@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands.audiocommands;
 
+import com.github.ygimenez.exception.InvalidHandlerException;
 import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import de.sfuhrm.radiobrowser4j.Paging;
@@ -106,10 +107,15 @@ public class Radio extends Command {
 			results.add(new SearchInfo(s));
 		}
 
-		ISearchable result = new ResultSelector(results, textChannel, textChannel.getJDA(), initiator).get();
-		GuildContext.get(guildID)
-				.audioManager()
-				.getTrackLoader()
-				.load(textChannel, voiceChannel, result.getUrl());
+		ISearchable result = null;
+		try {
+			result = new ResultSelector(results, textChannel, textChannel.getJDA(), initiator).get();
+			GuildContext.get(guildID)
+					.audioManager()
+					.getTrackLoader()
+					.load(textChannel, voiceChannel, result.getUrl());
+		} catch (InvalidHandlerException e) {
+			e.printStackTrace();
+		}
 	}
 }

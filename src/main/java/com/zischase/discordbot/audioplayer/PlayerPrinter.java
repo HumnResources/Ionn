@@ -1,7 +1,5 @@
 package com.zischase.discordbot.audioplayer;
 
-import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
-import com.jagrosh.jdautilities.menu.Paginator;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.event.*;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
@@ -38,7 +36,6 @@ public class PlayerPrinter {
 	private static final String                   NOTHING_PLAYING_MSG_NAME  = "**Nothing Playing**";
 	private static final ScheduledExecutorService SCHEDULED_EXEC            = new ScheduledThreadPoolExecutor(MAX_WAITER_THREADS);
 
-	private final EventWaiter              waiter            = new EventWaiter(SCHEDULED_EXEC, false);
 	private final AtomicReference<Message> nowPlayingMessage = new AtomicReference<>(null);
 	private final AtomicReference<Message> queueMessage      = new AtomicReference<>(null);
 	private final Semaphore                semaphore         = new Semaphore(1);
@@ -166,8 +163,6 @@ public class PlayerPrinter {
 		} else if (msgList.size() == 1) {
 			textChannel.deleteMessageById(msgList.get(0).getId()).complete();
 		}
-
-		textChannel.getJDA().removeEventListener(waiter);
 	}
 
 	@NotNull
@@ -275,72 +270,7 @@ public class PlayerPrinter {
 	}
 
 	private void buildQueue(@NotNull List<AudioTrack> queue, @NotNull TextChannel textChannel) {
-		/* Checks for valid queue */
-		if (queue.size() <= 0) {
-			this.queueMessage.set(null);
-			return;
-		}
 
-		/* Initialize pagination */
-		Paginator.Builder builder = new Paginator.Builder()
-				.setText(QUEUE_MSG_NAME)
-				.setColor(Color.darkGray)
-				.showPageNumbers(true)
-				.waitOnSinglePage(true)
-				.allowTextInput(true)
-				.wrapPageEnds(true)
-				.setColumns(1)
-				.setItemsPerPage(12)
-				.setBulkSkipNumber(5)
-				.setEventWaiter(waiter)
-				.setFinalAction(msg -> {/* Do Nothing */});
-
-
-		int numToAdd;
-		int              nAdded      = 0;
-		int              songCounter = 0;
-		int              pageSize    = 12;
-		int              nRemaining  = queue.size();
-		List<AudioTrack> pageList;
-		List<String> songs;
-
-		while (nRemaining > 0) {
-			songs = new ArrayList<>();
-			numToAdd = Math.min(nRemaining, pageSize);
-			pageList = queue.subList(nAdded, nAdded + numToAdd);
-
-			String s;
-			for (AudioTrack track : pageList) {
-				s = "`%s.` %s".formatted(songCounter, track.getInfo().title);
-				songs.add(s);
-				songCounter++;
-			}
-
-			Collections.reverse(songs);
-
-			for (String song:songs) {
-				builder.addItems(song);
-			}
-
-			nAdded += numToAdd;
-			nRemaining -= nAdded;
-		}
-
-		/* If we don't have an event listener, add one */
-		if (!textChannel.getJDA().getRegisteredListeners().contains(waiter)) {
-			textChannel.getJDA().addEventListener(waiter);
-		}
-
-		this.queueMessage.set(getQueueMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
-		/* Checks to see if we have a message to reuse */
-		if (this.queueMessage.get() != null) {
-			builder.build().display(queueMessage.get());
-		} else {
-			textChannel.sendMessage(new MessageBuilder().append(QUEUE_MSG_NAME).build()).queue(message -> {
-				builder.build().display(message);
-				this.queueMessage.set(message);
-			});
-		}
 	}
 
 	private void addReactions(Message nowPlayingMsg) {
