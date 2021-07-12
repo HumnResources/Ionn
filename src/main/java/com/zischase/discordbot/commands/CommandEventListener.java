@@ -53,10 +53,8 @@ public class CommandEventListener extends ListenerAdapter {
 		event.isAcknowledged();
 		event.deferReply(false).queue(
 				(m) -> event.getHook().deleteOriginal().queue(),
-				err -> LOGGER.warn("Timeout for command {} !", event.getName())
+				err -> LOGGER.warn("Slash Command Timeout: {} !", event.getName())
 		);
-
-//		event.reply(event.getUser().getAsTag() + " - " + event.getName()).queue(null, err -> LOGGER.warn("Timeout for command {} !", event.getName()));
 
 		List<String>   args           = new ArrayList<>();
 		MessageBuilder commandMessage = new MessageBuilder();
@@ -77,7 +75,10 @@ public class CommandEventListener extends ListenerAdapter {
 	}
 
 	private void executeCommand(CommandContext ctx) {
+
+
 		CompletableFuture.runAsync(() -> GuildContext.get(ctx.getGuild().getId()).commandHandler().invoke(ctx));
+
 	}
 
 	@Override

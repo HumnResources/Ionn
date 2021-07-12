@@ -8,15 +8,19 @@ import net.dv8tion.jda.api.events.message.guild.react.GenericGuildMessageReactio
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.OffsetDateTime;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static com.zischase.discordbot.audioplayer.MediaControls.*;
 
 public class TrackWatcherEventListener extends ListenerAdapter {
 
-	private final String        id;
-	private final PlayerPrinter printer;
-	private final AudioManager  audioManager;
+	private static final int     REACTION_TIMEOUT_S = 3;
+	private final String         id;
+	private final PlayerPrinter  printer;
+	private final AudioManager   audioManager;
+	private       OffsetDateTime lastReactionTime   = OffsetDateTime.now();
 
 	public TrackWatcherEventListener(PlayerPrinter printer, AudioManager audioManager, String guildID) {
 		this.id           = guildID;
@@ -37,6 +41,13 @@ public class TrackWatcherEventListener extends ListenerAdapter {
 		Message currentNPMessage = printer.getNowPlayingMessage();
 
 		if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
+
+			if (OffsetDateTime.now().isBefore(lastReactionTime.plusSeconds(REACTION_TIMEOUT_S))) {
+				event.getChannel().sendMessage("Please wait a few seconds!").queue(message -> message.delete().queueAfter(REACTION_TIMEOUT_S, TimeUnit.SECONDS));
+				return;
+			}
+
+
 			String reaction = event.getReaction().getReactionEmote().getName();
 
 			CompletableFuture.runAsync(() -> {
@@ -57,7 +68,10 @@ public class TrackWatcherEventListener extends ListenerAdapter {
 						audioManager.getPlayer().stopTrack();
 					}
 				}
-			}).thenAccept((v) -> printer.printNowPlaying(audioManager, event.getChannel()));
+			}).thenAccept((v) -> {
+				printer.printNowPlaying(event.getChannel());
+				lastReactionTime = OffsetDateTime.now();
+			});
 		}
 	}
 
