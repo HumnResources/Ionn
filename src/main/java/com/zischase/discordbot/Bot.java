@@ -1,5 +1,6 @@
 package com.zischase.discordbot;
 
+import com.github.ygimenez.method.Pages;
 import com.zischase.discordbot.commands.CommandEventListener;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import me.duncte123.botcommons.BotCommons;
@@ -49,6 +50,8 @@ public class Bot {
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			LOGGER.info("Shutting down.");
 
+			jda.getGuilds().forEach(g -> GuildContext.get(g.getId()).playerPrinter().shutdown());
+			Pages.deactivate();
 			BotCommons.shutdown(jda);
 			jda.shutdown();
 
