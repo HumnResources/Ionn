@@ -38,7 +38,6 @@ public class NowPlaying extends Command {
 		GuildContext.get(ctx.getGuild().getId())
 				.playerPrinter()
 				.printNowPlaying(ctx.getChannel(), true);
-
 	}
 
 }

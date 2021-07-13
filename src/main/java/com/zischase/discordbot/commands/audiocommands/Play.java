@@ -1,6 +1,7 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
+import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.audioplayer.TrackLoader;
@@ -16,11 +17,15 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Play extends Command {
+
+	private static final int SEARCH_TIMEOUT_SEC = 10;
 
 	public Play() {
 		super(false);
@@ -68,18 +73,18 @@ public class Play extends Command {
 				.audioManager()
 				.getTrackLoader();
 
-		if (args.isEmpty() || args.get(0).matches("(?i)-(pause)")) {
+		if (args.isEmpty() || args.get(0).equalsIgnoreCase("-pause")) {
 			AudioPlayer player = GuildContext.get(guildID)
 					.audioManager()
 					.getPlayer();
 			player.setPaused(!player.isPaused());
-		} else if (args.get(0).matches("(?i)-(next|n)")) {
+		} else if (args.get(0).equalsIgnoreCase("-next")) {
 			String song = String.join(" ", args.subList(1, args.size()));
 			playNext(song, ctx.getVoiceChannel(), ctx.getChannel(), trackLoader);
 			ctx.getChannel().sendMessage("Playing `%s` next!".formatted(song)).queue(m -> m.delete().queueAfter(3000, TimeUnit.MILLISECONDS), null);
 		}
 		/* Checks to see if we have a potential link in the message */
-		else if (args.get(0).matches("(?i)-(url)")) {
+		else if (args.get(0).equalsIgnoreCase("-url")) {
 			List<Message.Attachment> attachments = ctx.getMessage().getAttachments();
 
 			if (!attachments.isEmpty()) {
@@ -89,20 +94,23 @@ public class Play extends Command {
 				trackLoader.load(ctx.getChannel(), voiceChannel, args.get(1));
 			}
 		}
-		else if (args.get(0).matches("(?i)-(ytplaylist)")) {
+		else if (args.get(0).equalsIgnoreCase("-ytplaylist")) {
 			String search = String.join(" ", args.subList(1, args.size()));
 			GuildContext.get(guildID)
 					.audioManager()
 					.getTrackLoader()
 					.loadYTSearchResults(ctx.getChannel(), voiceChannel, search);
+			ctx.getChannel()
+					.sendMessage("%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsTag(), search))
+					.queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
 		}
 
 		/* Otherwise we check to see if they input a string, process using YT as default */
 		else {
 			String search;
 			/* Removes the -song flag added by slash command */
-			if (args.get(0).matches("(?i)-(song)")) {
-				search = String.join(" ", args).replaceFirst("(?i)-(song)", "");
+			if (args.get(0).equalsIgnoreCase("-song")) {
+				search = String.join(" ", args).replaceFirst("-(song)", "");
 			}
 			else {
 				search = String.join(" ", args);
@@ -135,11 +143,28 @@ public class Play extends Command {
 		if (songFound) {
 			currentQueue.remove(nextTrack);
 			currentQueue.add(0, nextTrack);
-			audioManager.getScheduler().clearQueue();
-			audioManager.getScheduler().queueList(currentQueue);
-
 		} else {
+			AtomicReference<AudioTrack> track = new AtomicReference<>(null);
 			trackLoader.load(textChannel, voiceChannel, song);
+			audioManager.getPlayerManager()
+					.loadItem("ytsearch: " + song, new FunctionalResultHandler(
+							track::set,
+							playlist -> track.set(playlist.getTracks().get(0)),
+							null,
+							null)
+					);
+
+			OffsetDateTime start = OffsetDateTime.now();
+			while (track.get() == null) {
+				if (OffsetDateTime.now().isAfter(start.plusSeconds(SEARCH_TIMEOUT_SEC))) {
+					return;
+				}
+			}
+
+			currentQueue = audioManager.getScheduler().getQueue();
+			currentQueue.add(0, track.get());
 		}
+		audioManager.getScheduler().clearQueue();
+		audioManager.getScheduler().queueList(currentQueue);
 	}
 }

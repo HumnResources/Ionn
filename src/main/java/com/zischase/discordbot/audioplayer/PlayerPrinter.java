@@ -97,14 +97,14 @@ public class PlayerPrinter {
 		if (forcePrint) {
 			deletePrevious(channel);
 			if (audioManager.getScheduler().getQueue().size() > 0) {
-				printQueue(audioManager.getScheduler().getQueue(), channel);
+				printQueue(channel);
 			}
 			channel.sendMessage(builtMessage).queue(message -> {
 				addReactions(message);
 				this.nowPlayingMessage.set(message);
 			});
 			if (audioManager.getScheduler().getQueue().size() > 0) {
-				printQueue(audioManager.getScheduler().getQueue(), channel);
+				printQueue(channel);
 			}
 		} else {
 			if (this.nowPlayingMessage.get() == null) {
@@ -119,8 +119,8 @@ public class PlayerPrinter {
 		semaphore.release();
 	}
 
-	public void printQueue(List<AudioTrack> queue, @NotNull TextChannel channel) {
-		List<Page> queuePages = buildQueue(queue);
+	public void printQueue(@NotNull TextChannel channel) {
+		List<Page> queuePages = buildQueue(audioManager.getScheduler().getQueue());
 		if (queuePages == null) {
 			return;
 		}
@@ -382,7 +382,7 @@ public class PlayerPrinter {
 						printNowPlaying(textChannel);
 
 						if (listChanged(audioManager.getScheduler().getQueue(), copyQueue.get())) {
-							printQueue(audioManager.getScheduler().getQueue(), textChannel);
+							printQueue(textChannel);
 							copyQueue.set(audioManager.getScheduler().getQueue());
 						}
 					}
@@ -391,7 +391,7 @@ public class PlayerPrinter {
 				SCHEDULED_EXEC.scheduleAtFixedRate(runnable, NOW_PLAYING_TIMER_RATE_MS, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
 
 				printNowPlaying(textChannel);
-				printQueue(audioManager.getScheduler().getQueue(), textChannel);
+				printQueue(textChannel);
 			}
 		};
 

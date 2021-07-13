@@ -109,10 +109,10 @@ public class Queue extends Command {
 
 		GuildContext.get(ctx.getGuild().getId())
 				.playerPrinter()
-				.printNowPlaying(ctx.getChannel());
+				.printQueue(ctx.getChannel());
 		GuildContext.get(ctx.getGuild().getId())
 				.playerPrinter()
-				.printQueue(queue, ctx.getChannel());
+				.printNowPlaying(ctx.getChannel());
 
 	}
 
