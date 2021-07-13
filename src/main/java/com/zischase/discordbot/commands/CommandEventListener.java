@@ -127,7 +127,8 @@ public class CommandEventListener extends ListenerAdapter {
 			List<Command> slashCommands = g.retrieveCommands().complete();
 
 			/* Reinitialize the commands */
-			for (com.zischase.discordbot.commands.Command c : GuildContext.get(g.getId()).commandHandler().getCommandList()) {
+			GuildContext.get(g.getId()).commandHandler();
+			for (com.zischase.discordbot.commands.Command c : CommandHandler.getCommandList()) {
 
 				/* Comparator to ensure we don't overwrite */
 				if (slashCommands.stream().noneMatch((sc) -> sc.getName().equals(c.getCommandData().getName()) && sc.getDescription().equals(c.getCommandData().getDescription())))

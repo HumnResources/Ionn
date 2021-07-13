@@ -3,6 +3,7 @@ package com.zischase.discordbot.commands.general;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
+import com.zischase.discordbot.commands.CommandHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -65,17 +66,14 @@ public class Help extends Command {
 		cmdList.appendDescription(String.format("The current prefix is set to: `%s`\n", prefix));
 
 		GuildContext.get(guildID)
-				.commandHandler()
-				.getCommandList()
-				.forEach(command ->
+				.commandHandler();
+		CommandHandler.getCommandList().forEach(command ->
 				{
 					if (!command.isPremium() || GuildContext.get(guildID).isPremium()) {
 						cmdList.appendDescription(String.format("`%s%s`\n", prefix, command.getName()));
 					}
-
 				});
 		cmdList.appendDescription("\nUse `[Audio | Media | Music]` for more help.");
-
 
 		return cmdList.build();
 	}

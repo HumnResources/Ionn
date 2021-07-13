@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -25,7 +24,6 @@ public final class CommandHandler {
 	private static final long                     COMMAND_TIMEOUT_SEC = 5;
 
 	private final AtomicReference<Command> lastCommand         = new AtomicReference<>(null);
-	private final List<Command>            commands            = new ArrayList<>();
 	private       OffsetDateTime           lastCommandExecTime = OffsetDateTime.now();
 
 	static {
@@ -54,8 +52,8 @@ public final class CommandHandler {
 		}
 	}
 
-	public List<Command> getCommandList() {
-		return List.copyOf(commands);
+	public static List<Command> getCommandList() {
+		return List.copyOf(COMMANDS.values());
 	}
 
 	public void invoke(CommandContext ctx) {
