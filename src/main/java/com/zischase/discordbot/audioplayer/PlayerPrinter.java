@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 
 public class PlayerPrinter {
 
+	private static final int    PRINT_TIMEOUT_MS          = 2000;
 	private static final int    MAX_WAITER_THREADS        = 1;
 	private static final int    NOW_PLAYING_TIMER_RATE_MS = 7500;
 	private static final int    HISTORY_POLL_LIMIT        = 5;
@@ -43,15 +44,15 @@ public class PlayerPrinter {
 	private static final String QUEUE_MSG_NAME            = "**Queue**";
 	private static final String NOTHING_PLAYING_MSG_NAME  = "**Nothing Playing**";
 
-	private final ScheduledExecutorService SCHEDULED_EXEC    = new ScheduledThreadPoolExecutor(MAX_WAITER_THREADS);
-	private final AtomicReference<Message> nowPlayingMessage = new AtomicReference<>(null);
-	private final AtomicReference<Message> queueMessage      = new AtomicReference<>(null);
-	private final Semaphore                semaphore         = new Semaphore(1);
+	private final ScheduledExecutorService SCHEDULED_EXEC      = new ScheduledThreadPoolExecutor(MAX_WAITER_THREADS);
+	private final AtomicReference<Message> nowPlayingMessage   = new AtomicReference<>(null);
+	private final AtomicReference<Message> queueMessage        = new AtomicReference<>(null);
+	private final Semaphore                nowPlayingSemaphore = new Semaphore(1);
+	private final Semaphore                queueSemaphore      = new Semaphore(1);
 	private final AudioManager             audioManager;
 
-	private Paginator paginator;
-
-	AtomicReference<List<AudioTrack>> copyQueue = new AtomicReference<>();
+	private List<AudioTrack> copyQueue = null;
+	private Paginator        paginator;
 
 	public PlayerPrinter(AudioManager audioManager, Guild guild) {
 		String id = guild.getId();
@@ -75,10 +76,6 @@ public class PlayerPrinter {
 		SCHEDULED_EXEC.shutdown();
 	}
 
-	public Message getQueueMessage() {
-		return queueMessage.get();
-	}
-
 	public Message getNowPlayingMessage() {
 		return nowPlayingMessage.get();
 	}
@@ -88,7 +85,7 @@ public class PlayerPrinter {
 	}
 
 	public void printNowPlaying(TextChannel channel, boolean forcePrint) {
-		if (!semaphore.tryAcquire()) {
+		if (!nowPlayingSemaphore.tryAcquire()) {
 			return;
 		}
 		this.nowPlayingMessage.set(getNPMsg(channel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
@@ -116,10 +113,21 @@ public class PlayerPrinter {
 				channel.editMessageById(this.nowPlayingMessage.get().getId(), builtMessage).queue();
 			}
 		}
-		semaphore.release();
+
+		try {
+			Thread.sleep(PRINT_TIMEOUT_MS);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		nowPlayingSemaphore.release();
 	}
 
 	public void printQueue(@NotNull TextChannel channel) {
+		if (!queueSemaphore.tryAcquire()) {
+			return;
+		}
+
 		List<Page> queuePages = buildQueue(audioManager.getScheduler().getQueue());
 		if (queuePages == null) {
 			return;
@@ -143,6 +151,14 @@ public class PlayerPrinter {
 					success -> Pages.paginate(success, queuePages)
 			);
 		}
+
+
+		try {
+			Thread.sleep(PRINT_TIMEOUT_MS);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		queueSemaphore.release();
 	}
 
 	public void deletePrevious(@NotNull TextChannel textChannel) {
@@ -350,7 +366,9 @@ public class PlayerPrinter {
 			if (textChannel == null || voiceChannel == null) {
 				return;
 			}
-
+			/* Release all holds from previous song */
+			queueSemaphore.release();
+			nowPlayingSemaphore.release();
 			TrackScheduler scheduler = audioManager.getScheduler();
 
 			/* Ensure we have somewhere to send the message, check for errors */
@@ -371,27 +389,26 @@ public class PlayerPrinter {
 			} else if (audioEvent instanceof TrackStartEvent) {
 				boolean inChannel = guild.getSelfMember().getVoiceState() != null && Objects.requireNonNull(guild.getSelfMember().getVoiceState()).inVoiceChannel();
 
+				/* Make sure someone can listen */
 				if (!inChannel) {
 					guild.getJDA().getDirectAudioController().connect(voiceChannel);
 				}
 
-				copyQueue.set(audioManager.getScheduler().getQueue());
+				/* Set to empty at start, will print on first run if anything in queue */
+				copyQueue = new ArrayList<>();
 				Runnable runnable = () -> {
 					AudioTrack track = audioEvent.player.getPlayingTrack();
 					if (track != null && track.getDuration() != Integer.MAX_VALUE && track.getPosition() < track.getDuration()) {
 						printNowPlaying(textChannel);
 
-						if (listChanged(audioManager.getScheduler().getQueue(), copyQueue.get())) {
+						if (listChanged(audioManager.getScheduler().getQueue(), copyQueue)) {
 							printQueue(textChannel);
-							copyQueue.set(audioManager.getScheduler().getQueue());
+							copyQueue = audioManager.getScheduler().getQueue();
 						}
 					}
 				};
 
-				SCHEDULED_EXEC.scheduleAtFixedRate(runnable, NOW_PLAYING_TIMER_RATE_MS, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
-
-				printNowPlaying(textChannel);
-				printQueue(textChannel);
+				SCHEDULED_EXEC.scheduleAtFixedRate(runnable, 0, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
 			}
 		};
 
