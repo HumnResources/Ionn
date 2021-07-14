@@ -1,14 +1,15 @@
 package com.zischase.discordbot.audioplayer;
 
 import com.github.ygimenez.exception.InvalidHandlerException;
-import com.github.ygimenez.method.Pages;
 import com.github.ygimenez.model.Page;
 import com.github.ygimenez.model.Paginator;
 import com.github.ygimenez.model.PaginatorBuilder;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
-import com.sedmelluq.discord.lavaplayer.player.event.*;
+import com.sedmelluq.discord.lavaplayer.player.event.AudioEventListener;
+import com.sedmelluq.discord.lavaplayer.player.event.TrackExceptionEvent;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
+import com.zischase.discordbot.CPages;
 import com.zischase.discordbot.DBQueryHandler;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
@@ -23,8 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -33,7 +34,6 @@ import java.util.stream.Collectors;
 public class PlayerPrinter {
 
 	private static final int    PRINT_TIMEOUT_MS          = 2000;
-	private static final int    MAX_WAITER_THREADS        = 1;
 	private static final int    NOW_PLAYING_TIMER_RATE_MS = 7500;
 	private static final int    HISTORY_POLL_LIMIT        = 5;
 	private static final int    PROGRESS_BAR_SIZE         = 16;
@@ -44,73 +44,152 @@ public class PlayerPrinter {
 	private static final String QUEUE_MSG_NAME            = "**Queue**";
 	private static final String NOTHING_PLAYING_MSG_NAME  = "**Nothing Playing**";
 
-	private final ScheduledExecutorService SCHEDULED_EXEC      = new ScheduledThreadPoolExecutor(MAX_WAITER_THREADS);
+	private final ScheduledExecutorService SCHEDULED_EXEC      = Executors.newSingleThreadScheduledExecutor();
 	private final AtomicReference<Message> nowPlayingMessage   = new AtomicReference<>(null);
 	private final AtomicReference<Message> queueMessage        = new AtomicReference<>(null);
 	private final Semaphore                nowPlayingSemaphore = new Semaphore(1);
 	private final Semaphore                queueSemaphore      = new Semaphore(1);
 	private final AudioManager             audioManager;
 
-	private List<AudioTrack> copyQueue = null;
+	private Runnable         trackTimer = null;
+	private List<AudioTrack> copyQueue  = null;
 	private Paginator        paginator;
+	private int              playCount  = 0;
 
 	public PlayerPrinter(AudioManager audioManager, Guild guild) {
 		String id = guild.getId();
 		this.audioManager = audioManager;
 		initializeTrackListener(guild);
+
 		try {
 			paginator = PaginatorBuilder.createPaginator()
 					.setHandler(guild.getJDA())
 					.setDeleteOnCancel(true)
 					.shouldEventLock(true)
+					.shouldRemoveOnReact(true)
 					.build();
 		} catch (InvalidHandlerException e) {
 			e.printStackTrace();
 		}
+
 		/* Add watcher for reaction response to now playing message */
 		TrackWatcherEventListener trackWatcher = new TrackWatcherEventListener(this, audioManager, id);
 		guild.getJDA().addEventListener(trackWatcher);
 	}
 
-	public void shutdown() {
-		SCHEDULED_EXEC.shutdown();
+	private void initializeTrackListener(Guild guild) {
+		String id = guild.getId();
+		/* Check for available channel to display Now PLaying prompt */
+		/* Ensure we have somewhere to send the message, check for errors */
+		/* Set up a timer to continually update the running time of the song */
+		AudioEventListener audioEventListener = audioEvent -> {
+			/* Check for available channel to display Now PLaying prompt */
+			TextChannel  textChannel  = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textChannel"));
+			VoiceChannel voiceChannel = guild.getVoiceChannelById(DBQueryHandler.get(id, "media_settings", "voicechannel"));
+			this.playCount++;
+
+			if (textChannel == null || voiceChannel == null) {
+				return;
+			}
+			/* Release all holds from previous song */
+			queueSemaphore.release();
+			nowPlayingSemaphore.release();
+			TrackScheduler scheduler = audioManager.getScheduler();
+
+			/* Clear old now playing and queue messages on a fresh start of songs */
+			if (playCount == 1) {
+				deletePrevious(textChannel);
+			}
+
+			switch (audioEvent.getClass().getSimpleName()) {
+				case "TrackStuckEvent" -> {
+					textChannel.sendMessage("Audio track stuck! Ending track and continuing").queue();
+					scheduler.nextTrack();
+				}
+				case "TrackExceptionEvent" -> {
+					textChannel.sendMessage("Error loading the audio.").queue();
+					((TrackExceptionEvent) audioEvent).exception.printStackTrace();
+					scheduler.nextTrack();
+				}
+				case "TrackEndEvent" -> {
+					if (scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() == null) {
+						deletePrevious(textChannel);
+						guild.getJDA().getDirectAudioController().disconnect(guild);
+						CPages.deactivate();
+						this.playCount = 0;
+					}
+				}
+				case "TrackStartEvent" -> {
+					boolean inChannel = guild.getSelfMember().getVoiceState() != null && Objects.requireNonNull(guild.getSelfMember().getVoiceState()).inVoiceChannel();
+
+					/* Make sure someone can listen */
+					if (!inChannel) {
+						guild.getJDA().getDirectAudioController().connect(voiceChannel);
+					}
+
+					/* Set to empty at start, will print on first run if anything in queue */
+					copyQueue = new ArrayList<>();
+
+					if (trackTimer == null) {
+						trackTimer = () -> {
+							AudioTrack track = audioEvent.player.getPlayingTrack();
+
+							if (track != null && track.getDuration() != Integer.MAX_VALUE && track.getPosition() < track.getDuration()) {
+								printNowPlaying(textChannel);
+
+								if (listChanged(audioManager.getScheduler().getQueue(), copyQueue)) {
+									printQueue(textChannel);
+									copyQueue = audioManager.getScheduler().getQueue();
+								}
+							}
+						};
+					}
+
+					SCHEDULED_EXEC.scheduleAtFixedRate(trackTimer, PRINT_TIMEOUT_MS, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
+				}
+			}
+		};
+		/* Add the audio event watcher to the current guild's audio manager */
+		audioManager.getPlayer().addListener(audioEventListener);
 	}
+
 
 	public Message getNowPlayingMessage() {
 		return nowPlayingMessage.get();
 	}
 
-	public void printNowPlaying(TextChannel channel) {
-		printNowPlaying(channel, false);
+	public void printNowPlaying(TextChannel textChannel) {
+		printNowPlaying(textChannel, false);
 	}
 
-	public void printNowPlaying(TextChannel channel, boolean forcePrint) {
+	public void printNowPlaying(TextChannel textChannel, boolean forcePrint) {
 		if (!nowPlayingSemaphore.tryAcquire()) {
 			return;
 		}
-		this.nowPlayingMessage.set(getNPMsg(channel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
+		this.nowPlayingMessage.set(getNPMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
 		Message builtMessage = buildNowPlaying();
 
 		if (forcePrint) {
-			deletePrevious(channel);
+			deletePrevious(textChannel);
 			if (audioManager.getScheduler().getQueue().size() > 0) {
-				printQueue(channel);
+				printQueue(textChannel);
 			}
-			channel.sendMessage(builtMessage).queue(message -> {
+			textChannel.sendMessage(builtMessage).queue(message -> {
 				addReactions(message);
 				this.nowPlayingMessage.set(message);
 			});
 			if (audioManager.getScheduler().getQueue().size() > 0) {
-				printQueue(channel);
+				printQueue(textChannel);
 			}
 		} else {
 			if (this.nowPlayingMessage.get() == null) {
-				channel.sendMessage(builtMessage).queue(message -> {
+				deletePrevious(textChannel);
+				textChannel.sendMessage(builtMessage).queue(message -> {
 					addReactions(message);
 					this.nowPlayingMessage.set(message);
 				});
 			} else {
-				channel.editMessageById(this.nowPlayingMessage.get().getId(), builtMessage).queue();
+				textChannel.editMessageById(this.nowPlayingMessage.get().getId(), builtMessage).queue();
 			}
 		}
 
@@ -123,9 +202,17 @@ public class PlayerPrinter {
 		nowPlayingSemaphore.release();
 	}
 
-	public void printQueue(@NotNull TextChannel channel) {
+	public void printQueue(@NotNull TextChannel textChannel) {
 		if (!queueSemaphore.tryAcquire()) {
 			return;
+		}
+
+		if (!CPages.isActivated()) {
+			try {
+				CPages.activate(paginator);
+			} catch (InvalidHandlerException e) {
+				e.printStackTrace();
+			}
 		}
 
 		List<Page> queuePages = buildQueue(audioManager.getScheduler().getQueue());
@@ -133,25 +220,16 @@ public class PlayerPrinter {
 			return;
 		}
 
-		if (!Pages.isActivated()) {
-			try {
-				Pages.activate(paginator);
-			} catch (InvalidHandlerException e) {
-				e.printStackTrace();
-			}
-		}
-
-		Message message = getQueueMsg(channel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
+		Message message = getQueueMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
 		if (message == null) {
-			channel.sendMessage((Message) queuePages.get(0).getContent()).queue(
-					success -> Pages.paginate(success, queuePages)
+			textChannel.sendMessage((Message) queuePages.get(0).getContent()).queue(
+					success -> CPages.paginate(success, queuePages, true, (int) audioManager.getPlayer().getPlayingTrack().getDuration(), TimeUnit.MILLISECONDS)
 			);
 		} else {
-			channel.editMessageById(message.getId(), (Message) queuePages.get(0).getContent()).queue(
-					success -> Pages.paginate(success, queuePages)
+			textChannel.editMessageById(message.getId(), (Message) queuePages.get(0).getContent()).queue(
+					success -> CPages.paginate(success, queuePages, false, (int) audioManager.getPlayer().getPlayingTrack().getDuration(), TimeUnit.MILLISECONDS)
 			);
 		}
-
 
 		try {
 			Thread.sleep(PRINT_TIMEOUT_MS);
@@ -178,6 +256,10 @@ public class PlayerPrinter {
 		} else if (msgList.size() == 1) {
 			textChannel.deleteMessageById(msgList.get(0).getId()).complete();
 		}
+	}
+
+	public void shutdown() {
+		SCHEDULED_EXEC.shutdown();
 	}
 
 	@NotNull
@@ -241,6 +323,7 @@ public class PlayerPrinter {
 		return messages
 				.stream()
 				.filter(msg -> msg.getAuthor().isBot())
+				.filter(msg -> msg.getAuthor().getId().equals(msg.getJDA().getSelfUser().getId()))
 				.filter(msg -> !msg.isPinned())
 				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
 				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
@@ -277,6 +360,7 @@ public class PlayerPrinter {
 	private Message getQueueMsg(List<Message> messages) {
 		return messages.stream()
 				.filter(msg -> msg.getAuthor().isBot())
+				.filter(msg -> msg.getAuthor().getId().equals(msg.getJDA().getSelfUser().getId()))
 				.filter(msg -> !msg.isPinned())
 				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
 				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
@@ -351,69 +435,5 @@ public class PlayerPrinter {
 				nowPlayingMsg.addReaction(reaction).queue();
 			}
 		}
-	}
-
-	private void initializeTrackListener(Guild guild) {
-		String id = guild.getId();
-		/* Check for available channel to display Now PLaying prompt */
-		/* Ensure we have somewhere to send the message, check for errors */
-		/* Set up a timer to continually update the running time of the song */
-		AudioEventListener audioEventListener = audioEvent -> {
-			/* Check for available channel to display Now PLaying prompt */
-			TextChannel  textChannel  = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textChannel"));
-			VoiceChannel voiceChannel = guild.getVoiceChannelById(DBQueryHandler.get(id, "media_settings", "voicechannel"));
-
-			if (textChannel == null || voiceChannel == null) {
-				return;
-			}
-			/* Release all holds from previous song */
-			queueSemaphore.release();
-			nowPlayingSemaphore.release();
-			TrackScheduler scheduler = audioManager.getScheduler();
-
-			/* Ensure we have somewhere to send the message, check for errors */
-			if (audioEvent instanceof TrackStuckEvent) {
-				textChannel.sendMessage("Audio track stuck! Ending track and continuing").queue();
-				scheduler.nextTrack();
-
-			} else if (audioEvent instanceof TrackExceptionEvent) {
-				textChannel.sendMessage("Error loading the audio.").queue();
-				((TrackExceptionEvent) audioEvent).exception.printStackTrace();
-				scheduler.nextTrack();
-
-			} else if (audioEvent instanceof TrackEndEvent && scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() == null) {
-				deletePrevious(textChannel);
-				guild.getJDA().getDirectAudioController().disconnect(guild);
-				Pages.deactivate();
-
-			} else if (audioEvent instanceof TrackStartEvent) {
-				boolean inChannel = guild.getSelfMember().getVoiceState() != null && Objects.requireNonNull(guild.getSelfMember().getVoiceState()).inVoiceChannel();
-
-				/* Make sure someone can listen */
-				if (!inChannel) {
-					guild.getJDA().getDirectAudioController().connect(voiceChannel);
-				}
-
-				/* Set to empty at start, will print on first run if anything in queue */
-				copyQueue = new ArrayList<>();
-				Runnable runnable = () -> {
-					AudioTrack track = audioEvent.player.getPlayingTrack();
-					if (track != null && track.getDuration() != Integer.MAX_VALUE && track.getPosition() < track.getDuration()) {
-						printNowPlaying(textChannel);
-
-						if (listChanged(audioManager.getScheduler().getQueue(), copyQueue)) {
-							printQueue(textChannel);
-							copyQueue = audioManager.getScheduler().getQueue();
-						}
-					}
-				};
-
-				SCHEDULED_EXEC.scheduleAtFixedRate(runnable, 0, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
-			}
-		};
-
-		/* Add the audio event watcher to the current guild's audio manager */
-		audioManager.getPlayer().addListener(audioEventListener);
-
 	}
 }

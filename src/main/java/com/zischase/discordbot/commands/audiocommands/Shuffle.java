@@ -6,10 +6,12 @@ import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
+import net.dv8tion.jda.api.entities.TextChannel;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 public class Shuffle extends Command {
 
@@ -40,6 +42,9 @@ public class Shuffle extends Command {
 
 	public static void shuffle(String guildID, AudioManager audioManager) {
 		if (!DBQueryHandler.getPremiumStatus(guildID)) {
+			TextChannel textChannel = GuildContext.get(guildID).guild().getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
+			assert textChannel != null;
+			textChannel.sendMessage("This feature is for premium guilds only.").queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
 			return;
 		}
 

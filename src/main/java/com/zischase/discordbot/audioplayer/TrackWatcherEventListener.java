@@ -7,6 +7,8 @@ import net.dv8tion.jda.api.events.message.guild.react.GenericGuildMessageReactio
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.CompletableFuture;
+
 import static com.zischase.discordbot.audioplayer.MediaControls.*;
 
 public class TrackWatcherEventListener extends ListenerAdapter {
@@ -34,9 +36,11 @@ public class TrackWatcherEventListener extends ListenerAdapter {
 		Message currentNPMessage = printer.getNowPlayingMessage();
 		String reaction = event.getReaction().getReactionEmote().getName();
 
-		if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
+		CompletableFuture.runAsync(() -> {
+			if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
 				nowPlayingInteraction(reaction);
-		}
+			}
+		});
 
 	}
 
