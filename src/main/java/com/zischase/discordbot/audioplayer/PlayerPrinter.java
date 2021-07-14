@@ -38,6 +38,7 @@ public class PlayerPrinter {
 	private static final int    HISTORY_POLL_LIMIT        = 5;
 	private static final int    PROGRESS_BAR_SIZE         = 16;
 	private static final int    QUEUE_PAGE_SIZE           = 5;
+	private static final int 	QUEUE_BUTTON_AMT		  = 4;
 	private static final String PROGRESS_BAR_ICON_FILL    = "⬜";
 	private static final String PROGRESS_BAR_ICON_EMPTY   = "⬛";
 	private static final String NOW_PLAYING_MSG_NAME      = "**Now Playing**";
@@ -223,11 +224,11 @@ public class PlayerPrinter {
 		Message message = getQueueMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
 		if (message == null) {
 			textChannel.sendMessage((Message) queuePages.get(0).getContent()).queue(
-					success -> CPages.paginate(success, queuePages, true, (int) audioManager.getPlayer().getPlayingTrack().getDuration(), TimeUnit.MILLISECONDS)
+					success -> CPages.paginate(success, queuePages, true, true)
 			);
 		} else {
 			textChannel.editMessageById(message.getId(), (Message) queuePages.get(0).getContent()).queue(
-					success -> CPages.paginate(success, queuePages, false, (int) audioManager.getPlayer().getPlayingTrack().getDuration(), TimeUnit.MILLISECONDS)
+					success -> CPages.paginate(success, queuePages, success.getReactions().size() != QUEUE_BUTTON_AMT, true)
 			);
 		}
 

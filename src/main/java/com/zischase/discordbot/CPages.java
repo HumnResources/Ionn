@@ -18,10 +18,8 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 
 import javax.annotation.Nonnull;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 
@@ -35,7 +33,6 @@ import java.util.function.Consumer;
 * */
 
 public class CPages {
-	private static final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 	private static final CMessageHandler           handler  = new CMessageHandler();
 	private static       Paginator                paginator;
 
@@ -86,7 +83,7 @@ public class CPages {
 		return handler;
 	}
 
-	public static void paginate(@Nonnull final Message msg, @Nonnull List<Page> pages, boolean refreshEmotes, int time, TimeUnit unit) throws ErrorResponseException, InsufficientPermissionException {
+	public static void paginate(@Nonnull final Message msg, @Nonnull List<Page> pages, boolean refreshEmotes, boolean fastForward) throws ErrorResponseException, InsufficientPermissionException {
 		if (!isActivated()) {
 			throw new InvalidStateException();
 		} else {
@@ -94,30 +91,20 @@ public class CPages {
 
 			if (refreshEmotes) {
 				clearReactions(msg);
+
+				if (fastForward) {
+					msg.addReaction(paginator.getEmotes().get(Emote.GOTO_FIRST)).submit();
+				}
 				msg.addReaction(paginator.getEmotes().get(Emote.PREVIOUS)).submit();
-				msg.addReaction(paginator.getEmotes().get(Emote.CANCEL)).submit();
 				msg.addReaction(paginator.getEmotes().get(Emote.NEXT)).submit();
+				if (fastForward) {
+					msg.addReaction(paginator.getEmotes().get(Emote.GOTO_LAST)).submit();
+				}
 			}
 
 			handler.addEvent((msg.getChannelType().isGuild() ? msg.getGuild().getId() : msg.getPrivateChannel().getId()) + msg.getId(), new Consumer<>() {
-				private final AtomicReference<ScheduledFuture<?>> timeout = new AtomicReference(null);
 				private final int maxP = pgs.size() - 1;
 				private int p = 0;
-				private final Consumer<Void> success = (s) -> {
-					if (this.timeout.get() != null) {
-						this.timeout.get().cancel(true);
-					}
-
-					CPages.handler.removeEvent(msg);
-					if (CPages.paginator.isDeleteOnCancel()) {
-						msg.delete().submit();
-					}
-
-				};
-
-				{
-					CPages.setTimeout(this.timeout, this.success, msg, time, unit);
-				}
 
 				public void accept(GenericMessageReactionEvent event) {
 					event.retrieveUser().submit().thenAccept((u) -> {
@@ -125,7 +112,7 @@ public class CPages {
 
 						try {
 							msgx = event.retrieveMessage().submit().get();
-						} catch (ExecutionException | InterruptedException var7) {
+						} catch (ExecutionException | InterruptedException ignored) {
 						}
 
 						if (!u.isBot() && msgx != null && event.getMessageId().equals(msgx.getId())) {
@@ -143,12 +130,12 @@ public class CPages {
 									pg = pgs.get(this.p);
 									CPages.updatePage(msgx, pg);
 								}
-							} else if (CPages.checkEmote(reaction, Emote.CANCEL)) {
-								CPages.clearReactions(msgx, this.success);
-							}
-
-							if (event.isFromGuild() && (CPages.paginator == null || CPages.paginator.isRemoveOnReact())) {
-								event.getReaction().removeReaction(u).submit();
+							}else if (CPages.checkEmote(reaction, Emote.GOTO_FIRST)) {
+								pg = pgs.get(0);
+								CPages.updatePage(msgx, pg);
+							}else if (CPages.checkEmote(reaction, Emote.GOTO_LAST)) {
+								pg = pgs.get(maxP);
+								CPages.updatePage(msgx, pg);
 							}
 
 						}
@@ -163,40 +150,12 @@ public class CPages {
 			throw new NullPageException();
 		} else {
 			if (p.getContent() instanceof Message) {
-				msg.editMessage((Message) p.getContent()).submit();
+				msg.editMessage((Message) p.getContent()).queue();
 			} else if (p.getContent() instanceof MessageEmbed) {
-				msg.editMessage((MessageEmbed) p.getContent()).submit();
+				msg.editMessage((MessageEmbed) p.getContent()).queue();
 			}
 
 		}
-	}
-
-	private static void setTimeout(AtomicReference<ScheduledFuture<?>> timeout, Consumer<Void> success, Message msg, int time, TimeUnit unit) {
-		if (timeout.get() != null) {
-			timeout.get().cancel(true);
-		}
-
-		try {
-			timeout.set(executor.schedule(() -> {
-				msg.clearReactions().submit().thenAccept(success);
-			}, time, unit));
-		} catch (IllegalStateException | InsufficientPermissionException var6) {
-			timeout.set(executor.schedule(() -> {
-				msg.getChannel().retrieveMessageById(msg.getId()).submit().thenCompose((m) -> {
-					CompletableFuture<?>[] removeReaction = new CompletableFuture[m.getReactions().size()];
-
-					for (int i = 0; i < m.getReactions().size(); ++i) {
-						MessageReaction r = m.getReactions().get(i);
-						if (r.isSelf()) {
-							removeReaction[i] = r.removeReaction().submit();
-						}
-					}
-
-					return CompletableFuture.allOf(removeReaction).thenAccept(success);
-				});
-			}, time, unit));
-		}
-
 	}
 
 	private static boolean checkEmote(MessageReaction.ReactionEmote reaction, Emote emote) {
@@ -212,18 +171,14 @@ public class CPages {
 			if (msg.getChannel().getType().isGuild()) {
 				msg.clearReactions().submit();
 			} else {
-				Iterator var1 = msg.getReactions().iterator();
 
-				while (var1.hasNext()) {
-					MessageReaction r = (MessageReaction) var1.next();
+				for (MessageReaction r : msg.getReactions()) {
 					r.removeReaction().submit();
 				}
 			}
 		} catch (IllegalStateException | InsufficientPermissionException var4) {
-			Iterator var2 = msg.getReactions().iterator();
 
-			while (var2.hasNext()) {
-				MessageReaction r = (MessageReaction) var2.next();
+			for (MessageReaction r : msg.getReactions()) {
 				r.removeReaction().submit();
 			}
 		}
@@ -235,18 +190,14 @@ public class CPages {
 			if (msg.getChannel().getType().isGuild()) {
 				msg.clearReactions().submit();
 			} else {
-				Iterator var2 = msg.getReactions().iterator();
 
-				while (var2.hasNext()) {
-					MessageReaction r = (MessageReaction) var2.next();
+				for (MessageReaction r : msg.getReactions()) {
 					r.removeReaction().submit();
 				}
 			}
 		} catch (IllegalStateException | InsufficientPermissionException var5) {
-			Iterator var3 = msg.getReactions().iterator();
 
-			while (var3.hasNext()) {
-				MessageReaction r = (MessageReaction) var3.next();
+			for (MessageReaction r : msg.getReactions()) {
 				r.removeReaction().submit();
 			}
 		}
