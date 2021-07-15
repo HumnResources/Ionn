@@ -20,42 +20,36 @@ import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.*;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class PlayerPrinter {
 
 	private static final int    PRINT_TIMEOUT_MS          = 2000;
-	private static final int    NOW_PLAYING_TIMER_RATE_MS = 7500;
+	private static final int    NOW_PLAYING_TIMER_RATE_MS = 6000;
 	private static final int    HISTORY_POLL_LIMIT        = 5;
 	private static final int    PROGRESS_BAR_SIZE         = 16;
 	private static final int    QUEUE_PAGE_SIZE           = 5;
-	private static final int 	QUEUE_BUTTON_AMT		  = 4;
+	private static final int    QUEUE_BUTTON_AMT          = 4;
 	private static final String PROGRESS_BAR_ICON_FILL    = "⬜";
 	private static final String PROGRESS_BAR_ICON_EMPTY   = "⬛";
 	private static final String NOW_PLAYING_MSG_NAME      = "**Now Playing**";
 	private static final String QUEUE_MSG_NAME            = "**Queue**";
 	private static final String NOTHING_PLAYING_MSG_NAME  = "**Nothing Playing**";
 
-	private final ScheduledExecutorService SCHEDULED_EXEC      = Executors.newSingleThreadScheduledExecutor();
-	private final AtomicReference<Message> nowPlayingMessage   = new AtomicReference<>(null);
-	private final AtomicReference<Message> queueMessage        = new AtomicReference<>(null);
-	private final Semaphore                nowPlayingSemaphore = new Semaphore(1);
-	private final Semaphore                queueSemaphore      = new Semaphore(1);
-	private final AudioManager             audioManager;
+	private       Message      nowPlayingMessage   = null;
+	private       Message      queueMessage        = null;
+	private final Semaphore    nowPlayingSemaphore = new Semaphore(1);
+	private final Semaphore    queueSemaphore      = new Semaphore(1);
+	private final Timer        timer               = new Timer();
+	private final AudioManager audioManager;
 
-	private Runnable         trackTimer = null;
-	private List<AudioTrack> copyQueue  = null;
+	private List<AudioTrack> copyQueue      = new ArrayList<>();
+	private TimerTask        trackTimerTask = null;
 	private Paginator        paginator;
-	private int              playCount  = 0;
+	private int              playCount      = 0;
 
 	public PlayerPrinter(AudioManager audioManager, Guild guild) {
 		String id = guild.getId();
@@ -66,8 +60,6 @@ public class PlayerPrinter {
 			paginator = PaginatorBuilder.createPaginator()
 					.setHandler(guild.getJDA())
 					.setDeleteOnCancel(true)
-					.shouldEventLock(true)
-					.shouldRemoveOnReact(true)
 					.build();
 		} catch (InvalidHandlerException e) {
 			e.printStackTrace();
@@ -85,7 +77,7 @@ public class PlayerPrinter {
 		/* Set up a timer to continually update the running time of the song */
 		AudioEventListener audioEventListener = audioEvent -> {
 			/* Check for available channel to display Now PLaying prompt */
-			TextChannel  textChannel  = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textChannel"));
+			TextChannel  textChannel  = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textchannel"));
 			VoiceChannel voiceChannel = guild.getVoiceChannelById(DBQueryHandler.get(id, "media_settings", "voicechannel"));
 			this.playCount++;
 
@@ -128,25 +120,30 @@ public class PlayerPrinter {
 						guild.getJDA().getDirectAudioController().connect(voiceChannel);
 					}
 
-					/* Set to empty at start, will print on first run if anything in queue */
-					copyQueue = new ArrayList<>();
+					/* Clear any existing timers */
+					if (trackTimerTask != null) {
+						trackTimerTask.cancel();
+					}
 
-					if (trackTimer == null) {
-						trackTimer = () -> {
+					/* Timer to update progress bar of song */
+					trackTimerTask = new TimerTask() {
+						@Override
+						public void run() {
 							AudioTrack track = audioEvent.player.getPlayingTrack();
 
-							if (track != null && track.getDuration() != Integer.MAX_VALUE && track.getPosition() < track.getDuration()) {
+							if (track != null && track.getPosition() < track.getDuration()) {
 								printNowPlaying(textChannel);
 
 								if (listChanged(audioManager.getScheduler().getQueue(), copyQueue)) {
 									printQueue(textChannel);
 									copyQueue = audioManager.getScheduler().getQueue();
 								}
+							} else if (track == null) {
+								this.cancel();
 							}
-						};
-					}
-
-					SCHEDULED_EXEC.scheduleAtFixedRate(trackTimer, PRINT_TIMEOUT_MS, NOW_PLAYING_TIMER_RATE_MS, TimeUnit.MILLISECONDS);
+						}
+					};
+					timer.scheduleAtFixedRate(trackTimerTask, 0, NOW_PLAYING_TIMER_RATE_MS);
 				}
 			}
 		};
@@ -154,9 +151,8 @@ public class PlayerPrinter {
 		audioManager.getPlayer().addListener(audioEventListener);
 	}
 
-
 	public Message getNowPlayingMessage() {
-		return nowPlayingMessage.get();
+		return this.nowPlayingMessage;
 	}
 
 	public void printNowPlaying(TextChannel textChannel) {
@@ -167,38 +163,36 @@ public class PlayerPrinter {
 		if (!nowPlayingSemaphore.tryAcquire()) {
 			return;
 		}
-		this.nowPlayingMessage.set(getNPMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete()));
+		this.nowPlayingMessage = getNPMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
 		Message builtMessage = buildNowPlaying();
 
 		if (forcePrint) {
 			deletePrevious(textChannel);
-			if (audioManager.getScheduler().getQueue().size() > 0) {
-				printQueue(textChannel);
-			}
 			textChannel.sendMessage(builtMessage).queue(message -> {
 				addReactions(message);
-				this.nowPlayingMessage.set(message);
+				this.nowPlayingMessage = message;
 			});
 			if (audioManager.getScheduler().getQueue().size() > 0) {
 				printQueue(textChannel);
 			}
-		} else {
-			if (this.nowPlayingMessage.get() == null) {
+		}
+		else {
+			if (this.nowPlayingMessage == null) {
 				deletePrevious(textChannel);
 				textChannel.sendMessage(builtMessage).queue(message -> {
 					addReactions(message);
-					this.nowPlayingMessage.set(message);
+					this.nowPlayingMessage = message;
+					try {
+						Thread.sleep(PRINT_TIMEOUT_MS);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				});
 			} else {
-				textChannel.editMessageById(this.nowPlayingMessage.get().getId(), builtMessage).queue();
+				textChannel.editMessageById(this.nowPlayingMessage.getId(), builtMessage).queue();
 			}
 		}
 
-		try {
-			Thread.sleep(PRINT_TIMEOUT_MS);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 
 		nowPlayingSemaphore.release();
 	}
@@ -223,15 +217,18 @@ public class PlayerPrinter {
 
 		Message message = getQueueMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
 		if (message == null) {
-			textChannel.sendMessage((Message) queuePages.get(0).getContent()).queue(
-					success -> CPages.paginate(success, queuePages, true, true)
-			);
+			textChannel.sendMessage((Message) queuePages.get(0).getContent())
+					.queue(success -> {
+						CPages.paginate(success, queuePages, true, true);
+						this.queueMessage = success;
+					});
 		} else {
-			textChannel.editMessageById(message.getId(), (Message) queuePages.get(0).getContent()).queue(
-					success -> CPages.paginate(success, queuePages, success.getReactions().size() != QUEUE_BUTTON_AMT, true)
-			);
+			textChannel.editMessageById(message.getId(), (Message) queuePages.get(0).getContent())
+					.queue(success -> {
+						CPages.paginate(success, queuePages, message.getReactions().size() != QUEUE_BUTTON_AMT, true);
+						this.queueMessage = success;
+					});
 		}
-
 		try {
 			Thread.sleep(PRINT_TIMEOUT_MS);
 		} catch (InterruptedException e) {
@@ -260,7 +257,9 @@ public class PlayerPrinter {
 	}
 
 	public void shutdown() {
-		SCHEDULED_EXEC.shutdown();
+		queueSemaphore.release();
+		nowPlayingSemaphore.release();
+		timer.cancel();
 	}
 
 	@NotNull
@@ -331,7 +330,7 @@ public class PlayerPrinter {
 				.filter(msg -> msg.getContentDisplay().contains(NOW_PLAYING_MSG_NAME) || msg.getContentDisplay().contains(NOTHING_PLAYING_MSG_NAME))
 				.findFirst()
 				.flatMap(message -> {
-					this.nowPlayingMessage.set(message);
+					this.nowPlayingMessage = message;
 					return Optional.of(message);
 				})
 				.orElse(null);
@@ -368,7 +367,7 @@ public class PlayerPrinter {
 				.filter(msg -> msg.getContentDisplay().contains(QUEUE_MSG_NAME))
 				.findFirst()
 				.flatMap(message -> {
-					this.queueMessage.set(message);
+					this.queueMessage = message;
 					return Optional.of(message);
 				})
 				.orElse(null);
@@ -433,7 +432,7 @@ public class PlayerPrinter {
 		/* Only add a reaction if it's missing. Saves on queues submit to discord API */
 		for (String reaction : MediaControls.getReactions()) {
 			if (!reactionsPresent.contains(reaction)) {
-				nowPlayingMsg.addReaction(reaction).queue();
+				nowPlayingMsg.addReaction(reaction).submit();
 			}
 		}
 	}
