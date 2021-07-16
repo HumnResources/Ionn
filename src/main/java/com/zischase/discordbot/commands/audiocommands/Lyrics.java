@@ -18,10 +18,13 @@ import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
-import java.util.Timer;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.util.*;
 
 /*
  * TODO : Find a solution for server rejection from hosting service
@@ -29,9 +32,36 @@ import java.util.Timer;
 
 public class Lyrics extends Command {
 
-	private static final Logger LOGGER           = LoggerFactory.getLogger(Lyrics.class);
-	private static final Timer  TIMER            = new Timer();
-	private static final int    MAX_MESSAGE_SIZE = 2000;
+	private static final String PROXY_LIST_URL       = "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt";
+	private static final String PROXY_LIST_FILE_NAME = "proxy-list.txt";
+	private static final Logger LOGGER               = LoggerFactory.getLogger(Lyrics.class);
+	private static final Timer  TIMER                = new Timer();
+	private static final int    MAX_MESSAGE_SIZE     = 2000;
+	private static final Map<String, Integer> proxies = new HashMap<>();
+
+	/* Initialize list of free proxy forwarders */
+	static {
+		try {
+			File proxyList = new File(PROXY_LIST_FILE_NAME);
+			if (!proxyList.exists() && !proxyList.isDirectory()) {
+				URL                 url          = new URL(PROXY_LIST_URL);
+				ReadableByteChannel byteChannel  = Channels.newChannel(url.openStream());
+				FileOutputStream    outputStream = new FileOutputStream(PROXY_LIST_FILE_NAME);
+				outputStream.getChannel().transferFrom(byteChannel, 0, Integer.MAX_VALUE);
+			}
+
+			Scanner  scanner = new Scanner(proxyList);
+			String[] tmp;
+			while (scanner.hasNextLine()) {
+				tmp = scanner.nextLine().split(":");
+
+				proxies.put(tmp[0], Integer.valueOf(tmp[1]));
+			}
+			scanner.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
 	public Lyrics() {
 		super(false);
@@ -103,7 +133,6 @@ public class Lyrics extends Command {
 		}
 	}
 
-
 	private void jSoupScrape(String search, TextChannel textChannel) {
 		String         lyricsURL;
 		String         title;
@@ -120,13 +149,14 @@ public class Lyrics extends Command {
 
 		/* Build URI */
 		query = "https://search.azlyrics.com/search.php?q=" + search;
+		String proxy = (String) Arrays.asList(proxies.keySet().toArray()).get((int) (Math.random() * proxies.size()));
 
 		/* Connect to and retrieve a DOM from host provider */
 		try {
 			Connection.Response response = Jsoup.connect(query)
+					.proxy(proxy, proxies.get(proxy))
 					.userAgent("Mozilla")
 					.referrer("http://www.google.com")
-					.proxy("202.62.95.101", 8080)
 					.followRedirects(true)
 					.execute();
 
@@ -135,6 +165,8 @@ public class Lyrics extends Command {
 				return;
 			}
 
+
+
 			doc = response.parse();
 		} catch (IOException e) {
 			LOGGER.warn("IOException - " + e.getCause().getMessage());
@@ -142,12 +174,7 @@ public class Lyrics extends Command {
 		}
 
 		/* Checks for an available search result */
-		searchResultElement = doc.select("a[href]")
-				.stream()
-				.filter(element -> element.attributes().hasKeyIgnoreCase("href"))
-				.filter(element -> element.attr("href").contains("lyrics/"))
-				.findFirst()
-				.orElse(null);
+		searchResultElement = doc.selectFirst("body > div.container.main-page > div > div > div > table > tbody > tr:nth-child(1) > td > a");
 
 		if (searchResultElement == null) {
 			textChannel.sendMessage("Sorry, could not find any results.").queue();
@@ -158,6 +185,7 @@ public class Lyrics extends Command {
 		lyricsURL = searchResultElement.attr("href");
 		try {
 			Connection.Response response = Jsoup.connect(lyricsURL)
+					.proxy(proxy, proxies.get(proxy))
 					.userAgent("Mozilla")
 					.referrer("http://www.google.com")
 					.followRedirects(true)
@@ -216,8 +244,8 @@ public class Lyrics extends Command {
 				messages[pageCount] = messageBuilder.setEmbeds(embedBuilder.build()).build();
 
 				/* Reset for next set of lyrics */
-				embedBuilder        = new EmbedBuilder();
-				messageBuilder      = new MessageBuilder();
+				embedBuilder   = new EmbedBuilder();
+				messageBuilder = new MessageBuilder();
 			}
 		} else {
 			/* Only need one message */
