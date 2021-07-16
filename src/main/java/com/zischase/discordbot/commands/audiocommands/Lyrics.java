@@ -1,8 +1,5 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.commands.CommandHandler;
@@ -10,6 +7,7 @@ import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.utils.data.DataObject;
 import org.jetbrains.annotations.NotNull;
@@ -20,15 +18,10 @@ import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.*;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /*
  * TODO : Find a solution for server rejection from hosting service
@@ -36,12 +29,9 @@ import java.util.regex.Pattern;
 
 public class Lyrics extends Command {
 
-	private static final Logger     LOGGER           = LoggerFactory.getLogger(Lyrics.class);
-	private static final Timer      TIMER            = new Timer();
-	private static final Playwright PLAYWRIGHT       = Playwright.create();
-	private static final Browser    BROWSER          = PLAYWRIGHT.chromium().launch();
-	private static final int        MAX_MESSAGE_SIZE = 2000;
-	private static final int        TIMEOUT_MS       = 30000;
+	private static final Logger LOGGER           = LoggerFactory.getLogger(Lyrics.class);
+	private static final Timer  TIMER            = new Timer();
+	private static final int    MAX_MESSAGE_SIZE = 2000;
 
 	public Lyrics() {
 		super(false);
@@ -82,147 +72,61 @@ public class Lyrics extends Command {
 
 	@Override
 	public void handle(CommandContext ctx) {
-		Page           page;
-		String         query;
-		String         selector;
-		String         artist;
-		String         title;
-		String         lyrics;
-		MessageBuilder messageBuilder;
-		EmbedBuilder   embedBuilder;
-		Message[]      messages;
-		int            length;
-		int            nMessages;
+		String search;
 
 		if (ctx.getArgs().isEmpty()) {
-			query = GuildContext.get(ctx.getGuild().getId())
+			search = GuildContext.get(ctx.getGuild().getId())
 					.audioManager()
 					.getPlayer()
 					.getPlayingTrack()
 					.getInfo()
 					.title
-					.trim()
-					.replaceAll("(?i)(music|video|official|lyrics|hd|sd|\\(.*\\)|\\[.*])", "");
+					.strip()
+					.replaceAll("(?i)(music|video|official|lyrics|hd|sd|\\(.*\\)|\\[.*])", "")
+					.replaceAll("\\s+", "+");
 			/* deletes matched words or anything inside perens/square braces */
-		}
-		else if (ctx.getArgs().size() == 1) {
-			query = ctx.getArgs().get(0);
-		}
-		else {
-			query = String.join(" ", ctx.getArgs());
-		}
-
-		if (query.isEmpty()) {
-			LOGGER.warn("Query empty for lyrics search!");
-			return;
-		}
-
-		query = query.trim().replaceAll("\\s+", " ");
-
-		/* Set timeout for 30s from start before closing the page */
-		page = BROWSER.newPage();
-		TIMER.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				if (page != null && !page.isClosed()) {
-					page.close();
-				}
-			}
-		}, TIMEOUT_MS);
-
-		page.navigate("https://search.azlyrics.com/search.php?q=" + query);
-
-		/* This selects the first URL from search results - Obtained via Chrome */
-		selector = "body > div.container.main-page > div > div > div > table > tbody > tr:nth-child(1) > td > a";
-		if (page.querySelector(selector) == null) {
-			ctx.getChannel().sendMessage("Could not find any lyrics for search `%s`. Please check spelling and try again.".formatted(query)).submit();
-			page.close();
-			return;
-		}
-		else {
-//			ctx.getChannel().sendMessage("Looks like I found something, give me a second to prepare.").queue(message ->
-//					message.delete().queueAfter(5, TimeUnit.SECONDS));
-			ctx.getChannel()
-					.sendMessage("Looks like I found something, give me a second to prepare.")
-					.complete()
-					.delete()
-					.queueAfter(5, TimeUnit.SECONDS);
-		}
-
-		page.click(selector);
-
-		artist         = page.innerText("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div.lyricsh > h2 > a > b");
-		title          = page.innerText("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > b");
-		lyrics         = page.innerText("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div:not([class])");
-		messageBuilder = new MessageBuilder();
-		embedBuilder   = new EmbedBuilder();
-		length         = lyrics.length();
-		nMessages      = (int) Math.ceil(((length + 0.0f) / MAX_MESSAGE_SIZE));
-		messages       = new Message[nMessages];
-
-		embedBuilder.setTitle("%s - %s".formatted(artist, title));
-
-		if (length >= MAX_MESSAGE_SIZE) {
-			for (int pageEnd, pageOffset, pageCount = 0; pageCount < nMessages; pageCount++) {
-				/* Create the indexing offset to continue the message */
-				pageOffset = (pageCount * MAX_MESSAGE_SIZE);
-				/* Check to make sure we don't go past the end of the string */
-				pageEnd = Math.min((pageOffset + MAX_MESSAGE_SIZE), (length - 1));
-
-				String subString = lyrics.substring(pageOffset, pageEnd);
-
-				/* Create new embed for the page */
-				embedBuilder.appendDescription(subString);
-
-				/* Add to array and start a new embed for next series of verse's */
-				messages[pageCount] = messageBuilder.setEmbeds(embedBuilder.build()).build();
-				embedBuilder        = new EmbedBuilder();
-				messageBuilder      = new MessageBuilder();
-			}
 		} else {
-			embedBuilder.appendDescription(lyrics);
-			messages[0] = messageBuilder.setEmbeds(embedBuilder.build()).build();
+			search = String.join("+", ctx.getArgs());
 		}
 
-		for (Message m : messages) {
-			ctx.getChannel().sendMessage(m).submit();
+		if (search.isEmpty()) {
+			LOGGER.warn("No search provided for lyrics.");
+			return;
 		}
 
-		page.close();
+		jSoupScrape(search, ctx.getChannel());
 
 		/* Calls the Now PLaying command for respective guild. This keeps the player visible TODO: Address this in track watcher */
 		if (GuildContext.get(ctx.getGuild().getId()).audioManager().getPlayer().getPlayingTrack() != null) {
 			Objects.requireNonNull(CommandHandler.getCommand("NowPlaying"))
-				.handle(new CommandContext(ctx.getGuild(), ctx.getMember(), List.of(), ctx.getMessage(), ctx.getChannel(), null));
+					.handle(new CommandContext(ctx.getGuild(), ctx.getMember(), List.of(), ctx.getMessage(), ctx.getChannel(), null));
 		}
-
 	}
 
-	@Deprecated
-	private void customScrape(CommandContext ctx) {
-		List<String> args          = ctx.getArgs();
-		Element      lyricsElement = null;
-		String       search;
 
-		if (args.isEmpty()) {
-			search = GuildContext.get(ctx.getGuild().getId())
-					.audioManager()
-					.getPlayer()
-					.getPlayingTrack()
-					.getInfo().title.strip()
-					.replaceAll("\\s", "+");
-		} else {
-			search = String.join("+", args);
-		}
+	private void jSoupScrape(String search, TextChannel textChannel) {
+		String         lyricsURL;
+		String         title;
+		String         artist;
+		String         query;
+		String         lyrics;
+		EmbedBuilder   embedBuilder;
+		MessageBuilder messageBuilder;
+		Document       doc;
+		Element        searchResultElement;
+		Message[]      messages;
+		int            length;
+		int            nMessages;
 
+		/* Build URI */
+		query = "https://search.azlyrics.com/search.php?q=" + search;
 
-		String query = "https://search.azlyrics.com/search.php?q=" + search;
-
-		Document doc;
+		/* Connect to and retrieve a DOM from host provider */
 		try {
 			Connection.Response response = Jsoup.connect(query)
 					.userAgent("Mozilla")
 					.referrer("http://www.google.com")
+					.proxy("202.62.95.101", 8080)
 					.followRedirects(true)
 					.execute();
 
@@ -237,7 +141,8 @@ public class Lyrics extends Command {
 			return;
 		}
 
-		Element searchResultElement = doc.select("a[href]")
+		/* Checks for an available search result */
+		searchResultElement = doc.select("a[href]")
 				.stream()
 				.filter(element -> element.attributes().hasKeyIgnoreCase("href"))
 				.filter(element -> element.attr("href").contains("lyrics/"))
@@ -245,12 +150,12 @@ public class Lyrics extends Command {
 				.orElse(null);
 
 		if (searchResultElement == null) {
-			ctx.getChannel().sendMessage("Sorry, could not find any results.").queue();
+			textChannel.sendMessage("Sorry, could not find any results.").queue();
 			return;
 		}
 
-		String lyricsURL = searchResultElement.attr("href");
-
+		/* Connect to and retrieve a DOM from first result */
+		lyricsURL = searchResultElement.attr("href");
 		try {
 			Connection.Response response = Jsoup.connect(lyricsURL)
 					.userAgent("Mozilla")
@@ -269,81 +174,64 @@ public class Lyrics extends Command {
 			return;
 		}
 
-		String songTitle = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > b")
-				.first()
-				.toString()
-				.replaceAll("(?i)(<.+?>)", "");
-		String artist = doc.select(
-				"body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div > h2 > a > b")
-				.first()
-				.toString()
-				.replaceAll("(?i)(<.+?>)|(lyrics)", "");
+		/* Query DOM for meta data */
+		artist = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div.lyricsh > h2 > a > b").text();
+		title  = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > b").text();
+		lyrics = doc.select("body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div:not([class])").toString().replaceAll("(<!--.*-->|<br>|<i>|</i>|<div>|</div.*)", "");
+		length = lyrics.length();
 
-		// Arbitrarily search up to '20' nodes.
-		for (int i = 0; i < 20; i++) {
-			lyricsElement = doc.select(
-					"body > div.container.main-page > div > div.col-xs-12.col-lg-8.text-center > div:nth-child(" + i + ")")
-					.first();
+		/* Get number of messages needed to meet Discord criteria */
+		nMessages      = (int) Math.ceil(((float) length / MAX_MESSAGE_SIZE));
+		messages       = new Message[nMessages];
+		embedBuilder   = new EmbedBuilder();
+		messageBuilder = new MessageBuilder();
+		embedBuilder.setTitle("%s - %s".formatted(artist, title));
 
-			if (lyricsElement == null) {
-				continue;
-			}
+		/* Handle multiple messages */
+		if (length >= MAX_MESSAGE_SIZE) {
+			int pageEndIndex, pageStartIndex, endOffset, startOffset = 0;
+			for (int pageCount = 0; pageCount < nMessages; pageCount++) {
+				/* Create the indexing offset to continue the message */
+				pageStartIndex = (pageCount * MAX_MESSAGE_SIZE);
 
-			if (lyricsElement.html()
-					.contains("<br>")) {
-				break;
-			}
-		}
+				/* Check to make sure we don't go past the end of the string */
+				pageEndIndex = Math.min((pageStartIndex + MAX_MESSAGE_SIZE), (length - 1));
 
-
-		if (lyricsElement == null) {
-			ctx.getChannel()
-					.sendMessage("Sorry, i couldn't find anything :c")
-					.queue();
-			return;
-		}
-
-		String[] lyrics = lyricsElement.html()
-				.replaceAll("(?i)(<.+?>\\s)", "")
-				.split("(?m)(\\s\\n)");
-
-		EmbedBuilder embed = new EmbedBuilder();
-		embed.setTitle(songTitle + " - " + artist);
-		embed.setColor(Color.lightGray);
-
-		for (String str : lyrics) {
-			if (str.isBlank() || str.isEmpty()) {
-				continue;
-			}
-
-			// Reset the embed on the second verse, used to remove song title & name off subsequent messages.
-			if (str.equalsIgnoreCase(lyrics[1])) {
-				embed = new EmbedBuilder();
-				embed.setColor(Color.lightGray);
-			}
-
-			if (str.length() > 2000) {
-				Pattern p = Pattern.compile("(?ms)(?<=\\s).{1,2000}");
-				Matcher m = p.matcher(str);
-				while (m.find()) {
-					ctx.getChannel()
-							.sendMessageEmbeds(embed.setDescription(m.group())
-									.build())
-							.queue();
+				/* Set offset and account for preserving line, make sure we pass if at EOF or start */
+				endOffset = 0;
+				if (lyrics.charAt(pageEndIndex) != '\n' && pageEndIndex != length - 1) {
+					do {
+						endOffset++;
+					} while (lyrics.charAt(pageEndIndex - endOffset) != '\n');
 				}
-			} else {
-				ctx.getChannel()
-						.sendMessageEmbeds(embed.setDescription(str)
-								.build())
-						.queue();
+
+				/* Create new embed for the page */
+				String subString = lyrics.substring(pageStartIndex - startOffset, pageEndIndex - endOffset);
+				embedBuilder.appendDescription(subString);
+
+				/* Stores the value of the previous end offset, to use at the start of the next page */
+				startOffset = endOffset;
+
+				/* Add to array and start a new embed for next series of verse's */
+				messages[pageCount] = messageBuilder.setEmbeds(embedBuilder.build()).build();
+
+				/* Reset for next set of lyrics */
+				embedBuilder        = new EmbedBuilder();
+				messageBuilder      = new MessageBuilder();
 			}
+		} else {
+			/* Only need one message */
+			embedBuilder.appendDescription(lyrics);
+			messages[0] = messageBuilder.setEmbeds(embedBuilder.build()).build();
 		}
 
+		/* Sends any messages we received */
+		for (Message m : messages) {
+			textChannel.sendMessage(m).submit();
+		}
 	}
 
 	public static void shutdown() {
 		TIMER.cancel();
-		BROWSER.close();
-		PLAYWRIGHT.close();
 	}
 }
