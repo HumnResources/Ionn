@@ -18,7 +18,7 @@ public class CommandContext {
 	private final Message message;
 	private final List<String> args;
 
-	CommandContext(Guild guild, Member initiator, List<String> args, Message commandMessage, TextChannel textChannel, @Nullable VoiceChannel voiceChannel) {
+	public CommandContext(Guild guild, Member initiator, List<String> args, Message commandMessage, TextChannel textChannel, @Nullable VoiceChannel voiceChannel) {
 		this.initiator = initiator;
 		this.message = commandMessage;
 		this.args = args;

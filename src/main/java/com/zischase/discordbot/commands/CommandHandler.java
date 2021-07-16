@@ -42,6 +42,7 @@ public final class CommandHandler {
 		addCommand(new Join());
 		addCommand(new Shuffle());
 		addCommand(new Repeat());
+		addCommand(new Lyrics());
 
 		/* Takes a hot minute. */
 		CompletableFuture.runAsync(() -> addCommand(new Radio()));
@@ -89,7 +90,7 @@ public final class CommandHandler {
 	}
 
 	@Nullable
-	public Command getCommand(String search) {
+	public static Command getCommand(String search) {
 		for (Command c : COMMANDS.values()) {
 			if (search.equalsIgnoreCase(c.getName())) {
 				return c;

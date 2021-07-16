@@ -2,6 +2,7 @@ package com.zischase.discordbot;
 
 import com.github.ygimenez.method.Pages;
 import com.zischase.discordbot.commands.CommandEventListener;
+import com.zischase.discordbot.commands.audiocommands.Lyrics;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import me.duncte123.botcommons.BotCommons;
 import net.dv8tion.jda.api.JDA;
@@ -50,7 +51,8 @@ public class Bot {
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			LOGGER.info("Shutting down.");
 
-			jda.getGuilds().forEach(g -> GuildContext.get(g.getId()).playerPrinter().shutdown());
+//			jda.getGuilds().forEach(g -> GuildContext.get(g.getId()).playerPrinter().shutdown());
+			Lyrics.shutdown();
 			Pages.deactivate();
 			BotCommons.shutdown(jda);
 			jda.shutdown();
