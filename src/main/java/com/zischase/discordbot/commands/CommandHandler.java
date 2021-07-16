@@ -42,10 +42,10 @@ public final class CommandHandler {
 		addCommand(new Join());
 		addCommand(new Shuffle());
 		addCommand(new Repeat());
-		addCommand(new Lyrics());
 
 		/* Takes a hot minute. */
 		CompletableFuture.runAsync(() -> addCommand(new Radio()));
+		CompletableFuture.runAsync(() -> addCommand(new Lyrics()));
 
 		if (COMMANDS.size() <= 0) {
 			LOGGER.warn("Commands not added !!");
