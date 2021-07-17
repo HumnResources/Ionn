@@ -28,10 +28,8 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Timer;
+import java.time.OffsetDateTime;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public final class Lyrics extends Command {
@@ -65,67 +63,42 @@ public final class Lyrics extends Command {
 		}
 	}
 
-
-	private static final String LYRICS_PROVIDER_SEARCH_URI = "https://search.azlyrics.com/search.php?q=";
-	private static final String     PROXY_LIST_URL       = "https://proxylist.geonode.com/api/proxy-list?limit=50&page=1&sort_by=lastChecked&sort_type=desc&google=true";//"https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt";
-	private static final String     PROXY_LIST_FILE_NAME = "proxy-list.csv";
-	private static final String     USER_AGENT           = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36";
-	private static final Logger     LOGGER               = LoggerFactory.getLogger(Lyrics.class);
-	private static final Timer      TIMER                = new Timer();
-	private static final int        MAX_MESSAGE_SIZE     = 2000;
-	private static final int        TIMEOUT_MS           = 30000;
-	private static final List<GeonodeProxyList.Data> ACTIVE_PROXIES       = new ArrayList<>();
+	private static final String                      LYRICS_PROVIDER_SEARCH_URI = "https://search.azlyrics.com/search.php?q=";
+	private static final String                      PROXY_LIST_URL             = "https://proxylist.geonode.com/api/proxy-list?limit=50&page=1&sort_by=lastChecked&sort_type=desc&google=true";//"https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt";
+	private static final String                      PROXY_LIST_FILE_NAME       = "proxy-list.csv";
+	private static final String                      USER_AGENT                 = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36";
+	private static final Logger                      LOGGER                     = LoggerFactory.getLogger(Lyrics.class);
+	private static final Timer                       TIMER                      = new Timer();
+	private static final int                         MAX_MESSAGE_SIZE           = 2000;
+	private static final int                         TIMEOUT_MS                 = 30000;
+	private static final int                         PROXY_CHECK_TIMER_MS       = 30 * 60000; // Get millis for timeout: mins * 60000 = millis;
+	private static final int                         PROXY_REFRESH_RATE_HR      = 4;
+	private static final List<GeonodeProxyList.Data> ACTIVE_PROXIES             = new ArrayList<>();
+	private static final List<GeonodeProxyList.Data> INACTIVE_PROXIES           = new ArrayList<>();
+	private static final Timer                       timer                      = new Timer();
+	private static       OffsetDateTime              lastUpdateTime             = OffsetDateTime.now();
+	private static final TimerTask                   TIMER_TASK                 = new TimerTask() {
+		@Override
+		public void run() {
+			checkProxies(OffsetDateTime.now().isAfter(lastUpdateTime.plusHours(PROXY_REFRESH_RATE_HR)));
+		}
+	};
 
 	/* Initialize list of free proxy forwarders */
 	static {
-		StringBuilder csv = new StringBuilder();
-		try {
-			File proxyListFile = new File(PROXY_LIST_FILE_NAME);
-			if (proxyListFile.exists()) {
-				Files.delete(Path.of(proxyListFile.getAbsolutePath()));
-			}
+		checkProxies(true);
 
-			if (!proxyListFile.exists() && !proxyListFile.isDirectory()) {
-				URL                 url          = new URL(PROXY_LIST_URL);
-				ReadableByteChannel byteChannel  = Channels.newChannel(url.openStream());
-				FileOutputStream    outputStream = new FileOutputStream(PROXY_LIST_FILE_NAME);
-				outputStream.getChannel().transferFrom(byteChannel, 0, Integer.MAX_VALUE);
-				LOGGER.info("Downloaded proxy list to file.");
-			}
+		LOGGER.info("Done parsing proxy list in memory. Initializing timer to check proxies.");
 
-			List<String> stringList = Files.readAllLines(Path.of(PROXY_LIST_FILE_NAME));
-			for (String s : stringList) {
-				csv.append(s);
-			}
-			GeonodeProxyList geonodeProxyList = new Gson().fromJson(csv.toString(), GeonodeProxyList.class);
-
-			for (GeonodeProxyList.Data data : geonodeProxyList.data) {
-			CompletableFuture.runAsync(() -> {
-					try {
-						Jsoup.connect(LYRICS_PROVIDER_SEARCH_URI)
-								.proxy(data.ip, Integer.parseInt(data.port))
-								.userAgent(USER_AGENT)
-								.timeout(TIMEOUT_MS)
-								.get();
-
-						ACTIVE_PROXIES.add(data);
-						LOGGER.info("Proxy - {}:{} - Added", data.ip, data.port);
-
-					} catch (IOException e) {
-						LOGGER.warn("Proxy - {}:{} - {}", data.ip, data.port, e.getLocalizedMessage());
-					}
-			});
-		}
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		LOGGER.info("Done parsing proxy list in memory!");
+		timer.scheduleAtFixedRate(TIMER_TASK, PROXY_CHECK_TIMER_MS, PROXY_CHECK_TIMER_MS);
 	}
 
 	public Lyrics() {
 		super(false);
+	}
+
+	public static void shutdown() {
+		TIMER.cancel();
 	}
 
 	@Override
@@ -331,7 +304,53 @@ public final class Lyrics extends Command {
 		}
 	}
 
-	public static void shutdown() {
-		TIMER.cancel();
+	private static void checkProxies(boolean forceUpdate) {
+		try {
+			StringBuilder csv = new StringBuilder();
+			if (ACTIVE_PROXIES.size() == 0 && INACTIVE_PROXIES.size() == 0 || forceUpdate) {
+				File proxyListFile = new File(PROXY_LIST_FILE_NAME);
+				if (proxyListFile.exists()) {
+					Files.delete(Path.of(proxyListFile.getAbsolutePath()));
+				}
+
+				if (!proxyListFile.exists() && !proxyListFile.isDirectory()) {
+					URL                 url          = new URL(PROXY_LIST_URL);
+					ReadableByteChannel byteChannel  = Channels.newChannel(url.openStream());
+					FileOutputStream    outputStream = new FileOutputStream(PROXY_LIST_FILE_NAME);
+					outputStream.getChannel().transferFrom(byteChannel, 0, Integer.MAX_VALUE);
+					LOGGER.info("Downloaded proxy list to file.");
+				}
+
+				List<String> stringList = Files.readAllLines(Path.of(PROXY_LIST_FILE_NAME));
+				for (String s : stringList) {
+					csv.append(s);
+				}
+				lastUpdateTime = OffsetDateTime.now();
+			}
+
+			INACTIVE_PROXIES.addAll(new Gson().fromJson(csv.toString(), GeonodeProxyList.class).data);
+
+			for (GeonodeProxyList.Data data : INACTIVE_PROXIES) {
+				CompletableFuture.runAsync(() -> {
+					try {
+						Jsoup.connect(LYRICS_PROVIDER_SEARCH_URI)
+								.proxy(data.ip, Integer.parseInt(data.port))
+								.userAgent(USER_AGENT)
+								.timeout(TIMEOUT_MS)
+								.get();
+
+						ACTIVE_PROXIES.add(data);
+						LOGGER.info("Proxy - {}:{} - Added", data.ip, data.port);
+
+					} catch (IOException e) {
+						INACTIVE_PROXIES.add(data);
+						LOGGER.warn("Proxy - {}:{} - {}", data.ip, data.port, e.getLocalizedMessage());
+					}
+				});
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }
