@@ -30,14 +30,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class Lyrics extends Command {
 
 	private final class GeonodeProxyList {
-		private int total;
-		private int page;
-		private int limit;
+		private       int             total;
+		private       int             page;
+		private       int             limit;
 		private final ArrayList<Data> data = new ArrayList<>();
 
 		private final class Data {
@@ -63,20 +65,21 @@ public final class Lyrics extends Command {
 		}
 	}
 
-	private static final int                         MAX_MESSAGE_SIZE           = 2000;
-	private static final int                         TIMEOUT_MS                 = 30000;
-	private static final int                         PROXY_CHECK_TIMER_MS       = 30 * 60000; // Get millis for timeout: mins * 60000 = millis;
-	private static final int                         PROXY_REFRESH_RATE_HR      = 4;
-	private static final String                      LYRICS_PROVIDER_SEARCH_URI = "https://search.azlyrics.com/search.php?q=";
-	private static final String                      PROXY_LIST_URL             = "https://proxylist.geonode.com/api/proxy-list?limit=50&page=1&sort_by=lastChecked&sort_type=desc&google=true";
-	private static final String                      PROXY_LIST_FILE_NAME       = "proxy-list.csv";
-	private static final String                      USER_AGENT                 = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36";
-	private static final Logger                      LOGGER                     = LoggerFactory.getLogger(Lyrics.class);
-	private static final Timer                       TIMER                      = new Timer();
-	private static final List<GeonodeProxyList.Data> ACTIVE_PROXIES             = new ArrayList<>();
-	private static final List<GeonodeProxyList.Data> INACTIVE_PROXIES           = new ArrayList<>();
-	private static final Timer                       timer                      = new Timer();
-	private static final TimerTask                   TIMER_TASK                 = new TimerTask() {
+	private static final int    MAX_MESSAGE_SIZE           = 2000;
+	private static final int    TIMEOUT_MS                 = 30000;
+	private static final int    PROXY_CHECK_TIMER_MS       = 30 * 60000; // Get millis for timeout: mins * 60000 = millis;
+	private static final int    PROXY_REFRESH_RATE_HR      = 4;
+	private static final String LYRICS_PROVIDER_SEARCH_URI = "https://search.azlyrics.com/search.php?q=";
+	private static final String PROXY_LIST_URL             = "https://proxylist.geonode.com/api/proxy-list?limit=2000&page=1&sort_by=lastChecked&sort_type=desc&speed=fast"; //"https://proxylist.geonode.com/api/proxy-list?limit=1000&page=1&sort_by=lastChecked&sort_type=desc&google=true";
+	private static final String PROXY_LIST_FILE_NAME       = "proxy-list.csv";
+	private static final String USER_AGENT                 = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36";
+
+	private static final Logger                                       LOGGER           = LoggerFactory.getLogger(Lyrics.class);
+	private static final Timer                                        TIMER            = new Timer();
+	private static final AtomicReference<List<GeonodeProxyList.Data>> ACTIVE_PROXIES   = new AtomicReference<>(new ArrayList<>());
+	private static final List<GeonodeProxyList.Data>                  INACTIVE_PROXIES = new ArrayList<>();
+	private static final ScheduledExecutorService                     EXEC             = new ScheduledThreadPoolExecutor(10);
+	private static final TimerTask                                    TIMER_TASK       = new TimerTask() {
 		@Override
 		public void run() {
 			checkProxies(OffsetDateTime.now().isAfter(lastUpdateTime.plusHours(PROXY_REFRESH_RATE_HR)));
@@ -87,11 +90,11 @@ public final class Lyrics extends Command {
 
 	/* Initialize list of free proxy forwarders */
 	static {
-		checkProxies(true);
+		checkProxies(false);
 
 		LOGGER.info("Done parsing proxy list in memory. Initializing timer to check proxies.");
 
-		timer.scheduleAtFixedRate(TIMER_TASK, PROXY_CHECK_TIMER_MS, PROXY_CHECK_TIMER_MS);
+		TIMER.scheduleAtFixedRate(TIMER_TASK, PROXY_CHECK_TIMER_MS, PROXY_CHECK_TIMER_MS);
 	}
 
 	public Lyrics() {
@@ -169,7 +172,7 @@ public final class Lyrics extends Command {
 	}
 
 	private void jSoupScrape(String search, TextChannel textChannel) {
-		if (ACTIVE_PROXIES.size() == 0) {
+		if (ACTIVE_PROXIES.get().size() == 0) {
 			textChannel.sendMessage("No servers available for routing. If I just restart, please wait a few minutes and try again.").submit();
 			return;
 		}
@@ -190,10 +193,10 @@ public final class Lyrics extends Command {
 		/* Build URI */
 		query = LYRICS_PROVIDER_SEARCH_URI + search;
 
-		int proxyChoice = (int) (Math.random() * ACTIVE_PROXIES.size());
+		int proxyChoice = (int) (Math.random() * ACTIVE_PROXIES.get().size());
 
-		String ip   = ACTIVE_PROXIES.get(proxyChoice).ip;
-		String port = ACTIVE_PROXIES.get(proxyChoice).port;
+		String ip   = ACTIVE_PROXIES.get().get(proxyChoice).ip;
+		String port = ACTIVE_PROXIES.get().get(proxyChoice).port;
 
 		/* Connect to and retrieve a DOM from host provider */
 		try {
@@ -308,7 +311,7 @@ public final class Lyrics extends Command {
 	private static void checkProxies(boolean forceUpdate) {
 		try {
 			StringBuilder csv = new StringBuilder();
-			if (ACTIVE_PROXIES.size() == 0 && INACTIVE_PROXIES.size() == 0 || forceUpdate) {
+			if (ACTIVE_PROXIES.get().size() == 0 && INACTIVE_PROXIES.size() == 0 || forceUpdate) {
 				File proxyListFile = new File(PROXY_LIST_FILE_NAME);
 				if (proxyListFile.exists()) {
 					Files.delete(Path.of(proxyListFile.getAbsolutePath()));
@@ -328,11 +331,14 @@ public final class Lyrics extends Command {
 				}
 				lastUpdateTime = OffsetDateTime.now();
 			}
+			else {
+				LOGGER.info("Proxy list found!");
+			}
 
 			INACTIVE_PROXIES.addAll(new Gson().fromJson(csv.toString(), GeonodeProxyList.class).data);
 
 			for (GeonodeProxyList.Data data : INACTIVE_PROXIES) {
-				CompletableFuture.runAsync(() -> {
+				EXEC.submit(() -> {
 					try {
 						Jsoup.connect(LYRICS_PROVIDER_SEARCH_URI)
 								.proxy(data.ip, Integer.parseInt(data.port))
@@ -340,12 +346,12 @@ public final class Lyrics extends Command {
 								.timeout(TIMEOUT_MS)
 								.get();
 
-						ACTIVE_PROXIES.add(data);
+						ACTIVE_PROXIES.get().add(data);
 						LOGGER.info("Proxy - {}:{} - Added", data.ip, data.port);
 
 					} catch (IOException e) {
 						INACTIVE_PROXIES.add(data);
-						LOGGER.warn("Proxy - {}:{} - {}", data.ip, data.port, e.getLocalizedMessage());
+						ACTIVE_PROXIES.get().remove(data);
 					}
 				});
 			}

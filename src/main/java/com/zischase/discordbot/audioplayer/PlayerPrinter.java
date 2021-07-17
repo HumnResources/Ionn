@@ -125,6 +125,7 @@ public class PlayerPrinter {
 						trackTimerTask.cancel();
 					}
 
+					copyQueue = audioManager.getScheduler().getQueue();
 					/* Timer to update progress bar of song */
 					trackTimerTask = new TimerTask() {
 						@Override
@@ -188,6 +189,9 @@ public class PlayerPrinter {
 						e.printStackTrace();
 					}
 				});
+				if (!audioManager.getScheduler().getQueue().isEmpty()) {
+					printQueue(textChannel);
+				}
 			} else {
 				textChannel.editMessageById(this.nowPlayingMessage.getId(), builtMessage).queue();
 			}
@@ -225,7 +229,8 @@ public class PlayerPrinter {
 		} else {
 			textChannel.editMessageById(message.getId(), (Message) queuePages.get(0).getContent())
 					.queue(success -> {
-						CPages.paginate(success, queuePages, message.getReactions().size() != QUEUE_BUTTON_AMT, true);
+//						CPages.paginate(success, queuePages, message.getReactions().size() != QUEUE_BUTTON_AMT, true);
+						CPages.paginate(success, queuePages, true, true);
 						this.queueMessage = success;
 					});
 		}
@@ -239,10 +244,10 @@ public class PlayerPrinter {
 
 	public void deletePrevious(@NotNull TextChannel textChannel) {
 		List<Message> msgList = textChannel.getHistory()
-				.retrievePast(HISTORY_POLL_LIMIT)
+				.retrievePast(HISTORY_POLL_LIMIT * 10) // Use a larger number to ensure we delete every media message
 				.complete()
 				.stream()
-				.filter(msg -> msg.getAuthor().isBot())
+				.filter(msg -> msg.getAuthor().isBot() && msg.getAuthor() == msg.getJDA().getSelfUser())
 				.filter(msg -> !msg.isPinned())
 				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
 				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
@@ -250,9 +255,9 @@ public class PlayerPrinter {
 				.collect(Collectors.toList());
 
 		if (msgList.size() > 1) {
-			textChannel.deleteMessages(msgList).complete();
+			textChannel.deleteMessages(msgList).submit();
 		} else if (msgList.size() == 1) {
-			textChannel.deleteMessageById(msgList.get(0).getId()).complete();
+			textChannel.deleteMessageById(msgList.get(0).getId()).submit();
 		}
 	}
 
