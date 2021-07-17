@@ -34,13 +34,13 @@ import java.util.concurrent.CompletableFuture;
 
 public final class Lyrics extends Command {
 
-	final class GeonodeProxyList {
-		int total;
-		int page;
-		int limit;
+	private final class GeonodeProxyList {
+		private int total;
+		private int page;
+		private int limit;
 		private final ArrayList<Data> data = new ArrayList<>();
 
-		final class Data {
+		private final class Data {
 			private String            id;
 			private String            ip;
 			private String            level;
@@ -63,26 +63,27 @@ public final class Lyrics extends Command {
 		}
 	}
 
-	private static final String                      LYRICS_PROVIDER_SEARCH_URI = "https://search.azlyrics.com/search.php?q=";
-	private static final String                      PROXY_LIST_URL             = "https://proxylist.geonode.com/api/proxy-list?limit=50&page=1&sort_by=lastChecked&sort_type=desc&google=true";//"https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt";
-	private static final String                      PROXY_LIST_FILE_NAME       = "proxy-list.csv";
-	private static final String                      USER_AGENT                 = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36";
-	private static final Logger                      LOGGER                     = LoggerFactory.getLogger(Lyrics.class);
-	private static final Timer                       TIMER                      = new Timer();
 	private static final int                         MAX_MESSAGE_SIZE           = 2000;
 	private static final int                         TIMEOUT_MS                 = 30000;
 	private static final int                         PROXY_CHECK_TIMER_MS       = 30 * 60000; // Get millis for timeout: mins * 60000 = millis;
 	private static final int                         PROXY_REFRESH_RATE_HR      = 4;
+	private static final String                      LYRICS_PROVIDER_SEARCH_URI = "https://search.azlyrics.com/search.php?q=";
+	private static final String                      PROXY_LIST_URL             = "https://proxylist.geonode.com/api/proxy-list?limit=50&page=1&sort_by=lastChecked&sort_type=desc&google=true";
+	private static final String                      PROXY_LIST_FILE_NAME       = "proxy-list.csv";
+	private static final String                      USER_AGENT                 = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36";
+	private static final Logger                      LOGGER                     = LoggerFactory.getLogger(Lyrics.class);
+	private static final Timer                       TIMER                      = new Timer();
 	private static final List<GeonodeProxyList.Data> ACTIVE_PROXIES             = new ArrayList<>();
 	private static final List<GeonodeProxyList.Data> INACTIVE_PROXIES           = new ArrayList<>();
 	private static final Timer                       timer                      = new Timer();
-	private static       OffsetDateTime              lastUpdateTime             = OffsetDateTime.now();
 	private static final TimerTask                   TIMER_TASK                 = new TimerTask() {
 		@Override
 		public void run() {
 			checkProxies(OffsetDateTime.now().isAfter(lastUpdateTime.plusHours(PROXY_REFRESH_RATE_HR)));
 		}
 	};
+
+	private static OffsetDateTime lastUpdateTime = OffsetDateTime.now();
 
 	/* Initialize list of free proxy forwarders */
 	static {
