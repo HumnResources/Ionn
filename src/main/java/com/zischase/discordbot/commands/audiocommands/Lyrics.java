@@ -173,7 +173,8 @@ public final class Lyrics extends Command {
 
 	private void jSoupScrape(String search, TextChannel textChannel) {
 		if (ACTIVE_PROXIES.get().size() == 0) {
-			textChannel.sendMessage("No servers available for routing. If I just restart, please wait a few minutes and try again.").submit();
+			textChannel.sendMessage("No servers available for routing. Please wait a few minutes and try again.").submit();
+			checkProxies(true);
 			return;
 		}
 
@@ -195,14 +196,14 @@ public final class Lyrics extends Command {
 
 		int proxyChoice = (int) (Math.random() * ACTIVE_PROXIES.get().size());
 
-		String ip   = ACTIVE_PROXIES.get().get(proxyChoice).ip;
-		String port = ACTIVE_PROXIES.get().get(proxyChoice).port;
+
+		GeonodeProxyList.Data data = ACTIVE_PROXIES.get().get(proxyChoice);
 
 		/* Connect to and retrieve a DOM from host provider */
 		try {
 			Connection.Response response = Jsoup
 					.connect(query)
-					.proxy(ip, Integer.parseInt(port))
+					.proxy(data.id, Integer.parseInt(data.port))
 					.userAgent(USER_AGENT)
 					.timeout(TIMEOUT_MS)
 					.execute();
@@ -216,9 +217,8 @@ public final class Lyrics extends Command {
 		} catch (IOException e) {
 			if (e instanceof ConnectException) {
 				LOGGER.warn("Connect Exception - {}", e.getCause().getMessage());
-			} else {
-				e.printStackTrace();
 			}
+			ACTIVE_PROXIES.get().remove(data);
 			jSoupScrape(search, textChannel);
 			return;
 		}
@@ -235,7 +235,7 @@ public final class Lyrics extends Command {
 		lyricsURL = searchResultElement.attr("href");
 		try {
 			Connection.Response response = Jsoup.connect(lyricsURL)
-					.proxy(ip, Integer.parseInt(port))
+					.proxy(data.ip, Integer.parseInt(data.port))
 					.userAgent(USER_AGENT)
 					.timeout(0)
 					.execute();
