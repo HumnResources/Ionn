@@ -161,6 +161,11 @@ public final class Lyrics extends Command {
 			LOGGER.warn("No search provided for lyrics.");
 			return;
 		}
+		else if (ACTIVE_PROXIES.get().size() == 0) {
+			ctx.getChannel().sendMessage("No servers available for routing. Please wait a few minutes and try again.").submit();
+			checkProxies(true);
+			return;
+		}
 
 		jSoupScrape(search, ctx.getChannel());
 
@@ -172,12 +177,6 @@ public final class Lyrics extends Command {
 	}
 
 	private void jSoupScrape(String search, TextChannel textChannel) {
-		if (ACTIVE_PROXIES.get().size() == 0) {
-			textChannel.sendMessage("No servers available for routing. Please wait a few minutes and try again.").submit();
-			checkProxies(true);
-			return;
-		}
-
 		String         lyricsURL;
 		String         title;
 		String         artist;
@@ -310,7 +309,9 @@ public final class Lyrics extends Command {
 
 	private static void checkProxies(boolean forceUpdate) {
 		try {
+			/* Initialize store for csv file */
 			StringBuilder csv = new StringBuilder();
+
 			if (ACTIVE_PROXIES.get().size() == 0 && INACTIVE_PROXIES.size() == 0 || forceUpdate) {
 				File proxyListFile = new File(PROXY_LIST_FILE_NAME);
 				if (proxyListFile.exists()) {
@@ -324,17 +325,17 @@ public final class Lyrics extends Command {
 					outputStream.getChannel().transferFrom(byteChannel, 0, Integer.MAX_VALUE);
 					LOGGER.info("Downloaded proxy list to file.");
 				}
-
-				List<String> stringList = Files.readAllLines(Path.of(PROXY_LIST_FILE_NAME));
-				for (String s : stringList) {
-					csv.append(s);
-				}
 				lastUpdateTime = OffsetDateTime.now();
 			}
 			else {
 				LOGGER.info("Proxy list found!");
 			}
 
+			/* Parse into memory */
+			List<String> stringList = Files.readAllLines(Path.of(PROXY_LIST_FILE_NAME));
+			for (String s : stringList) {
+				csv.append(s);
+			}
 			INACTIVE_PROXIES.addAll(new Gson().fromJson(csv.toString(), GeonodeProxyList.class).data);
 
 			for (GeonodeProxyList.Data data : INACTIVE_PROXIES) {
