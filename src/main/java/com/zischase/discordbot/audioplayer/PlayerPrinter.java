@@ -1,15 +1,10 @@
 package com.zischase.discordbot.audioplayer;
 
-import com.github.ygimenez.exception.InvalidHandlerException;
-import com.github.ygimenez.model.Page;
-import com.github.ygimenez.model.Paginator;
-import com.github.ygimenez.model.PaginatorBuilder;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventListener;
 import com.sedmelluq.discord.lavaplayer.player.event.TrackExceptionEvent;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
-import com.zischase.discordbot.CPages;
 import com.zischase.discordbot.DBQueryHandler;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
@@ -25,45 +20,27 @@ import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
+import static com.zischase.discordbot.audioplayer.MediaControls.*;
+
 public class PlayerPrinter {
-
-	private static final int    PRINT_TIMEOUT_MS          = 2000;
-	private static final int    NOW_PLAYING_TIMER_RATE_MS = 6000;
-	private static final int    HISTORY_POLL_LIMIT        = 5;
-	private static final int    PROGRESS_BAR_SIZE         = 16;
-	private static final int    QUEUE_PAGE_SIZE           = 5;
-	private static final int    QUEUE_BUTTON_AMT          = 4;
-	private static final String PROGRESS_BAR_ICON_FILL    = "⬜";
-	private static final String PROGRESS_BAR_ICON_EMPTY   = "⬛";
-	private static final String NOW_PLAYING_MSG_NAME      = "**Now Playing**";
-	private static final String QUEUE_MSG_NAME            = "**Queue**";
-	private static final String NOTHING_PLAYING_MSG_NAME  = "**Nothing Playing**";
-
-	private       Message      nowPlayingMessage   = null;
-	private       Message      queueMessage        = null;
 	private final Semaphore    nowPlayingSemaphore = new Semaphore(1);
 	private final Semaphore    queueSemaphore      = new Semaphore(1);
 	private final Timer        timer               = new Timer();
 	private final AudioManager audioManager;
 
-	private List<AudioTrack> copyQueue      = new ArrayList<>();
-	private TimerTask        trackTimerTask = null;
-	private Paginator        paginator;
-	private int              playCount      = 0;
+	private List<AudioTrack> copyQueue         = new ArrayList<>();
+	private TimerTask        trackTimerTask    = null;
+	private Message          nowPlayingMessage = null;
+	private int              playCount         = 0;
+
+	private final QueuePrinter queuePrinter;
 
 	public PlayerPrinter(AudioManager audioManager, Guild guild) {
 		String id = guild.getId();
 		this.audioManager = audioManager;
+		this.queuePrinter = new QueuePrinter(audioManager);
 		initializeTrackListener(guild);
 
-		try {
-			paginator = PaginatorBuilder.createPaginator()
-					.setHandler(guild.getJDA())
-					.setDeleteOnCancel(true)
-					.build();
-		} catch (InvalidHandlerException e) {
-			e.printStackTrace();
-		}
 
 		/* Add watcher for reaction response to now playing message */
 		TrackWatcherEventListener trackWatcher = new TrackWatcherEventListener(this, audioManager, id);
@@ -71,6 +48,10 @@ public class PlayerPrinter {
 	}
 
 	private void initializeTrackListener(Guild guild) {
+		if (!guild.getJDA().getRegisteredListeners().contains(queuePrinter)) {
+			guild.getJDA().addEventListener(queuePrinter);
+		}
+
 		String id = guild.getId();
 		/* Check for available channel to display Now PLaying prompt */
 		/* Ensure we have somewhere to send the message, check for errors */
@@ -97,18 +78,34 @@ public class PlayerPrinter {
 			switch (audioEvent.getClass().getSimpleName()) {
 				case "TrackStuckEvent" -> {
 					textChannel.sendMessage("Audio track stuck! Ending track and continuing").queue();
-					scheduler.nextTrack();
+					if (!scheduler.getQueue().isEmpty()) {
+						scheduler.nextTrack();
+					}
+					if (scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() == null) {
+						deletePrevious(textChannel);
+						guild.getJDA().removeEventListener(queuePrinter);
+						guild.getJDA().getDirectAudioController().disconnect(guild);
+						this.playCount = 0;
+					}
 				}
 				case "TrackExceptionEvent" -> {
 					textChannel.sendMessage("Error loading the audio.").queue();
 					((TrackExceptionEvent) audioEvent).exception.printStackTrace();
-					scheduler.nextTrack();
+					if (!scheduler.getQueue().isEmpty()) {
+						scheduler.nextTrack();
+					}
+					if (scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() == null) {
+						deletePrevious(textChannel);
+						guild.getJDA().removeEventListener(queuePrinter);
+						guild.getJDA().getDirectAudioController().disconnect(guild);
+						this.playCount = 0;
+					}
 				}
 				case "TrackEndEvent" -> {
 					if (scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() == null) {
 						deletePrevious(textChannel);
+						guild.getJDA().removeEventListener(queuePrinter);
 						guild.getJDA().getDirectAudioController().disconnect(guild);
-						CPages.deactivate();
 						this.playCount = 0;
 					}
 				}
@@ -125,7 +122,6 @@ public class PlayerPrinter {
 						trackTimerTask.cancel();
 					}
 
-					copyQueue = audioManager.getScheduler().getQueue();
 					/* Timer to update progress bar of song */
 					trackTimerTask = new TimerTask() {
 						@Override
@@ -136,9 +132,10 @@ public class PlayerPrinter {
 								printNowPlaying(textChannel);
 
 								if (listChanged(audioManager.getScheduler().getQueue(), copyQueue)) {
-									printQueue(textChannel);
+									queuePrinter.printQueuePage(textChannel, queuePrinter.getCurrentPageNum());
 									copyQueue = audioManager.getScheduler().getQueue();
 								}
+
 							} else if (track == null) {
 								this.cancel();
 							}
@@ -150,6 +147,10 @@ public class PlayerPrinter {
 		};
 		/* Add the audio event watcher to the current guild's audio manager */
 		audioManager.getPlayer().addListener(audioEventListener);
+	}
+
+	public QueuePrinter getQueuePrinter() {
+		return this.queuePrinter;
 	}
 
 	public Message getNowPlayingMessage() {
@@ -174,10 +175,9 @@ public class PlayerPrinter {
 				this.nowPlayingMessage = message;
 			});
 			if (audioManager.getScheduler().getQueue().size() > 0) {
-				printQueue(textChannel);
+				queuePrinter.printQueuePage(textChannel, queuePrinter.getCurrentPageNum() - 1);
 			}
-		}
-		else {
+		} else {
 			if (this.nowPlayingMessage == null) {
 				deletePrevious(textChannel);
 				textChannel.sendMessage(builtMessage).queue(message -> {
@@ -189,58 +189,14 @@ public class PlayerPrinter {
 						e.printStackTrace();
 					}
 				});
-				if (!audioManager.getScheduler().getQueue().isEmpty()) {
-					printQueue(textChannel);
-				}
 			} else {
 				textChannel.editMessageById(this.nowPlayingMessage.getId(), builtMessage).queue();
 			}
 		}
 
-
 		nowPlayingSemaphore.release();
 	}
 
-	public void printQueue(@NotNull TextChannel textChannel) {
-		if (!queueSemaphore.tryAcquire()) {
-			return;
-		}
-
-		if (!CPages.isActivated()) {
-			try {
-				CPages.activate(paginator);
-			} catch (InvalidHandlerException e) {
-				e.printStackTrace();
-			}
-		}
-
-		List<Page> queuePages = buildQueue(audioManager.getScheduler().getQueue());
-		if (queuePages == null) {
-			return;
-		}
-
-		Message message = getQueueMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
-		if (message == null) {
-			textChannel.sendMessage((Message) queuePages.get(0).getContent())
-					.queue(success -> {
-						CPages.paginate(success, queuePages, true, true);
-						this.queueMessage = success;
-					});
-		} else {
-			textChannel.editMessageById(message.getId(), (Message) queuePages.get(0).getContent())
-					.queue(success -> {
-//						CPages.paginate(success, queuePages, message.getReactions().size() != QUEUE_BUTTON_AMT, true);
-						CPages.paginate(success, queuePages, true, true);
-						this.queueMessage = success;
-					});
-		}
-		try {
-			Thread.sleep(PRINT_TIMEOUT_MS);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		queueSemaphore.release();
-	}
 
 	public void deletePrevious(@NotNull TextChannel textChannel) {
 		List<Message> msgList = textChannel.getHistory()
@@ -259,12 +215,6 @@ public class PlayerPrinter {
 		} else if (msgList.size() == 1) {
 			textChannel.deleteMessageById(msgList.get(0).getId()).submit();
 		}
-	}
-
-	public void shutdown() {
-		queueSemaphore.release();
-		nowPlayingSemaphore.release();
-		timer.cancel();
 	}
 
 	@NotNull
@@ -361,53 +311,6 @@ public class PlayerPrinter {
 		return bar.toString();
 	}
 
-	@Nullable
-	private Message getQueueMsg(List<Message> messages) {
-		return messages.stream()
-				.filter(msg -> msg.getAuthor().isBot())
-				.filter(msg -> msg.getAuthor().getId().equals(msg.getJDA().getSelfUser().getId()))
-				.filter(msg -> !msg.isPinned())
-				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
-				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
-				.filter(msg -> msg.getContentDisplay().contains(QUEUE_MSG_NAME))
-				.findFirst()
-				.flatMap(message -> {
-					this.queueMessage = message;
-					return Optional.of(message);
-				})
-				.orElse(null);
-	}
-
-	private List<Page> buildQueue(@NotNull List<AudioTrack> queue) {
-		EmbedBuilder eb = new EmbedBuilder();
-
-		if (queue.size() == 0) {
-			return null;
-		}
-
-		List<Page> pages     = new ArrayList<>();
-		Page       page;
-		int        size      = queue.size();
-		int        pageCount = 1;
-		for (int i = 0; i < size; i++) {
-			eb.setColor(Color.WHITE);
-			eb.appendDescription("`%d.` %s\n".formatted(i + 1, queue.get(i).getInfo().title));
-
-			/* Starts a new page or adds last one */
-			if (i != 0 && i % QUEUE_PAGE_SIZE == 0 || i == size - 1) {
-				eb.setFooter("Page: %d/%d - Songs: %d".formatted(
-						pageCount, (int) Math.ceil((0.0d + size) / QUEUE_PAGE_SIZE), size)
-				);
-				pageCount++;
-				page = new Page(new MessageBuilder().append(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
-				pages.add(page);
-				eb.clear();
-			}
-		}
-
-		return pages;
-	}
-
 	private boolean listChanged(@NonNull List<AudioTrack> trackListOne, @NonNull List<AudioTrack> trackListTwo) {
 		if (trackListOne.size() != trackListTwo.size()) {
 			return true;
@@ -435,7 +338,7 @@ public class PlayerPrinter {
 				.collect(Collectors.toList());
 
 		/* Only add a reaction if it's missing. Saves on queues submit to discord API */
-		for (String reaction : MediaControls.getReactions()) {
+		for (String reaction : MediaControls.getNowPlayingReactions()) {
 			if (!reactionsPresent.contains(reaction)) {
 				nowPlayingMsg.addReaction(reaction).submit();
 			}

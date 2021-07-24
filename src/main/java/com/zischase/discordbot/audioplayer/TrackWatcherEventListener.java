@@ -41,7 +41,6 @@ public class TrackWatcherEventListener extends ListenerAdapter {
 				nowPlayingInteraction(reaction);
 			}
 		});
-
 	}
 
 	private void nowPlayingInteraction(String reaction) {
@@ -60,5 +59,4 @@ public class TrackWatcherEventListener extends ListenerAdapter {
 		}
 		printer.printNowPlaying(currentNPMessage.getTextChannel());
 	}
-
 }
