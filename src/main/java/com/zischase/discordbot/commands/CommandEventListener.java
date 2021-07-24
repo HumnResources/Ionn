@@ -94,10 +94,14 @@ public class CommandEventListener extends ListenerAdapter {
 
 			if (event.getAuthor().getId().equals(Config.get("OWNER_ID"))) {
 				if (msgArr[0].equalsIgnoreCase("slash")) {
-					updateSlashCommands(event.getJDA());
+					updateSlashCommands(event.getJDA(), false);
 					return;
 				}
-				if (msgArr[0].equalsIgnoreCase("delslash")) {
+				else if (msgArr[0].equalsIgnoreCase("slashforce")) {
+					updateSlashCommands(event.getJDA(), true);
+					return;
+				}
+				else if (msgArr[0].equalsIgnoreCase("delslash")) {
 					deleteSlashCommands(event.getJDA());
 					return;
 				}
@@ -118,7 +122,19 @@ public class CommandEventListener extends ListenerAdapter {
 		super.onGuildLeave(event);
 	}
 
-	private void updateSlashCommands(JDA jda) {
+	private void updateSlashCommands(JDA jda, boolean force) {
+		if (force) {
+			LOGGER.warn("Force creating slash commands.");
+			for (Guild g : jda.getGuilds()) {
+				/* Reinitialize the commands */
+				GuildContext.get(g.getId()).commandHandler();
+				for (com.zischase.discordbot.commands.Command c : CommandHandler.getCommandList()) {
+					g.upsertCommand(c.getCommandData()).queue((cmd) -> LOGGER.info("Added slash command {} to server {} ", cmd.getName(), g.getName()));
+				}
+			}
+			return;
+		}
+
 		LOGGER.info("Creating slash commands.");
 		/* Loop through guilds to replace command */
 		for (Guild g : jda.getGuilds()) {
