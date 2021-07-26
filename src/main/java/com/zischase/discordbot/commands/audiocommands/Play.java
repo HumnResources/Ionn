@@ -104,7 +104,6 @@ public class Play extends Command {
 					.sendMessage("%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsTag(), search))
 					.queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
 		}
-
 		/* Otherwise we check to see if they input a string, process using YT as default */
 		else {
 			String search;
@@ -145,7 +144,6 @@ public class Play extends Command {
 			currentQueue.add(0, nextTrack);
 		} else {
 			AtomicReference<AudioTrack> track = new AtomicReference<>(null);
-			trackLoader.load(textChannel, voiceChannel, song);
 			audioManager.getPlayerManager()
 					.loadItem("ytsearch: " + song, new FunctionalResultHandler(
 							track::set,
