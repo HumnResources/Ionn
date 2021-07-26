@@ -67,50 +67,48 @@ public class Queue extends Command {
 
 		ArrayList<AudioTrack> queue = scheduler.getQueue();
 
-		if (!args.isEmpty()) {
-			if (args.size() == 1 && args.get(0).matches("(?i)-(clear|c)")) {
-				EmbedBuilder embed = new EmbedBuilder();
-				embed.setColor(Color.BLUE);
-				scheduler.clearQueue();
+		if (args.isEmpty()) {
+			return;
+		}
 
-				embed.appendDescription("Queue cleared.");
-				ctx.getChannel()
-						.sendMessageEmbeds(embed.build())
-						.queue();
-			} else if (args.size() == 2 && args.get(1).matches("(?i)(\\d+)")) {
-				int                   index = Integer.parseInt(args.get(1));
-				String arg = args.get(0);
+		if (args.size() == 1 && args.get(0).contains("-clear")) {
+			EmbedBuilder embed = new EmbedBuilder();
+			embed.setColor(Color.BLUE);
+			scheduler.clearQueue();
+		}
+		else if (args.size() == 2 && args.get(1).matches("(?i)(\\d+)")) {
+			int                   index = Integer.parseInt(args.get(1));
+			String arg = args.get(0);
 
-				if (index < 0 || index > queue.size()) {
-					return;
+			if (index < 0 || index > queue.size()) {
+				return;
+			}
+			index = index - 1; // Subtract 1 for '0' based numeration.
+
+			switch (arg) {
+				case "-next" -> {
+					queue.add(0, queue.get(index));
+					queue.remove(index + 1); // Adding one to account for -> shift of list
+					scheduler.clearQueue();
+					scheduler.queueList(queue);
 				}
-				index = index - 1; // Subtract 1 for '0' based numeration.
-
-				switch (arg) {
-					case "-next" -> {
-						queue.add(0, queue.get(index));
-						queue.remove(index + 1); // Adding one to account for -> shift of list
-						scheduler.clearQueue();
-						scheduler.queueList(queue);
-					}
-					case "-jump" -> {
-						queue.addAll(queue.subList(0, index));
-						ArrayList<AudioTrack> newQueue = new ArrayList<>(queue.subList(index, queue.size()));
-						scheduler.clearQueue();
-						scheduler.queueList(newQueue);
-					}
-					case "-clear" -> {
-						queue.remove(index);
-						scheduler.clearQueue();
-						scheduler.queueList(queue);
-					}
-					case "-page" -> {
-						GuildContext.get(ctx.getGuild().getId())
-								.playerPrinter()
-								.getQueuePrinter()
-								.printQueuePage(ctx.getChannel(), index + 1); // Add one to account for 1 based numeration of pages
-						return;
-					}
+				case "-jump" -> {
+					queue.addAll(queue.subList(0, index));
+					ArrayList<AudioTrack> newQueue = new ArrayList<>(queue.subList(index, queue.size()));
+					scheduler.clearQueue();
+					scheduler.queueList(newQueue);
+				}
+				case "-clear" -> {
+					queue.remove(index);
+					scheduler.clearQueue();
+					scheduler.queueList(queue);
+				}
+				case "-page" -> {
+					GuildContext.get(ctx.getGuild().getId())
+							.playerPrinter()
+							.getQueuePrinter()
+							.printQueuePage(ctx.getChannel(), index + 1); // Add one to account for 1 based numeration of pages
+					return;
 				}
 			}
 		}
