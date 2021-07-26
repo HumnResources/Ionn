@@ -48,10 +48,6 @@ public class PlayerPrinter {
 	}
 
 	private void initializeTrackListener(Guild guild) {
-		if (!guild.getJDA().getRegisteredListeners().contains(queuePrinter)) {
-			guild.getJDA().addEventListener(queuePrinter);
-		}
-
 		String id = guild.getId();
 		/* Check for available channel to display Now PLaying prompt */
 		/* Ensure we have somewhere to send the message, check for errors */
@@ -134,6 +130,11 @@ public class PlayerPrinter {
 								if (listChanged(audioManager.getScheduler().getQueue(), copyQueue)) {
 									queuePrinter.printQueuePage(textChannel, queuePrinter.getCurrentPageNum());
 									copyQueue = audioManager.getScheduler().getQueue();
+
+									/* Queue reactions require event listener */
+									if (!guild.getJDA().getRegisteredListeners().contains(queuePrinter)) {
+										guild.getJDA().addEventListener(queuePrinter);
+									}
 								}
 
 							}
