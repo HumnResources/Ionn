@@ -311,8 +311,8 @@ public final class Lyrics extends Command {
 	private static void checkProxies(boolean forceUpdate) {
 		try {
 			StringBuilder csv = new StringBuilder();
-			if (ACTIVE_PROXIES.get().size() == 0 && INACTIVE_PROXIES.size() == 0 || forceUpdate) {
-				File proxyListFile = new File(PROXY_LIST_FILE_NAME);
+			File proxyListFile = new File(PROXY_LIST_FILE_NAME);
+			if ((ACTIVE_PROXIES.get().size() == 0 && INACTIVE_PROXIES.size() == 0) || !proxyListFile.exists() || forceUpdate) {
 				if (proxyListFile.exists()) {
 					Files.delete(Path.of(proxyListFile.getAbsolutePath()));
 				}
@@ -335,7 +335,14 @@ public final class Lyrics extends Command {
 				LOGGER.info("Proxy list found!");
 			}
 
-			INACTIVE_PROXIES.addAll(new Gson().fromJson(csv.toString(), GeonodeProxyList.class).data);
+			GeonodeProxyList geonodeProxyList = new Gson().fromJson(csv.toString(), GeonodeProxyList.class);
+
+			if (geonodeProxyList == null) {
+				LOGGER.warn("Geonode proxy list is null!");
+				return;
+			}
+
+			INACTIVE_PROXIES.addAll(geonodeProxyList.data);
 
 			for (GeonodeProxyList.Data data : INACTIVE_PROXIES) {
 				EXEC.submit(() -> {
