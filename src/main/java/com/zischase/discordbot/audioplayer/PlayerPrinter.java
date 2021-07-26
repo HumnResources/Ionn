@@ -24,7 +24,6 @@ import static com.zischase.discordbot.audioplayer.MediaControls.*;
 
 public class PlayerPrinter {
 	private final Semaphore    nowPlayingSemaphore = new Semaphore(1);
-	private final Semaphore    queueSemaphore      = new Semaphore(1);
 	private final Timer        timer               = new Timer();
 	private final AudioManager audioManager;
 
@@ -49,10 +48,12 @@ public class PlayerPrinter {
 
 	private void initializeTrackListener(Guild guild) {
 		String id = guild.getId();
+
 		/* Check for available channel to display Now PLaying prompt */
 		/* Ensure we have somewhere to send the message, check for errors */
 		/* Set up a timer to continually update the running time of the song */
 		AudioEventListener audioEventListener = audioEvent -> {
+
 			/* Check for available channel to display Now PLaying prompt */
 			TextChannel  textChannel  = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textchannel"));
 			VoiceChannel voiceChannel = guild.getVoiceChannelById(DBQueryHandler.get(id, "media_settings", "voicechannel"));
@@ -61,9 +62,6 @@ public class PlayerPrinter {
 			if (textChannel == null || voiceChannel == null) {
 				return;
 			}
-			/* Release all holds from previous song */
-			queueSemaphore.release();
-			nowPlayingSemaphore.release();
 			TrackScheduler scheduler = audioManager.getScheduler();
 
 			/* Clear old now playing and queue messages on a fresh start of songs */
@@ -106,7 +104,7 @@ public class PlayerPrinter {
 					}
 				}
 				case "TrackStartEvent" -> {
-					boolean inChannel = guild.getSelfMember().getVoiceState() != null && Objects.requireNonNull(guild.getSelfMember().getVoiceState()).inVoiceChannel();
+					boolean inChannel = voiceChannel.getMembers().contains(guild.getSelfMember());
 
 					/* Make sure someone can listen */
 					if (!inChannel) {
@@ -176,23 +174,30 @@ public class PlayerPrinter {
 			if (audioManager.getScheduler().getQueue().size() > 0) {
 				queuePrinter.printQueuePage(textChannel, queuePrinter.getCurrentPageNum());
 			}
-		} else {
-			if (this.nowPlayingMessage == null) {
-				deletePrevious(textChannel);
-				textChannel.sendMessage(builtMessage).queue(message -> {
-					addReactions(message);
-					this.nowPlayingMessage = message;
-					try {
-						Thread.sleep(PRINT_TIMEOUT_MS);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				});
-			} else {
-				textChannel.editMessageById(this.nowPlayingMessage.getId(), builtMessage).queue();
+			try {
+				Thread.sleep(PRINT_TIMEOUT_MS);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
+			nowPlayingSemaphore.release();
+			return;
 		}
 
+		if (this.nowPlayingMessage == null || this.nowPlayingMessage.getType() == MessageType.UNKNOWN) {
+			deletePrevious(textChannel);
+			textChannel.sendMessage(builtMessage).queue(message -> {
+				addReactions(message);
+				this.nowPlayingMessage = message;
+			});
+		} else {
+			textChannel.editMessageById(this.nowPlayingMessage.getId(), builtMessage).queue();
+		}
+
+		try {
+			Thread.sleep(PRINT_TIMEOUT_MS);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		nowPlayingSemaphore.release();
 	}
 
@@ -224,8 +229,7 @@ public class PlayerPrinter {
 		EmbedBuilder   embedBuilder   = new EmbedBuilder();
 
 		String paused    = player.isPaused() ? MediaControls.PAUSE : MediaControls.PLAY;
-		String repeatOne = audioManager.getScheduler().isRepeatSong() ? MediaControls.REPEAT_ONE : "";
-		String repeat    = audioManager.getScheduler().isRepeatQueue() ? MediaControls.REPEAT_QUEUE : "";
+		String repeatSong = audioManager.getScheduler().isRepeatSong() ? MediaControls.REPEAT_ONE : "";
 
 		if (track == null) {
 			messageBuilder.append(NOTHING_PLAYING_MSG_NAME);
@@ -267,7 +271,7 @@ public class PlayerPrinter {
 			}
 		}
 		embedBuilder.addField("", "%s **%s**".formatted(MediaControls.VOLUME_HIGH, audioManager.getPlayer().getVolume()), true);
-		embedBuilder.addField("", "%s %s %s".formatted(paused, repeat, repeatOne), true);
+		embedBuilder.addField("", "%s %s".formatted(paused, repeatSong), true);
 
 		return messageBuilder.setEmbeds(embedBuilder.build()).build();
 	}
