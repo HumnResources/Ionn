@@ -136,8 +136,6 @@ public class PlayerPrinter {
 									copyQueue = audioManager.getScheduler().getQueue();
 								}
 
-							} else if (track == null) {
-								this.cancel();
 							}
 						}
 					};
@@ -175,7 +173,7 @@ public class PlayerPrinter {
 				this.nowPlayingMessage = message;
 			});
 			if (audioManager.getScheduler().getQueue().size() > 0) {
-				queuePrinter.printQueuePage(textChannel, queuePrinter.getCurrentPageNum() - 1);
+				queuePrinter.printQueuePage(textChannel, queuePrinter.getCurrentPageNum());
 			}
 		} else {
 			if (this.nowPlayingMessage == null) {

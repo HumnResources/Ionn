@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -29,10 +30,10 @@ public class QueuePrinter extends ListenerAdapter {
 	private final Semaphore                reactionTimeoutSemaphore = new Semaphore(1);
 	private final Semaphore                queueSemaphore           = new Semaphore(1);
 	private final AtomicReference<Message> queueMessage             = new AtomicReference<>(null);
+	private final List<Message> queuePages   = new ArrayList<>();
 	private final AudioManager             manager;
 
-	private       int           queuePageNum = 0;
-	private final List<Message> queuePages   = new ArrayList<>();
+	private final AtomicInteger queuePageNum = new AtomicInteger(0);
 
 	public QueuePrinter(AudioManager manager) {
 		this.manager = manager;
@@ -53,15 +54,8 @@ public class QueuePrinter extends ListenerAdapter {
 				switch (reaction) {
 					case SHUFFLE -> Shuffle.shuffle(event.getGuild().getId(), manager);
 					case REPEAT_QUEUE -> manager.getScheduler().setRepeatQueue(!manager.getScheduler().isRepeatQueue());
-					case PREV -> printQueuePage(event.getChannel(), Math.max(getCurrentPageNum() - 1, 0)); // Subtract 2 due to 1 based numeration, then page offset of 1
-					case NEXT -> {
-						if (getCurrentPageNum() + 1 >= getMaxPages()) {
-							printQueuePage(event.getChannel(), getMaxPages() - 1);
-						}
-						else {
-							printQueuePage(event.getChannel(), getCurrentPageNum() + 1);
-						}
-					}
+					case PREV -> printQueuePage(event.getChannel(), Math.max(getCurrentPageNum() - 1, 0)); // Pass in current page number, print deducts 1 to account for 0 based indexing
+					case NEXT -> printQueuePage(event.getChannel(), Math.min(getCurrentPageNum() + 1, getMaxPages())); // Add two to account for 0 based indexing adjustments plus increment
 					case STOP -> manager.getScheduler().clearQueue();
 				}
 				try {
@@ -88,15 +82,16 @@ public class QueuePrinter extends ListenerAdapter {
 
 		Message message = getQueueMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
 		buildQueue(manager.getScheduler().getQueue());
-		setPageNum(pageNum);
+		setPageNum(pageNum - 1);
 
 		if (message == null) {
-			textChannel.sendMessage(queuePages.get(queuePageNum)).queue(msg -> {
+			textChannel.sendMessage(queuePages.get(this.queuePageNum.get()))
+					.queue(msg -> {
 						addReactions(msg);
 						this.queueMessage.set(msg);
 					});
 		} else {
-			textChannel.editMessageById(message.getId(), queuePages.get(queuePageNum))
+			textChannel.editMessageById(message.getId(), queuePages.get(this.queuePageNum.get()))
 					.queue(this.queueMessage::set);
 		}
 
@@ -110,15 +105,19 @@ public class QueuePrinter extends ListenerAdapter {
 	}
 
 	public int getCurrentPageNum() {
-		return this.queuePageNum;
+		if (this.queuePageNum.get() > getMaxPages()) {
+			this.queuePageNum.set(getMaxPages() - 1);
+		}
+
+		return this.queuePageNum.get() + 1;
 	}
 
 	private void setPageNum(int num) {
 		if (num > getMaxPages()) {
-			this.queuePageNum = getMaxPages();
+			this.queuePageNum.set(getMaxPages() - 1);
 		}
 		else {
-			this.queuePageNum = Math.max(num, 0);
+			this.queuePageNum.set(Math.max(num, 0));
 		}
 	}
 
@@ -136,19 +135,18 @@ public class QueuePrinter extends ListenerAdapter {
 		int           pageCount = 1;
 		queuePages.clear();
 
-		for (int i = 0; i < size; i++) {
+		for (int i = 1; i <= size; i++) {
 			eb.setColor(Color.WHITE);
-			eb.appendDescription("`%d.` %s\n".formatted(i + 1, queue.get(i).getInfo().title));
+			eb.appendDescription("`%d.` %s\n".formatted(i, queue.get(i-1).getInfo().title));
 
 			/* Starts a new page or adds last one */
-			if (i != 0 && i % QUEUE_PAGE_SIZE == 0 || i == size - 1) {
+			if (i % QUEUE_PAGE_SIZE == 0 || i == size) {
 				eb.setFooter("Page: %d/%d - Songs: %d".formatted(pageCount, getMaxPages(), size));
 				pageCount++;
 				queuePages.add(new MessageBuilder().append(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
 				eb.clear();
 			}
 		}
-
 	}
 
 	@Nullable

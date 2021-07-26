@@ -108,7 +108,7 @@ public class Queue extends Command {
 						GuildContext.get(ctx.getGuild().getId())
 								.playerPrinter()
 								.getQueuePrinter()
-								.printQueuePage(ctx.getChannel(), index); // Add one to account for 1 based numeration of pages.=
+								.printQueuePage(ctx.getChannel(), index + 1); // Add one to account for 1 based numeration of pages
 						return;
 					}
 				}
