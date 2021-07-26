@@ -7,12 +7,15 @@ public class MediaControls {
 	public static final String SHUFFLE                   = "🔀";
 	public static final String REPEAT_QUEUE              = "🔁";
 	public static final String REPEAT_ONE                = "🔃";
-	public static final String PREV                      = "⏮";
+	public static final String PREV_TRACK                = "⏮";
+	public static final String FAST_REVERSE              = "⏪";
+	public static final String REVERSE                   = "◀";
 	public static final String PLAY_PAUSE                = "⏯";
-	public static final String NEXT                      = "⏭";
-	public static final String STOP                      = "⏹";
-	public static final String PAUSE                     = "⏸";
 	public static final String PLAY                      = "▶";
+	public static final String PAUSE                     = "⏸";
+	public static final String FAST_FORWARD              = "⏩";
+	public static final String NEXT_TRACK                = "⏭";
+	public static final String STOP                      = "⏹";
 	public static final String NOTES_ONE                 = "🎶";
 	public static final String RADIO                     = "📻";
 	public static final String MICROPHONE                = "🎙";
@@ -29,10 +32,9 @@ public class MediaControls {
 	public static final int    NOW_PLAYING_TIMER_RATE_MS = 6000;
 	public static final int    PROGRESS_BAR_SIZE         = 16;
 	public static final int    QUEUE_PAGE_SIZE           = 5;
-	public static final int    QUEUE_BUTTON_AMT          = 4;
 
-	public static final List<String> NOW_PLAYING_REACTIONS = List.of(REPEAT_ONE, PREV, PLAY_PAUSE, NEXT);
-	public static final List<String> QUEUE_REACTIONS       = List.of(SHUFFLE, REPEAT_QUEUE, PREV, NEXT);
+	public static final List<String> NOW_PLAYING_REACTIONS = List.of(REPEAT_ONE, PREV_TRACK, PLAY_PAUSE, NEXT_TRACK);
+	public static final List<String> QUEUE_REACTIONS       = List.of(SHUFFLE, REPEAT_QUEUE, PREV_TRACK, REVERSE, PLAY, NEXT_TRACK);
 
 	MediaControls() {
 	}
