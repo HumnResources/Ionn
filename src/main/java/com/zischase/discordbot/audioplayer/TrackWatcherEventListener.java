@@ -49,9 +49,9 @@ public class TrackWatcherEventListener extends ListenerAdapter {
 			case SHUFFLE -> Shuffle.shuffle(id, audioManager);
 			case REPEAT_QUEUE -> audioManager.getScheduler().setRepeatQueue(!audioManager.getScheduler().isRepeatQueue());
 			case REPEAT_ONE -> audioManager.getScheduler().setRepeatSong(!audioManager.getScheduler().isRepeatSong());
-			case PREV -> audioManager.getScheduler().prevTrack();
+			case PREV_TRACK -> audioManager.getScheduler().prevTrack();
 			case PLAY_PAUSE -> audioManager.getPlayer().setPaused(!audioManager.getPlayer().isPaused());
-			case NEXT -> audioManager.getScheduler().nextTrack();
+			case NEXT_TRACK -> audioManager.getScheduler().nextTrack();
 			case STOP -> {
 				audioManager.getScheduler().clearQueue();
 				audioManager.getPlayer().stopTrack();
