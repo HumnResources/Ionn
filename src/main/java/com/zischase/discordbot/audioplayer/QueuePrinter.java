@@ -4,7 +4,6 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -30,7 +29,7 @@ public class QueuePrinter extends ListenerAdapter {
 	private final Semaphore                reactionTimeoutSemaphore = new Semaphore(1);
 	private final Semaphore                queueSemaphore           = new Semaphore(1);
 	private final AtomicReference<Message> queueMessage             = new AtomicReference<>(null);
-	private final List<Message> queuePages   = new ArrayList<>();
+	private final List<Message>            queuePages               = new ArrayList<>();
 	private final AudioManager             manager;
 
 	private final AtomicInteger queuePageNum = new AtomicInteger(0);
@@ -41,10 +40,10 @@ public class QueuePrinter extends ListenerAdapter {
 
 	@Override
 	public void onGenericGuildMessageReaction(@NotNull GenericGuildMessageReactionEvent event) {
-		Member eventMember = event.getMember();
-		if (eventMember == null || eventMember.getUser().isBot() || event.getReaction().isSelf()) {
+		if (event.getMember() == null || event.getMember().getUser().isBot() || event.getReaction().isSelf()) {
 			return;
 		}
+
 		Message eventMessage = event.retrieveMessage().complete();
 		Message queueMessage = this.queueMessage.get();
 
@@ -53,9 +52,14 @@ public class QueuePrinter extends ListenerAdapter {
 				String reaction = event.getReaction().getReactionEmote().getName();
 				switch (reaction) {
 					case SHUFFLE -> Shuffle.shuffle(event.getGuild().getId(), manager);
-					case REPEAT_QUEUE -> manager.getScheduler().setRepeatQueue(!manager.getScheduler().isRepeatQueue());
-					case PREV -> printQueuePage(event.getChannel(), Math.max(getCurrentPageNum() - 1, 0)); // Pass in current page number, print deducts 1 to account for 0 based indexing
-					case NEXT -> printQueuePage(event.getChannel(), Math.min(getCurrentPageNum() + 1, getMaxPages())); // Add two to account for 0 based indexing adjustments plus increment
+					case REPEAT_QUEUE -> {
+						manager.getScheduler().setRepeatQueue(!manager.getScheduler().isRepeatQueue());
+						printQueuePage(event.getChannel(), getCurrentPageNum());
+					}
+					case REVERSE -> printQueuePage(event.getChannel(), Math.max(getCurrentPageNum() - 1, 0));
+					case PREV_TRACK -> printQueuePage(event.getChannel(), 0);
+					case PLAY -> printQueuePage(event.getChannel(), Math.min(getCurrentPageNum() + 1, getMaxPages()));
+					case NEXT_TRACK -> printQueuePage(event.getChannel(), getMaxPages());
 					case STOP -> manager.getScheduler().clearQueue();
 				}
 				try {
@@ -75,7 +79,7 @@ public class QueuePrinter extends ListenerAdapter {
 	public void printQueuePage(@NotNull TextChannel textChannel, int pageNum) {
 		if (!queueSemaphore.tryAcquire()) {
 			return;
-		} else if (manager.getScheduler().getQueue().isEmpty() || pageNum < 0 || pageNum > getMaxPages()) {
+		} else if (pageNum < 0 || pageNum > getMaxPages()) {
 			this.queueSemaphore.release();
 			return;
 		}
@@ -115,33 +119,42 @@ public class QueuePrinter extends ListenerAdapter {
 	private void setPageNum(int num) {
 		if (num > getMaxPages()) {
 			this.queuePageNum.set(getMaxPages() - 1);
-		}
-		else {
+		} else {
 			this.queuePageNum.set(Math.max(num, 0));
 		}
 	}
 
 	private int getMaxPages() {
 		if (manager.getScheduler().getQueue().isEmpty()) {
-			return 0;
+			return 1;
 		}
 
 		return (int) Math.ceil(((float) manager.getScheduler().getQueue().size()) / QUEUE_PAGE_SIZE);
 	}
 
 	private void buildQueue(@NotNull List<AudioTrack> queue) {
-		EmbedBuilder  eb        = new EmbedBuilder();
-		int           size      = queue.size();
-		int           pageCount = 1;
+		EmbedBuilder eb        = new EmbedBuilder();
+		int          size      = queue.size();
+		int          pageCount = 1;
+		String       repeat    = manager.getScheduler().isRepeatQueue() ? "- ".concat(REPEAT_QUEUE) : "";
+
 		queuePages.clear();
+
+		if (size == 0) {
+			eb.setColor(Color.cyan);
+			eb.appendDescription("Empty...");
+			eb.setFooter("Page: %d/%d - Songs: %d %s".formatted(pageCount, getMaxPages(), size, repeat));
+			queuePages.add(new MessageBuilder().setEmbeds(eb.build()).build());
+			return;
+		}
 
 		for (int i = 1; i <= size; i++) {
 			eb.setColor(Color.WHITE);
-			eb.appendDescription("`%d.` %s\n".formatted(i, queue.get(i-1).getInfo().title));
+			eb.appendDescription("`%d.` %s\n".formatted(i, queue.get(i - 1).getInfo().title));
 
 			/* Starts a new page or adds last one */
 			if (i % QUEUE_PAGE_SIZE == 0 || i == size) {
-				eb.setFooter("Page: %d/%d - Songs: %d".formatted(pageCount, getMaxPages(), size));
+				eb.setFooter("Page: %d/%d - Songs: %d %s".formatted(pageCount, getMaxPages(), size, repeat));
 				pageCount++;
 				queuePages.add(new MessageBuilder().append(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
 				eb.clear();
