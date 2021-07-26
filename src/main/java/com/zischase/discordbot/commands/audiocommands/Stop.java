@@ -27,11 +27,12 @@ public class Stop extends Command {
 		AudioManager audioManager = GuildContext.get(ctx.getGuild().getId())
 				.audioManager();
 
+		audioManager.getScheduler()
+				.clearQueue();
+
 		audioManager.getPlayer()
 				.stopTrack();
 
-		audioManager.getScheduler()
-				.clearQueue();
 
 		ctx.getJDA()
 				.getDirectAudioController()
