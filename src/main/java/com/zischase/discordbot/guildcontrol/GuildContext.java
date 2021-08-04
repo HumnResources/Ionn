@@ -2,7 +2,6 @@ package com.zischase.discordbot.guildcontrol;
 
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
-import com.zischase.discordbot.audioplayer.PlayerPrinter;
 import com.zischase.discordbot.commands.CommandHandler;
 import net.dv8tion.jda.api.entities.Guild;
 
@@ -11,17 +10,15 @@ import java.util.Map;
 
 public class GuildContext implements IGuildContext {
 
-	private static final Map<Long, GuildContext> GUILDS = new HashMap<>();
-	private final        Guild                   guild;
-	private final        AudioManager            audioManager;
-	private final        PlayerPrinter           playerPrinter;
-	private final        CommandHandler          commandHandler;
+	private static final Map<Long, GuildContext>  GUILDS = new HashMap<>();
+	private final        Guild                    guild;
+	private final        AudioManager             audioManager;
+	private final        CommandHandler           commandHandler;
 
 	public GuildContext(Guild guild) {
-		this.guild        = guild;
-		this.audioManager = new AudioManager(guild);
-		this.commandHandler = new CommandHandler();
-		this.playerPrinter = new PlayerPrinter(this.audioManager, guild);
+		this.guild                    = guild;
+		this.audioManager             = new AudioManager(guild);
+		this.commandHandler           = new CommandHandler();
 
 		/* Update global GuildContext references */
 		setGuild(this);
@@ -38,15 +35,6 @@ public class GuildContext implements IGuildContext {
 
 	public static GuildContext get(String guildID) {
 		return GUILDS.get(Long.parseLong(guildID));
-	}
-
-	public String getID(){
-		return this.guild.getId();
-	}
-
-	@Override
-	public PlayerPrinter playerPrinter() {
-		return playerPrinter;
 	}
 
 	@Override

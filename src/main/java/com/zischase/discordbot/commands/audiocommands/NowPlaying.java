@@ -36,7 +36,8 @@ public class NowPlaying extends Command {
 	@Override
 	public void handle(CommandContext ctx) {
 		GuildContext.get(ctx.getGuild().getId())
-				.playerPrinter()
+				.audioManager()
+				.getNowPlayingMessageHandler()
 				.printNowPlaying(ctx.getChannel(), true);
 	}
 

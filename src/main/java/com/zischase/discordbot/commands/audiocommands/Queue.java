@@ -105,8 +105,8 @@ public class Queue extends Command {
 				}
 				case "-page" -> {
 					GuildContext.get(ctx.getGuild().getId())
-							.playerPrinter()
-							.getQueuePrinter()
+							.audioManager()
+							.getQueueMessageHandler()
 							.printQueuePage(ctx.getChannel(), index + 1); // Add one to account for 1 based numeration of pages
 					return;
 				}
@@ -114,11 +114,12 @@ public class Queue extends Command {
 		}
 
 		GuildContext.get(ctx.getGuild().getId())
-				.playerPrinter()
-				.getQueuePrinter()
+				.audioManager()
+				.getQueueMessageHandler()
 				.printQueue(ctx.getChannel());
 		GuildContext.get(ctx.getGuild().getId())
-				.playerPrinter()
+				.audioManager()
+				.getNowPlayingMessageHandler()
 				.printNowPlaying(ctx.getChannel());
 
 	}
