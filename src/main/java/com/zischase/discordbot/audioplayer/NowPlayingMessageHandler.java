@@ -123,15 +123,12 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 								if (listChanged(audioManager.getScheduler().getQueue(), copyQueue)) {
 									queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
 									copyQueue = audioManager.getScheduler().getQueue();
-
-									/* Queue reactions require event listener */
-									if (!guild.getJDA().getRegisteredListeners().contains(queueMessageHandler)) {
-										guild.getJDA().addEventListener(queueMessageHandler);
-									}
 								}
+
 							}
 						}
 					};
+
 					timer.scheduleAtFixedRate(trackTimerTask, 0, NOW_PLAYING_TIMER_RATE_MS);
 				}
 			}
@@ -158,10 +155,13 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 		} else if (msgList.size() == 1) {
 			textChannel.deleteMessageById(msgList.get(0).getId()).submit();
 		}
-	}
 
-	public void printNowPlaying(TextChannel textChannel) {
-		printNowPlaying(textChannel, false);
+		/* Small sleep to allow messages to be deleted */
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private boolean listChanged(@NonNull List<AudioTrack> trackListOne, @NonNull List<AudioTrack> trackListTwo) {
@@ -178,32 +178,26 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 		return false;
 	}
 
+	public void printNowPlaying(TextChannel textChannel) {
+		printNowPlaying(textChannel, false);
+	}
+
 	public synchronized void printNowPlaying(TextChannel textChannel, boolean forcePrint) {
 		this.nowPlayingMessage = getNPMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
 		Message builtMessage = buildNowPlaying();
 
 		if (forcePrint) {
+			this.nowPlayingMessage = null;
+		}
+
+		if (this.nowPlayingMessage == null || this.nowPlayingMessage.getType() == MessageType.UNKNOWN) {
 			deletePrevious(textChannel);
-			textChannel.sendMessage(builtMessage).queue(message -> {
-				addReactions(message);
-				this.nowPlayingMessage = message;
-			});
+
 			if (audioManager.getScheduler().getQueue().size() > 0) {
 				QueueMessageHandler queueMessageHandler = audioManager.getQueueMessageHandler();
 				queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
 			}
 
-			try {
-				Thread.sleep(PRINT_TIMEOUT_MS);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-
-			return;
-		}
-
-		if (this.nowPlayingMessage == null || this.nowPlayingMessage.getType() == MessageType.UNKNOWN) {
-			deletePrevious(textChannel);
 			textChannel.sendMessage(builtMessage).queue(message -> {
 				addReactions(message);
 				this.nowPlayingMessage = message;

@@ -76,9 +76,10 @@ public class QueueMessageHandler extends ListenerAdapter {
 		setPageNum(pageNum - 1);
 
 		if (message == null) {
-			textChannel.sendMessage(queuePages.get(this.queuePageNum.get()))
-					.queue(msg -> {
-						addReactions(msg);
+			textChannel.sendMessage(queuePages.get(this.queuePageNum.get())).queue(msg -> {
+						if (!manager.getScheduler().getQueue().isEmpty()) {
+							addReactions(msg);
+						}
 						this.queueMessage.set(msg);
 					});
 		} else {
@@ -138,7 +139,7 @@ public class QueueMessageHandler extends ListenerAdapter {
 			eb.setColor(Color.cyan);
 			eb.appendDescription("Empty...");
 			eb.setFooter("Page: %d/%d - Songs: %d %s".formatted(pageCount, getMaxPages(), size, repeat));
-			queuePages.add(new MessageBuilder().setEmbeds(eb.build()).build());
+			queuePages.add(new MessageBuilder().append(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
 			return;
 		}
 
