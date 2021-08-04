@@ -22,6 +22,13 @@ public class Youtube extends Command {
 	}
 
 	@Override
+	public CommandData getCommandData() {
+		OptionData query = new OptionData(OptionType.STRING, "query", "Displays a list from search result", true);
+
+		return super.getCommandData().addOptions(query);
+	}
+
+	@Override
 	public @NotNull String shortDescription() {
 		return "Searches YouTube - Reply with number";
 	}
@@ -35,13 +42,6 @@ public class Youtube extends Command {
 	public String helpText() {
 		return "`Youtube [Search Query] : Search youtube, then adds selected choice to the queue. Reply with number to choose`\n`Aliases: " + String
 				.join(" ", getAliases()) + "`";
-	}
-
-	@Override
-	public CommandData getCommandData() {
-		OptionData query = new OptionData(OptionType.STRING, "query", "Displays a list from search result", true);
-
-		return super.getCommandData().addOptions(query);
 	}
 
 	@Override
@@ -61,7 +61,7 @@ public class Youtube extends Command {
 		g_ctx.audioManager().getPlayerManager().source(YoutubeAudioSourceManager.class).setPlaylistPageCount(30);
 
 		g_ctx.audioManager().getPlayerManager()
-				.loadItem("ytsearch: "+query,
+				.loadItem("ytsearch: " + query,
 						new FunctionalResultHandler(
 								(audioTrack) -> g_ctx.audioManager().getTrackLoader().load(ctx.getVoiceChannel(), ctx.getChannel(), audioTrack),
 								(playlist) -> {
@@ -91,7 +91,6 @@ public class Youtube extends Command {
 								g_ctx.audioManager().getTrackLoader()::noMatches,
 								g_ctx.audioManager().getTrackLoader()::loadFailed
 						));
-
 
 
 //		## DEPRECATED ##

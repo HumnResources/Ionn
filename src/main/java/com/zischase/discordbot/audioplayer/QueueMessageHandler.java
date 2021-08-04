@@ -25,8 +25,8 @@ import static com.zischase.discordbot.audioplayer.MediaControls.*;
 
 public class QueueMessageHandler extends ListenerAdapter {
 
-	private final AtomicReference<Message> queueMessage             = new AtomicReference<>(null);
-	private final List<Message>            queuePages               = new ArrayList<>();
+	private final AtomicReference<Message> queueMessage = new AtomicReference<>(null);
+	private final List<Message>            queuePages   = new ArrayList<>();
 	private final AudioManager             manager;
 
 	private final AtomicInteger queuePageNum = new AtomicInteger(0);
@@ -66,10 +66,6 @@ public class QueueMessageHandler extends ListenerAdapter {
 		}
 	}
 
-	public void printQueue(@NotNull TextChannel textChannel) {
-		printQueuePage(textChannel, 0);
-	}
-
 	public synchronized void printQueuePage(@NotNull TextChannel textChannel, int pageNum) {
 		if (pageNum < 0 || pageNum > getMaxPages()) {
 			return;
@@ -105,20 +101,29 @@ public class QueueMessageHandler extends ListenerAdapter {
 		return this.queuePageNum.get() + 1;
 	}
 
-	private void setPageNum(int num) {
-		if (num > getMaxPages()) {
-			this.queuePageNum.set(getMaxPages() - 1);
-		} else {
-			this.queuePageNum.set(Math.max(num, 0));
-		}
-	}
-
 	private int getMaxPages() {
 		if (manager.getScheduler().getQueue().isEmpty()) {
 			return 1;
 		}
 
 		return (int) Math.ceil(((float) manager.getScheduler().getQueue().size()) / QUEUE_PAGE_SIZE);
+	}
+
+	@Nullable
+	private Message getQueueMsg(List<Message> messages) {
+		return messages.stream()
+				.filter(msg -> msg.getAuthor().isBot())
+				.filter(msg -> msg.getAuthor().getId().equals(msg.getJDA().getSelfUser().getId()))
+				.filter(msg -> !msg.isPinned())
+				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
+				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
+				.filter(msg -> msg.getContentDisplay().contains(QUEUE_MSG_NAME))
+				.findFirst()
+				.flatMap(message -> {
+					this.queueMessage.set(message);
+					return Optional.of(message);
+				})
+				.orElse(null);
 	}
 
 	private void buildQueue(@NotNull List<AudioTrack> queue) {
@@ -151,21 +156,12 @@ public class QueueMessageHandler extends ListenerAdapter {
 		}
 	}
 
-	@Nullable
-	private Message getQueueMsg(List<Message> messages) {
-		return messages.stream()
-				.filter(msg -> msg.getAuthor().isBot())
-				.filter(msg -> msg.getAuthor().getId().equals(msg.getJDA().getSelfUser().getId()))
-				.filter(msg -> !msg.isPinned())
-				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
-				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
-				.filter(msg -> msg.getContentDisplay().contains(QUEUE_MSG_NAME))
-				.findFirst()
-				.flatMap(message -> {
-					this.queueMessage.set(message);
-					return Optional.of(message);
-				})
-				.orElse(null);
+	private void setPageNum(int num) {
+		if (num > getMaxPages()) {
+			this.queuePageNum.set(getMaxPages() - 1);
+		} else {
+			this.queuePageNum.set(Math.max(num, 0));
+		}
 	}
 
 	private void addReactions(Message queueMessage) {
@@ -186,5 +182,9 @@ public class QueueMessageHandler extends ListenerAdapter {
 				queueMessage.addReaction(reaction).submit();
 			}
 		}
+	}
+
+	public void printQueue(@NotNull TextChannel textChannel) {
+		printQueuePage(textChannel, 0);
 	}
 }

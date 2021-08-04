@@ -33,8 +33,8 @@ public class Play extends Command {
 
 	@Override
 	public CommandData getCommandData() {
-		OptionData name = new OptionData(OptionType.STRING, "name", "Plays song by name", true);
-		OptionData link = new OptionData(OptionType.STRING, "link", "Plays audio by url", true);
+		OptionData name   = new OptionData(OptionType.STRING, "name", "Plays song by name", true);
+		OptionData link   = new OptionData(OptionType.STRING, "link", "Plays audio by url", true);
 		OptionData search = new OptionData(OptionType.STRING, "search", "Youtube search query", true);
 
 		return super.getCommandData().addSubcommands(
@@ -89,12 +89,10 @@ public class Play extends Command {
 
 			if (!attachments.isEmpty()) {
 				trackLoader.load(ctx.getChannel(), voiceChannel, attachments.get(0).getProxyUrl());
-			}
-			else {
+			} else {
 				trackLoader.load(ctx.getChannel(), voiceChannel, args.get(1));
 			}
-		}
-		else if (args.get(0).equalsIgnoreCase("-ytplaylist")) {
+		} else if (args.get(0).equalsIgnoreCase("-ytplaylist")) {
 			String search = String.join(" ", args.subList(1, args.size()));
 			GuildContext.get(guildID)
 					.audioManager()
@@ -110,8 +108,7 @@ public class Play extends Command {
 			/* Removes the -song flag added by slash command */
 			if (args.get(0).equalsIgnoreCase("-song")) {
 				search = String.join(" ", args).replaceFirst("-(song)", "");
-			}
-			else {
+			} else {
 				search = String.join(" ", args);
 			}
 			trackLoader.load(ctx.getChannel(), voiceChannel, search);

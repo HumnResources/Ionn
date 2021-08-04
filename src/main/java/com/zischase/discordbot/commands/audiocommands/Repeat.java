@@ -67,7 +67,7 @@ public class Repeat extends Command {
 				} else if (args.get(1).equalsIgnoreCase("off")) {
 					repeatSong = true;
 				}
-			}else if (args.get(0).equals("-q")) {
+			} else if (args.get(0).equals("-q")) {
 				if (args.get(1).equalsIgnoreCase("on")) {
 					repeatQueue = true;
 				} else if (args.get(1).equalsIgnoreCase("off")) {

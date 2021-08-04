@@ -34,21 +34,26 @@ public class ResultSelector {
 	private static final int    PAGE_SIZE                 = 12;
 	private static final String SEARCH_RESULT_EMBED_TITLE = "Search Results";
 
-	private final CompletableFuture<ISearchable> futureResult = new CompletableFuture<>();
-	private final List<Page>                     pages        = new ArrayList<>();
-	private final Semaphore                      semaphore    = new Semaphore(MAX_SEARCHES_PER_GUILD);
+	private final CompletableFuture<ISearchable> futureResult  = new CompletableFuture<>();
+	private final List<Page>                     pages         = new ArrayList<>();
+	private final Semaphore                      semaphore     = new Semaphore(MAX_SEARCHES_PER_GUILD);
 	private final JDA                            jda;
 	private final Member                         initiator;
 	private final List<ISearchable>              searches;
-	private       OffsetDateTime                 start      = OffsetDateTime.now();
-	private       Color                          embedColor = Color.PINK;
-	private 	  Message 						 resultMessage = null;
-	private  Paginator paginator;
+	private       OffsetDateTime                 start         = OffsetDateTime.now();
+	private       Color                          embedColor    = Color.PINK;
+	private       Message                        resultMessage = null;
+	private       Paginator                      paginator;
+
+	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator, Color color) throws InvalidHandlerException {
+		this(searches, textChannel, jda, initiator);
+		this.embedColor = color;
+	}
 
 	public ResultSelector(@NotNull List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator) throws InvalidHandlerException {
-		this.searches    = searches;
-		this.jda         = jda;
-		this.initiator   = initiator;
+		this.searches  = searches;
+		this.jda       = jda;
+		this.initiator = initiator;
 		this.paginator = PaginatorBuilder
 				.createPaginator()
 				.setHandler(jda)
@@ -82,7 +87,7 @@ public class ResultSelector {
 		}
 
 		Page page;
-		int pageCount = 1;
+		int  pageCount = 1;
 		for (int i = 0; i < searches.size(); i++) {
 			eb.appendDescription("`%d.` %s\n".formatted(i + 1, searches.get(i).getName()));
 
@@ -105,11 +110,6 @@ public class ResultSelector {
 		});
 	}
 
-	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator, Color color) throws InvalidHandlerException {
-		this(searches, textChannel, jda, initiator);
-		this.embedColor = color;
-	}
-
 	@Nullable
 	public ISearchable get() {
 		ISearchable result = null;
@@ -126,8 +126,7 @@ public class ResultSelector {
 			public void onGuildMessageReceived(@org.jetbrains.annotations.NotNull GuildMessageReceivedEvent event) {
 				if (checkValidEntry(event)) {
 					selectEntry(event);
-				}
-				else if (event.getMessage().getAuthor() == initiator.getUser()) {
+				} else if (event.getMessage().getAuthor() == initiator.getUser()) {
 					semaphore.release();
 				}
 			}

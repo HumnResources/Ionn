@@ -155,21 +155,6 @@ public class Playlist extends Command {
 		printPlaylists(ctx.getChannel());
 	}
 
-	private void addPlaylist(String guildID, String name, String playlistURL) {
-		this.playlists.putIfAbsent(name.toLowerCase(), playlistURL);
-		DBQueryHandler.addPlaylistEntry(guildID, name, playlistURL);
-	}
-
-	private String getPlaylistURL(String guildID, String name) {
-		if (this.playlists.containsKey(name.toLowerCase())) {
-			return playlists.get(name.toLowerCase());
-		} else {
-			String playlistURL = DBQueryHandler.getPlaylist(guildID, name);
-			addPlaylist(guildID, name, playlistURL);
-			return playlistURL;
-		}
-	}
-
 	private void printPlaylists(TextChannel textChannel) {
 		if (this.playlists.isEmpty()) {
 			textChannel.sendMessage("Sorry, no available playlists! :c")
@@ -187,6 +172,16 @@ public class Playlist extends Command {
 
 		textChannel.sendMessageEmbeds(embed.build())
 				.queue();
+	}
+
+	private String getPlaylistURL(String guildID, String name) {
+		if (this.playlists.containsKey(name.toLowerCase())) {
+			return playlists.get(name.toLowerCase());
+		} else {
+			String playlistURL = DBQueryHandler.getPlaylist(guildID, name);
+			addPlaylist(guildID, name, playlistURL);
+			return playlistURL;
+		}
 	}
 
 	private String createPlaylistURL(ArrayList<AudioTrack> tracks) {
@@ -207,5 +202,10 @@ public class Playlist extends Command {
 		}
 
 		return playlistURL;
+	}
+
+	private void addPlaylist(String guildID, String name, String playlistURL) {
+		this.playlists.putIfAbsent(name.toLowerCase(), playlistURL);
+		DBQueryHandler.addPlaylistEntry(guildID, name, playlistURL);
 	}
 }

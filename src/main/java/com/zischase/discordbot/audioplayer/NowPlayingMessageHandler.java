@@ -40,111 +40,6 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 		initializeTrackListener(guild);
 	}
 
-	@Override
-	public void onGenericGuildMessageReaction(@NotNull GenericGuildMessageReactionEvent event) {
-		Member eventMember = event.getMember();
-		if (eventMember == null || eventMember.getUser().isBot() || event.getReaction().isSelf()) {
-			return;
-		}
-		Message msg = event.retrieveMessage().complete();
-		if (!msg.getAuthor().isBot()) {
-			return;
-		}
-		Message currentNPMessage = audioManager.getNowPlayingMessageHandler().getNowPlayingMessage();
-		String  reaction         = event.getReaction().getReactionEmote().getName();
-
-		CompletableFuture.runAsync(() -> {
-			if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
-				nowPlayingInteraction(reaction);
-			}
-		});
-	}
-
-	public Message getNowPlayingMessage() {
-		return this.nowPlayingMessage;
-	}
-
-	public void printNowPlaying(TextChannel textChannel) {
-		printNowPlaying(textChannel, false);
-	}
-
-	public synchronized void printNowPlaying(TextChannel textChannel, boolean forcePrint) {
-		this.nowPlayingMessage = getNPMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
-		Message builtMessage = buildNowPlaying();
-
-		if (forcePrint) {
-			deletePrevious(textChannel);
-			textChannel.sendMessage(builtMessage).queue(message -> {
-				addReactions(message);
-				this.nowPlayingMessage = message;
-			});
-			if (audioManager.getScheduler().getQueue().size() > 0) {
-				QueueMessageHandler queueMessageHandler = audioManager.getQueueMessageHandler();
-				queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
-			}
-
-			try {
-				Thread.sleep(PRINT_TIMEOUT_MS);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-
-			return;
-		}
-
-		if (this.nowPlayingMessage == null || this.nowPlayingMessage.getType() == MessageType.UNKNOWN) {
-			deletePrevious(textChannel);
-			textChannel.sendMessage(builtMessage).queue(message -> {
-				addReactions(message);
-				this.nowPlayingMessage = message;
-			});
-		} else {
-			textChannel.editMessageById(this.nowPlayingMessage.getId(), builtMessage).queue();
-		}
-
-		try {
-			Thread.sleep(PRINT_TIMEOUT_MS);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-
-	public void deletePrevious(@NotNull TextChannel textChannel) {
-		List<Message> msgList = textChannel.getHistory()
-				.retrievePast(HISTORY_POLL_LIMIT * 10) // Use a larger number to ensure we delete every media message
-				.complete()
-				.stream()
-				.filter(msg -> msg.getAuthor().isBot() && msg.getAuthor() == msg.getJDA().getSelfUser())
-				.filter(msg -> !msg.isPinned())
-				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
-				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
-				.filter(msg -> msg.getContentRaw().contains(NOW_PLAYING_MSG_NAME) || msg.getContentRaw().contains(NOTHING_PLAYING_MSG_NAME) || msg.getContentRaw().contains(QUEUE_MSG_NAME))
-				.collect(Collectors.toList());
-
-		if (msgList.size() > 1) {
-			textChannel.deleteMessages(msgList).submit();
-		} else if (msgList.size() == 1) {
-			textChannel.deleteMessageById(msgList.get(0).getId()).submit();
-		}
-	}
-
-	private void nowPlayingInteraction(String reaction) {
-		Message currentNPMessage = audioManager.getNowPlayingMessageHandler().getNowPlayingMessage();
-		switch (reaction) {
-			case SHUFFLE -> Shuffle.shuffle(guildID, audioManager);
-			case REPEAT_QUEUE -> audioManager.getScheduler().setRepeatQueue(!audioManager.getScheduler().isRepeatQueue());
-			case REPEAT_ONE -> audioManager.getScheduler().setRepeatSong(!audioManager.getScheduler().isRepeatSong());
-			case PREV_TRACK -> audioManager.getScheduler().prevTrack();
-			case PLAY_PAUSE -> audioManager.getPlayer().setPaused(!audioManager.getPlayer().isPaused());
-			case NEXT_TRACK -> audioManager.getScheduler().nextTrack();
-			case STOP -> {
-				audioManager.getScheduler().clearQueue();
-				audioManager.getPlayer().stopTrack();
-			}
-		}
-		printNowPlaying(currentNPMessage.getTextChannel());
-	}
-
 	private void initializeTrackListener(Guild guild) {
 		String id = guild.getId();
 
@@ -246,6 +141,101 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 		audioManager.getPlayer().addListener(audioEventListener);
 	}
 
+	public void deletePrevious(@NotNull TextChannel textChannel) {
+		List<Message> msgList = textChannel.getHistory()
+				.retrievePast(HISTORY_POLL_LIMIT * 10) // Use a larger number to ensure we delete every media message
+				.complete()
+				.stream()
+				.filter(msg -> msg.getAuthor().isBot() && msg.getAuthor() == msg.getJDA().getSelfUser())
+				.filter(msg -> !msg.isPinned())
+				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
+				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
+				.filter(msg -> msg.getContentRaw().contains(NOW_PLAYING_MSG_NAME) || msg.getContentRaw().contains(NOTHING_PLAYING_MSG_NAME) || msg.getContentRaw().contains(QUEUE_MSG_NAME))
+				.collect(Collectors.toList());
+
+		if (msgList.size() > 1) {
+			textChannel.deleteMessages(msgList).submit();
+		} else if (msgList.size() == 1) {
+			textChannel.deleteMessageById(msgList.get(0).getId()).submit();
+		}
+	}
+
+	public void printNowPlaying(TextChannel textChannel) {
+		printNowPlaying(textChannel, false);
+	}
+
+	private boolean listChanged(@NonNull List<AudioTrack> trackListOne, @NonNull List<AudioTrack> trackListTwo) {
+		if (trackListOne.size() != trackListTwo.size()) {
+			return true;
+		}
+
+		int size = trackListOne.size();
+		for (int i = 0; i < size; i++) {
+			if (trackListOne.get(i) != trackListTwo.get(i)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public synchronized void printNowPlaying(TextChannel textChannel, boolean forcePrint) {
+		this.nowPlayingMessage = getNPMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
+		Message builtMessage = buildNowPlaying();
+
+		if (forcePrint) {
+			deletePrevious(textChannel);
+			textChannel.sendMessage(builtMessage).queue(message -> {
+				addReactions(message);
+				this.nowPlayingMessage = message;
+			});
+			if (audioManager.getScheduler().getQueue().size() > 0) {
+				QueueMessageHandler queueMessageHandler = audioManager.getQueueMessageHandler();
+				queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
+			}
+
+			try {
+				Thread.sleep(PRINT_TIMEOUT_MS);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			return;
+		}
+
+		if (this.nowPlayingMessage == null || this.nowPlayingMessage.getType() == MessageType.UNKNOWN) {
+			deletePrevious(textChannel);
+			textChannel.sendMessage(builtMessage).queue(message -> {
+				addReactions(message);
+				this.nowPlayingMessage = message;
+			});
+		} else {
+			textChannel.editMessageById(this.nowPlayingMessage.getId(), builtMessage).queue();
+		}
+
+		try {
+			Thread.sleep(PRINT_TIMEOUT_MS);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private Message getNPMsg(List<Message> messages) {
+		return messages
+				.stream()
+				.filter(msg -> msg.getAuthor().isBot())
+				.filter(msg -> msg.getAuthor().getId().equals(msg.getJDA().getSelfUser().getId()))
+				.filter(msg -> !msg.isPinned())
+				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
+				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
+				.filter(msg -> msg.getContentDisplay().contains(NOW_PLAYING_MSG_NAME) || msg.getContentDisplay().contains(NOTHING_PLAYING_MSG_NAME))
+				.findFirst()
+				.flatMap(message -> {
+					this.nowPlayingMessage = message;
+					return Optional.of(message);
+				})
+				.orElse(null);
+	}
+
 	private Message buildNowPlaying() {
 		AudioPlayer    player         = audioManager.getPlayer();
 		AudioTrack     track          = player.getPlayingTrack();
@@ -300,21 +290,24 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 		return messageBuilder.setEmbeds(embedBuilder.build()).build();
 	}
 
-	private Message getNPMsg(List<Message> messages) {
-		return messages
+	private void addReactions(Message nowPlayingMsg) {
+		/* Small wait to allow printer to display song info if needed */
+
+		if (nowPlayingMsg == null || nowPlayingMsg.getType() == MessageType.UNKNOWN) {
+			return;
+		}
+
+		List<String> reactionsPresent = nowPlayingMsg.getReactions()
 				.stream()
-				.filter(msg -> msg.getAuthor().isBot())
-				.filter(msg -> msg.getAuthor().getId().equals(msg.getJDA().getSelfUser().getId()))
-				.filter(msg -> !msg.isPinned())
-				.filter(msg -> msg.getTimeCreated().isBefore(OffsetDateTime.now()))
-				.filter(msg -> msg.getTimeCreated().isAfter(OffsetDateTime.now().minusDays(14)))
-				.filter(msg -> msg.getContentDisplay().contains(NOW_PLAYING_MSG_NAME) || msg.getContentDisplay().contains(NOTHING_PLAYING_MSG_NAME))
-				.findFirst()
-				.flatMap(message -> {
-					this.nowPlayingMessage = message;
-					return Optional.of(message);
-				})
-				.orElse(null);
+				.map(reaction -> reaction.getReactionEmote().getName())
+				.collect(Collectors.toList());
+
+		/* Only add a reaction if it's missing. Saves on queues submit to discord API */
+		for (String reaction : MediaControls.getNowPlayingReactions()) {
+			if (!reactionsPresent.contains(reaction)) {
+				nowPlayingMsg.addReaction(reaction).submit();
+			}
+		}
 	}
 
 	private String progressPercentage(int position, int duration) {
@@ -336,37 +329,44 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 		return bar.toString();
 	}
 
-	private boolean listChanged(@NonNull List<AudioTrack> trackListOne, @NonNull List<AudioTrack> trackListTwo) {
-		if (trackListOne.size() != trackListTwo.size()) {
-			return true;
-		}
-
-		int size = trackListOne.size();
-		for (int i = 0; i < size; i++) {
-			if (trackListOne.get(i) != trackListTwo.get(i)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private void addReactions(Message nowPlayingMsg) {
-		/* Small wait to allow printer to display song info if needed */
-
-		if (nowPlayingMsg == null || nowPlayingMsg.getType() == MessageType.UNKNOWN) {
+	@Override
+	public void onGenericGuildMessageReaction(@NotNull GenericGuildMessageReactionEvent event) {
+		Member eventMember = event.getMember();
+		if (eventMember == null || eventMember.getUser().isBot() || event.getReaction().isSelf()) {
 			return;
 		}
+		Message msg = event.retrieveMessage().complete();
+		if (!msg.getAuthor().isBot()) {
+			return;
+		}
+		Message currentNPMessage = audioManager.getNowPlayingMessageHandler().getNowPlayingMessage();
+		String  reaction         = event.getReaction().getReactionEmote().getName();
 
-		List<String> reactionsPresent = nowPlayingMsg.getReactions()
-				.stream()
-				.map(reaction -> reaction.getReactionEmote().getName())
-				.collect(Collectors.toList());
+		CompletableFuture.runAsync(() -> {
+			if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
+				nowPlayingInteraction(reaction);
+			}
+		});
+	}
 
-		/* Only add a reaction if it's missing. Saves on queues submit to discord API */
-		for (String reaction : MediaControls.getNowPlayingReactions()) {
-			if (!reactionsPresent.contains(reaction)) {
-				nowPlayingMsg.addReaction(reaction).submit();
+	public Message getNowPlayingMessage() {
+		return this.nowPlayingMessage;
+	}
+
+	private void nowPlayingInteraction(String reaction) {
+		Message currentNPMessage = audioManager.getNowPlayingMessageHandler().getNowPlayingMessage();
+		switch (reaction) {
+			case SHUFFLE -> Shuffle.shuffle(guildID, audioManager);
+			case REPEAT_QUEUE -> audioManager.getScheduler().setRepeatQueue(!audioManager.getScheduler().isRepeatQueue());
+			case REPEAT_ONE -> audioManager.getScheduler().setRepeatSong(!audioManager.getScheduler().isRepeatSong());
+			case PREV_TRACK -> audioManager.getScheduler().prevTrack();
+			case PLAY_PAUSE -> audioManager.getPlayer().setPaused(!audioManager.getPlayer().isPaused());
+			case NEXT_TRACK -> audioManager.getScheduler().nextTrack();
+			case STOP -> {
+				audioManager.getScheduler().clearQueue();
+				audioManager.getPlayer().stopTrack();
 			}
 		}
+		printNowPlaying(currentNPMessage.getTextChannel());
 	}
 }

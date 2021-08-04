@@ -10,15 +10,15 @@ import java.util.Map;
 
 public class GuildContext implements IGuildContext {
 
-	private static final Map<Long, GuildContext>  GUILDS = new HashMap<>();
-	private final        Guild                    guild;
-	private final        AudioManager             audioManager;
-	private final        CommandHandler           commandHandler;
+	private static final Map<Long, GuildContext> GUILDS = new HashMap<>();
+	private final        Guild                   guild;
+	private final        AudioManager            audioManager;
+	private final        CommandHandler          commandHandler;
 
 	public GuildContext(Guild guild) {
-		this.guild                    = guild;
-		this.audioManager             = new AudioManager(guild);
-		this.commandHandler           = new CommandHandler();
+		this.guild          = guild;
+		this.audioManager   = new AudioManager(guild);
+		this.commandHandler = new CommandHandler();
 
 		/* Update global GuildContext references */
 		setGuild(this);
@@ -31,10 +31,6 @@ public class GuildContext implements IGuildContext {
 		guildContext.audioManager()
 				.getPlayer()
 				.setVolume(v);
-	}
-
-	public static GuildContext get(String guildID) {
-		return GUILDS.get(Long.parseLong(guildID));
 	}
 
 	@Override
@@ -50,6 +46,10 @@ public class GuildContext implements IGuildContext {
 	@Override
 	public CommandHandler commandHandler() {
 		return this.commandHandler;
+	}
+
+	public static GuildContext get(String guildID) {
+		return GUILDS.get(Long.parseLong(guildID));
 	}
 
 	public final boolean isPremium() {

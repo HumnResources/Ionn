@@ -96,12 +96,10 @@ public class CommandEventListener extends ListenerAdapter {
 				if (msgArr[0].equalsIgnoreCase("slash")) {
 					updateSlashCommands(event.getJDA(), false);
 					return;
-				}
-				else if (msgArr[0].equalsIgnoreCase("slashforce")) {
+				} else if (msgArr[0].equalsIgnoreCase("slashforce")) {
 					updateSlashCommands(event.getJDA(), true);
 					return;
-				}
-				else if (msgArr[0].equalsIgnoreCase("delslash")) {
+				} else if (msgArr[0].equalsIgnoreCase("delslash")) {
 					deleteSlashCommands(event.getJDA());
 					return;
 				}

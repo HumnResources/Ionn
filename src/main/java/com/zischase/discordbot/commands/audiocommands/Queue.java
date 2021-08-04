@@ -75,10 +75,9 @@ public class Queue extends Command {
 			EmbedBuilder embed = new EmbedBuilder();
 			embed.setColor(Color.BLUE);
 			scheduler.clearQueue();
-		}
-		else if (args.size() == 2 && args.get(1).matches("(?i)(\\d+)")) {
-			int                   index = Integer.parseInt(args.get(1));
-			String arg = args.get(0);
+		} else if (args.size() == 2 && args.get(1).matches("(?i)(\\d+)")) {
+			int    index = Integer.parseInt(args.get(1));
+			String arg   = args.get(0);
 
 			if (index < 0 || index > queue.size()) {
 				return;
