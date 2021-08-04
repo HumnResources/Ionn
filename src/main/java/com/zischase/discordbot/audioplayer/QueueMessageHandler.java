@@ -17,24 +17,21 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static com.zischase.discordbot.audioplayer.MediaControls.*;
 
-public class QueuePrinter extends ListenerAdapter {
+public class QueueMessageHandler extends ListenerAdapter {
 
-	private final Semaphore                reactionTimeoutSemaphore = new Semaphore(1);
-	private final Semaphore                queueSemaphore           = new Semaphore(1);
 	private final AtomicReference<Message> queueMessage             = new AtomicReference<>(null);
 	private final List<Message>            queuePages               = new ArrayList<>();
 	private final AudioManager             manager;
 
 	private final AtomicInteger queuePageNum = new AtomicInteger(0);
 
-	public QueuePrinter(AudioManager manager) {
+	public QueueMessageHandler(AudioManager manager) {
 		this.manager = manager;
 	}
 
@@ -48,26 +45,23 @@ public class QueuePrinter extends ListenerAdapter {
 		Message queueMessage = this.queueMessage.get();
 
 		if (queueMessage != null && eventMessage.getId().equals(queueMessage.getId())) {
-			if (reactionTimeoutSemaphore.tryAcquire()) {
-				String reaction = event.getReaction().getReactionEmote().getName();
-				switch (reaction) {
-					case SHUFFLE -> Shuffle.shuffle(event.getGuild().getId(), manager);
-					case REPEAT_QUEUE -> {
-						manager.getScheduler().setRepeatQueue(!manager.getScheduler().isRepeatQueue());
-						printQueuePage(event.getChannel(), getCurrentPageNum());
-					}
-					case REVERSE -> printQueuePage(event.getChannel(), Math.max(getCurrentPageNum() - 1, 0));
-					case PREV_TRACK -> printQueuePage(event.getChannel(), 0);
-					case PLAY -> printQueuePage(event.getChannel(), Math.min(getCurrentPageNum() + 1, getMaxPages()));
-					case NEXT_TRACK -> printQueuePage(event.getChannel(), getMaxPages());
-					case STOP -> manager.getScheduler().clearQueue();
+			String reaction = event.getReaction().getReactionEmote().getName();
+			switch (reaction) {
+				case SHUFFLE -> Shuffle.shuffle(event.getGuild().getId(), manager);
+				case REPEAT_QUEUE -> {
+					manager.getScheduler().setRepeatQueue(!manager.getScheduler().isRepeatQueue());
+					printQueuePage(event.getChannel(), getCurrentPageNum());
 				}
-				try {
-					Thread.sleep(REACTION_TIMEOUT_MS);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				reactionTimeoutSemaphore.release();
+				case REVERSE -> printQueuePage(event.getChannel(), Math.max(getCurrentPageNum() - 1, 0));
+				case PREV_TRACK -> printQueuePage(event.getChannel(), 0);
+				case PLAY -> printQueuePage(event.getChannel(), Math.min(getCurrentPageNum() + 1, getMaxPages()));
+				case NEXT_TRACK -> printQueuePage(event.getChannel(), getMaxPages());
+				case STOP -> manager.getScheduler().clearQueue();
+			}
+			try {
+				Thread.sleep(REACTION_TIMEOUT_MS);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		}
 	}
@@ -76,11 +70,8 @@ public class QueuePrinter extends ListenerAdapter {
 		printQueuePage(textChannel, 0);
 	}
 
-	public void printQueuePage(@NotNull TextChannel textChannel, int pageNum) {
-		if (!queueSemaphore.tryAcquire()) {
-			return;
-		} else if (pageNum < 0 || pageNum > getMaxPages()) {
-			this.queueSemaphore.release();
+	public synchronized void printQueuePage(@NotNull TextChannel textChannel, int pageNum) {
+		if (pageNum < 0 || pageNum > getMaxPages()) {
 			return;
 		}
 
@@ -104,8 +95,6 @@ public class QueuePrinter extends ListenerAdapter {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-
-		queueSemaphore.release();
 	}
 
 	public int getCurrentPageNum() {
