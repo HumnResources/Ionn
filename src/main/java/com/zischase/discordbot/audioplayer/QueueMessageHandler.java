@@ -77,14 +77,15 @@ public class QueueMessageHandler extends ListenerAdapter {
 
 		if (message == null) {
 			textChannel.sendMessage(queuePages.get(this.queuePageNum.get())).queue(msg -> {
-						if (!manager.getScheduler().getQueue().isEmpty()) {
-							addReactions(msg);
-						}
 						this.queueMessage.set(msg);
+						if (!manager.getScheduler().getQueue().isEmpty()) addReactions(msg);
 					});
 		} else {
 			textChannel.editMessageById(message.getId(), queuePages.get(this.queuePageNum.get()))
-					.queue(this.queueMessage::set);
+					.queue(msg -> {
+						this.queueMessage.set(msg);
+						if (!manager.getScheduler().getQueue().isEmpty()) addReactions(msg);
+					});
 		}
 
 		try {
