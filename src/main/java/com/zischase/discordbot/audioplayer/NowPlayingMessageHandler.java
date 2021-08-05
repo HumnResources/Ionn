@@ -240,7 +240,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 		if (track == null) {
 			messageBuilder.append(NOTHING_PLAYING_MSG_NAME);
 			embedBuilder.setColor(Color.darkGray);
-			embedBuilder.setFooter(". . .");
+			embedBuilder.setTitle("...");
 		} else {
 			messageBuilder.append(NOW_PLAYING_MSG_NAME);
 
