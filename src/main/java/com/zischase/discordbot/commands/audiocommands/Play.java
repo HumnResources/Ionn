@@ -73,45 +73,48 @@ public class Play extends Command {
 				.audioManager()
 				.getTrackLoader();
 
-		if (args.isEmpty() || args.get(0).equalsIgnoreCase("-pause")) {
-			AudioPlayer player = GuildContext.get(guildID)
-					.audioManager()
-					.getPlayer();
-			player.setPaused(!player.isPaused());
-		} else if (args.get(0).equalsIgnoreCase("-next")) {
-			String song = String.join(" ", args.subList(1, args.size()));
-			playNext(song, ctx.getVoiceChannel(), ctx.getChannel(), trackLoader);
-			ctx.getChannel().sendMessage("Playing `%s` next!".formatted(song)).queue(m -> m.delete().queueAfter(3000, TimeUnit.MILLISECONDS), null);
-		}
-		/* Checks to see if we have a potential link in the message */
-		else if (args.get(0).equalsIgnoreCase("-url")) {
-			List<Message.Attachment> attachments = ctx.getMessage().getAttachments();
+		// Get arg or set default if no args input - Ignored if user inputs a search param
+		String arg = !args.isEmpty() ? args.get(0) : "-pause";
+		String search;
+		switch (arg) {
+			case "-pause" -> {
+				AudioPlayer player = GuildContext.get(guildID)
+						.audioManager()
+						.getPlayer();
+				player.setPaused(!player.isPaused());
+			}
+			case "-next" -> {
+				String song = String.join(" ", args.subList(1, args.size()));
+				playNext(song, ctx.getVoiceChannel(), ctx.getChannel(), trackLoader);
+				ctx.getChannel().sendMessage("Playing `%s` next!".formatted(song)).queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS), null);
+			}
+			case "-url" -> {
+				List<Message.Attachment> attachments = ctx.getMessage().getAttachments();
 
-			if (!attachments.isEmpty()) {
-				trackLoader.load(ctx.getChannel(), voiceChannel, attachments.get(0).getProxyUrl());
-			} else {
-				trackLoader.load(ctx.getChannel(), voiceChannel, args.get(1));
+				if (!attachments.isEmpty()) {
+					trackLoader.load(ctx.getChannel(), voiceChannel, attachments.get(0).getProxyUrl());
+				} else {
+					trackLoader.load(ctx.getChannel(), voiceChannel, args.get(1));
+				}
 			}
-		} else if (args.get(0).equalsIgnoreCase("-ytplaylist")) {
-			String search = String.join(" ", args.subList(1, args.size()));
-			GuildContext.get(guildID)
-					.audioManager()
-					.getTrackLoader()
-					.loadYTSearchResults(ctx.getChannel(), voiceChannel, search);
-			ctx.getChannel()
-					.sendMessage("%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsTag(), search))
-					.queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
-		}
-		/* Otherwise we check to see if they input a string, process using YT as default */
-		else {
-			String search;
-			/* Removes the -song flag added by slash command */
-			if (args.get(0).equalsIgnoreCase("-song")) {
+			case "-ytplaylist" -> {
+				search = String.join(" ", args.subList(1, args.size()));
+				GuildContext.get(guildID)
+						.audioManager()
+						.getTrackLoader()
+						.loadYTSearchResults(ctx.getChannel(), voiceChannel, search);
+				ctx.getChannel()
+						.sendMessage("%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsMention(), search))
+						.queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
+			}
+			case "-song" -> {
 				search = String.join(" ", args).replaceFirst("-(song)", "");
-			} else {
-				search = String.join(" ", args);
+				trackLoader.load(ctx.getChannel(), voiceChannel, search);
 			}
-			trackLoader.load(ctx.getChannel(), voiceChannel, search);
+			default -> {
+				search = String.join(" ", args);
+				trackLoader.load(ctx.getChannel(), voiceChannel, search);
+			}
 		}
 	}
 

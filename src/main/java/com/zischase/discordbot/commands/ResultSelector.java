@@ -126,6 +126,7 @@ public class ResultSelector {
 			public void onGuildMessageReceived(@org.jetbrains.annotations.NotNull GuildMessageReceivedEvent event) {
 				if (checkValidEntry(event)) {
 					selectEntry(event);
+					event.getMessage().delete().submit();
 				} else if (event.getMessage().getAuthor() == initiator.getUser()) {
 					semaphore.release();
 				}

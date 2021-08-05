@@ -15,6 +15,7 @@ import org.apache.commons.collections4.map.LinkedMap;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.concurrent.TimeUnit;
 
 public class TrackLoader implements AudioLoadResultHandler {
 
@@ -103,13 +104,15 @@ public class TrackLoader implements AudioLoadResultHandler {
 			return;
 		}
 
+		String s;
 		assert channel != null;
 		if (audioTrack.getInfo() != null) {
 			if (audioTrack.getInfo().title != null) {
-				channel.sendMessage("Added: " + audioTrack.getInfo().title).queue();
+				s = "Added: `%s` to queue.".formatted(audioTrack.getInfo().title);
 			} else {
-				channel.sendMessage("Added: " + audioTrack.getIdentifier()).queue();
+				s = "Added: `%s` to queue.".formatted(audioTrack.getIdentifier());
 			}
+			channel.sendMessage(s).queue(success -> success.delete().queueAfter(4, TimeUnit.SECONDS));
 		}
 
 	}
