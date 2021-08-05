@@ -193,10 +193,8 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 		if (this.nowPlayingMessage == null || this.nowPlayingMessage.getType() == MessageType.UNKNOWN) {
 			deletePrevious(textChannel);
 
-			if (audioManager.getScheduler().getQueue().size() > 0) {
-				QueueMessageHandler queueMessageHandler = audioManager.getQueueMessageHandler();
-				queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
-			}
+			QueueMessageHandler queueMessageHandler = audioManager.getQueueMessageHandler();
+			queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
 
 			textChannel.sendMessage(builtMessage).queue(message -> {
 				addReactions(message);

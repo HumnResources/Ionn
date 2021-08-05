@@ -143,13 +143,19 @@ public class QueueMessageHandler extends ListenerAdapter {
 			return;
 		}
 
+		long runtime = (queue.stream()
+				.mapToLong(audioTrack -> audioTrack.getInfo().length / 1000)
+				.sum());
+
+		String runtimeFormatted = String.format("%d:%02d:%02d", runtime / 3600, (runtime % 3600) / 60, (runtime % 60));
+
 		for (int i = 1; i <= size; i++) {
 			eb.setColor(Color.WHITE);
 			eb.appendDescription("`%d.` %s\n".formatted(i, queue.get(i - 1).getInfo().title));
 
 			/* Starts a new page or adds last one */
 			if (i % QUEUE_PAGE_SIZE == 0 || i == size) {
-				eb.setFooter("Page: %d/%d - Songs: %d %s".formatted(pageCount, getMaxPages(), size, repeat));
+				eb.setFooter("Page: %d/%d - Songs: %d - Runtime: %s %s".formatted(pageCount, getMaxPages(), size, runtimeFormatted, repeat));
 				pageCount++;
 				queuePages.add(new MessageBuilder().append(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
 				eb.clear();
