@@ -86,7 +86,7 @@ public class Play extends Command {
 			case "-next" -> {
 				String song = String.join(" ", args.subList(1, args.size()));
 				playNext(song, ctx.getVoiceChannel(), ctx.getChannel(), trackLoader);
-				ctx.getChannel().sendMessage("Playing `%s` next!".formatted(song)).queue(m -> m.delete().queueAfter(4, TimeUnit.SECONDS), null);
+				ctx.getChannel().sendMessage("Playing `%s` next!".formatted(song)).queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS), null);
 			}
 			case "-url" -> {
 				List<Message.Attachment> attachments = ctx.getMessage().getAttachments();
@@ -104,7 +104,7 @@ public class Play extends Command {
 						.getTrackLoader()
 						.loadYTSearchResults(ctx.getChannel(), voiceChannel, search);
 				ctx.getChannel()
-						.sendMessage("%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsTag(), search))
+						.sendMessage("%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsMention(), search))
 						.queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
 			}
 			case "-song" -> {
