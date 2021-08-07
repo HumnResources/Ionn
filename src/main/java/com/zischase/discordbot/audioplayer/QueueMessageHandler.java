@@ -139,7 +139,7 @@ public class QueueMessageHandler extends ListenerAdapter {
 		if (size == 0) {
 			eb.setColor(Color.cyan);
 			eb.appendDescription("Empty...");
-			eb.setFooter("Page: %d/%d - Songs: %d %s".formatted(pageCount, getMaxPages(), size, repeat));
+			eb.setFooter("Page: %d/%d - Tracks: %d %s".formatted(pageCount, getMaxPages(), size, repeat));
 			queuePages.add(new MessageBuilder().append(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
 			return;
 		}
@@ -156,7 +156,7 @@ public class QueueMessageHandler extends ListenerAdapter {
 
 			/* Starts a new page or adds last one */
 			if (i % QUEUE_PAGE_SIZE == 0 || i == size) {
-				eb.setFooter("Page: %d/%d - Songs: %d - Runtime: %s %s".formatted(pageCount, getMaxPages(), size, runtimeFormatted, repeat));
+				eb.setFooter("Page: %d/%d - Tracks: %d - Runtime: %s %s".formatted(pageCount, getMaxPages(), size, runtimeFormatted, repeat));
 				pageCount++;
 				queuePages.add(new MessageBuilder().append(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
 				eb.clear();
