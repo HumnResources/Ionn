@@ -146,7 +146,7 @@ public class QueueMessageHandler extends ListenerAdapter {
 
 		long runtime = (queue.stream()
 				.mapToLong(audioTrack -> audioTrack.getInfo().length / 1000)
-				.sum());
+				.sum()) + (manager.getPlayer().getPlayingTrack().getInfo().length / 1000);
 
 		String runtimeFormatted = String.format("%d:%02d:%02d", runtime / 3600, (runtime % 3600) / 60, (runtime % 60));
 
