@@ -8,7 +8,6 @@ import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -75,7 +74,7 @@ public class Play extends Command {
 
 		// Get arg or set default if no args input - Ignored if user inputs a search param
 		String arg = !args.isEmpty() ? args.get(0) : "-pause";
-		String search;
+		String search = String.join(" ", args.subList(1, args.size()));
 		switch (arg) {
 			case "-pause" -> {
 				AudioPlayer player = GuildContext.get(guildID)
@@ -84,31 +83,18 @@ public class Play extends Command {
 				player.setPaused(!player.isPaused());
 			}
 			case "-next" -> {
-				String song = String.join(" ", args.subList(1, args.size()));
-				playNext(song, ctx.getVoiceChannel(), ctx.getChannel(), trackLoader);
-				ctx.getChannel().sendMessage("Playing `%s` next!".formatted(song)).queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS), null);
+				playNext(search, ctx.getChannel());
+				ctx.getChannel().sendMessage("Playing `%s` next!".formatted(search)).queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS), null);
 			}
-			case "-url" -> {
-				List<Message.Attachment> attachments = ctx.getMessage().getAttachments();
-
-				if (!attachments.isEmpty()) {
-					trackLoader.load(ctx.getChannel(), voiceChannel, attachments.get(0).getProxyUrl());
-				} else {
-					trackLoader.load(ctx.getChannel(), voiceChannel, args.get(1));
-				}
-			}
+			case "-url" -> trackLoader.load(ctx.getChannel(), voiceChannel, search);
 			case "-ytplaylist" -> {
-				search = String.join(" ", args.subList(1, args.size()));
-				GuildContext.get(guildID)
-						.audioManager()
-						.getTrackLoader()
-						.loadYTSearchResults(ctx.getChannel(), voiceChannel, search);
+				trackLoader.loadYTSearchResults(ctx.getChannel(), voiceChannel, search);
 				ctx.getChannel()
 						.sendMessage("%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsMention(), search))
 						.queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
 			}
 			case "-song" -> {
-				search = String.join(" ", args).replaceFirst("-(song)", "");
+				search = search.replaceFirst("-song", "");
 				trackLoader.load(ctx.getChannel(), voiceChannel, search);
 			}
 			default -> {
@@ -118,7 +104,7 @@ public class Play extends Command {
 		}
 	}
 
-	private void playNext(String song, VoiceChannel voiceChannel, TextChannel textChannel, TrackLoader trackLoader) {
+	private void playNext(String song, TextChannel textChannel) {
 
 		String                guildID      = textChannel.getGuild().getId();
 		AudioManager          audioManager = GuildContext.get(guildID).audioManager();
