@@ -97,7 +97,7 @@ public class TrackScheduler extends AudioEventAdapter {
 			this.player.startTrack(lastTrack.makeClone(), false);
 		}
 		else {
-			this.player.startTrack(player.getPlayingTrack(), false);
+			this.player.startTrack(player.getPlayingTrack().makeClone(), false);
 		}
 	}
 
