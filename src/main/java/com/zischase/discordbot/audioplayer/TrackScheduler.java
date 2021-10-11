@@ -93,7 +93,12 @@ public class TrackScheduler extends AudioEventAdapter {
 	}
 
 	public void prevTrack() {
-		this.player.startTrack(lastTrack.makeClone(), false);
+		if (lastTrack != null) {
+			this.player.startTrack(lastTrack.makeClone(), false);
+		}
+		else {
+			this.player.startTrack(player.getPlayingTrack(), false);
+		}
 	}
 
 	@Override
