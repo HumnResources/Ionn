@@ -129,9 +129,9 @@ public class TrackScheduler extends AudioEventAdapter {
 		if (repeatSong) {
 			if (player.getPlayingTrack() != null) {
 				this.lastTrack = player.getPlayingTrack();
+				this.player.startTrack(lastTrack.makeClone(), false);
+				return;
 			}
-			this.player.startTrack(lastTrack.makeClone(), false);
-			return;
 		}
 
 		if (repeatQueue) {
