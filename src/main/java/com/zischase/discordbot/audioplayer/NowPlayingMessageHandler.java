@@ -80,7 +80,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 					}
 				}
 				case "TrackExceptionEvent" -> {
-					textChannel.sendMessage("Error loading the audio for track "+audioEvent.player.getPlayingTrack().getInfo().title+".").queue();
+					textChannel.sendMessage("Error loading the audio for track `"+audioEvent.player.getPlayingTrack().getInfo().title+"`.").queue();
 					((TrackExceptionEvent) audioEvent).exception.printStackTrace();
 					if (!scheduler.getQueue().isEmpty()) {
 						scheduler.nextTrack();
