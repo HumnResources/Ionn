@@ -124,9 +124,15 @@ public class TrackLoader implements AudioLoadResultHandler {
 		TextChannel channel = GuildContext.get(guildID)
 				.guild()
 				.getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
+		AudioTrack lastSong = GuildContext.get(guildID)
+				.audioManager()
+				.getScheduler()
+				.getLastTrack();
 
 		assert channel != null;
-		channel.sendMessage("Loading failed, sorry.").queue();
+		channel.sendMessage("Loading failed for `" + lastSong.getInfo().title + "`, sorry.").queue();
+
+		if (CACHE.containsValue(lastSong)) CACHE.remove(lastSong.getInfo().uri);
 	}
 
 	private boolean joinChannels(@Nullable VoiceChannel voiceChannel, TextChannel textChannel) {

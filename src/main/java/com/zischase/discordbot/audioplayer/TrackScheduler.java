@@ -36,6 +36,10 @@ public class TrackScheduler extends AudioEventAdapter {
 		this.queue   = new LinkedBlockingQueue<>();
 	}
 
+	public AudioTrack getLastTrack() {
+		return lastTrack.makeClone();
+	}
+
 	public boolean isRepeatSong() {
 		return repeatSong;
 	}
@@ -106,9 +110,7 @@ public class TrackScheduler extends AudioEventAdapter {
 
 	@Override
 	public void onTrackStart(AudioPlayer player, AudioTrack track) {
-//        if (!queue.isEmpty()) {
-		/* Do Nothing */
-//        }
+		this.lastTrack = track;
 	}
 
 	@Override
@@ -118,7 +120,6 @@ public class TrackScheduler extends AudioEventAdapter {
 			LOGGER.info("Loading failed for audio track {}", track.getInfo().title);
 			return;
 		}
-		this.lastTrack = track;
 
 		if (endReason.mayStartNext) {
 			nextTrack();
