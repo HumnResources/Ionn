@@ -80,7 +80,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 					}
 				}
 				case "TrackExceptionEvent" -> {
-					textChannel.sendMessage("Error loading the audio.").queue();
+					textChannel.sendMessage("Error loading the audio for track "+audioEvent.player.getPlayingTrack().getInfo().title+".").queue();
 					((TrackExceptionEvent) audioEvent).exception.printStackTrace();
 					if (!scheduler.getQueue().isEmpty()) {
 						scheduler.nextTrack();
@@ -95,7 +95,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 					if (scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() == null) {
 						deletePrevious(textChannel);
 						guild.getJDA().removeEventListener(queueMessageHandler, nowPlayingMessageHandler);
-						guild.getJDA().getDirectAudioController().disconnect(guild);
+						guild.getJDA().getDirectAudioController().disconnect(guild);:
 					}
 				}
 				case "TrackStartEvent" -> {
