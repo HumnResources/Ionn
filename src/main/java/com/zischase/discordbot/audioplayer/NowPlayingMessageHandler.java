@@ -95,7 +95,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 					if (scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() == null) {
 						deletePrevious(textChannel);
 						guild.getJDA().removeEventListener(queueMessageHandler, nowPlayingMessageHandler);
-						guild.getJDA().getDirectAudioController().disconnect(guild);:
+						guild.getJDA().getDirectAudioController().disconnect(guild);
 					}
 				}
 				case "TrackStartEvent" -> {
