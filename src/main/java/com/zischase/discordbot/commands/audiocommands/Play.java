@@ -8,7 +8,6 @@ import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -33,8 +32,8 @@ public class Play extends Command {
 
 	@Override
 	public CommandData getCommandData() {
-		OptionData name = new OptionData(OptionType.STRING, "name", "Plays song by name", true);
-		OptionData link = new OptionData(OptionType.STRING, "link", "Plays audio by url", true);
+		OptionData name   = new OptionData(OptionType.STRING, "name", "Plays song by name", true);
+		OptionData link   = new OptionData(OptionType.STRING, "link", "Plays audio by url", true);
 		OptionData search = new OptionData(OptionType.STRING, "search", "Youtube search query", true);
 
 		return super.getCommandData().addSubcommands(
@@ -73,52 +72,39 @@ public class Play extends Command {
 				.audioManager()
 				.getTrackLoader();
 
-		if (args.isEmpty() || args.get(0).equalsIgnoreCase("-pause")) {
-			AudioPlayer player = GuildContext.get(guildID)
-					.audioManager()
-					.getPlayer();
-			player.setPaused(!player.isPaused());
-		} else if (args.get(0).equalsIgnoreCase("-next")) {
-			String song = String.join(" ", args.subList(1, args.size()));
-			playNext(song, ctx.getVoiceChannel(), ctx.getChannel(), trackLoader);
-			ctx.getChannel().sendMessage("Playing `%s` next!".formatted(song)).queue(m -> m.delete().queueAfter(3000, TimeUnit.MILLISECONDS), null);
-		}
-		/* Checks to see if we have a potential link in the message */
-		else if (args.get(0).equalsIgnoreCase("-url")) {
-			List<Message.Attachment> attachments = ctx.getMessage().getAttachments();
-
-			if (!attachments.isEmpty()) {
-				trackLoader.load(ctx.getChannel(), voiceChannel, attachments.get(0).getProxyUrl());
+		// Get arg or set default if no args input - Ignored if user inputs a search param
+		String arg = !args.isEmpty() ? args.get(0) : "-pause";
+		String search = String.join(" ", args.subList(1, args.size()));
+		switch (arg) {
+			case "-pause" -> {
+				AudioPlayer player = GuildContext.get(guildID)
+						.audioManager()
+						.getPlayer();
+				player.setPaused(!player.isPaused());
 			}
-			else {
-				trackLoader.load(ctx.getChannel(), voiceChannel, args.get(1));
+			case "-next" -> {
+				playNext(search, ctx.getChannel());
+				ctx.getChannel().sendMessage("Playing `%s` next!".formatted(search)).queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS), null);
 			}
-		}
-		else if (args.get(0).equalsIgnoreCase("-ytplaylist")) {
-			String search = String.join(" ", args.subList(1, args.size()));
-			GuildContext.get(guildID)
-					.audioManager()
-					.getTrackLoader()
-					.loadYTSearchResults(ctx.getChannel(), voiceChannel, search);
-			ctx.getChannel()
-					.sendMessage("%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsTag(), search))
-					.queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
-		}
-		/* Otherwise we check to see if they input a string, process using YT as default */
-		else {
-			String search;
-			/* Removes the -song flag added by slash command */
-			if (args.get(0).equalsIgnoreCase("-song")) {
-				search = String.join(" ", args).replaceFirst("-(song)", "");
+			case "-url" -> trackLoader.load(ctx.getChannel(), voiceChannel, search);
+			case "-ytplaylist" -> {
+				trackLoader.loadYTSearchResults(ctx.getChannel(), voiceChannel, search);
+				ctx.getChannel()
+						.sendMessage("%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsMention(), search))
+						.queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
 			}
-			else {
+			case "-song" -> {
+				search = search.replaceFirst("-song", "");
+				trackLoader.load(ctx.getChannel(), voiceChannel, search);
+			}
+			default -> {
 				search = String.join(" ", args);
+				trackLoader.load(ctx.getChannel(), voiceChannel, search);
 			}
-			trackLoader.load(ctx.getChannel(), voiceChannel, search);
 		}
 	}
 
-	private void playNext(String song, VoiceChannel voiceChannel, TextChannel textChannel, TrackLoader trackLoader) {
+	private void playNext(String song, TextChannel textChannel) {
 
 		String                guildID      = textChannel.getGuild().getId();
 		AudioManager          audioManager = GuildContext.get(guildID).audioManager();

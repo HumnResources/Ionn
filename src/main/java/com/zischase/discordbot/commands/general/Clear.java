@@ -17,13 +17,13 @@ public class Clear extends Command {
 	}
 
 	@Override
-	public String helpText() {
-		return "Clear [amount] ~ Deletes the last x messages from this channel. Default will purge";
+	public @NotNull String shortDescription() {
+		return "Deletes messages. Can specify amount. ";
 	}
 
 	@Override
-	public @NotNull String shortDescription() {
-		return "Deletes messages. Can specify amount. ";
+	public String helpText() {
+		return "Clear [amount] ~ Deletes the last x messages from this channel. Default will purge";
 	}
 
 	@Override

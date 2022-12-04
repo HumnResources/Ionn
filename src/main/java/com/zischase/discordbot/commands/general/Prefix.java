@@ -23,13 +23,13 @@ public class Prefix extends Command {
 	}
 
 	@Override
-	public String helpText() {
-		return "Prefix [newPrefix] ~ Sets new prefix for commands.";
+	public @NotNull String shortDescription() {
+		return "Sets the prefix to use for commands.";
 	}
 
 	@Override
-	public @NotNull String shortDescription() {
-		return "Sets the prefix to use for commands.";
+	public String helpText() {
+		return "Prefix [newPrefix] ~ Sets new prefix for commands.";
 	}
 
 	@Override

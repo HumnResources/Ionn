@@ -89,40 +89,6 @@ public final class DBQueryHandler {
 				});
 	}
 
-	public static String get(String guildID, String setting) {
-		return Jdbi.create(DBConnectionHandler::getConnection)
-				.withHandle(handle ->
-				{
-					String r = "";
-					if (tableContainsColumn(handle,
-							"guild_settings",
-							setting
-					)) {
-						r = handle.createQuery(
-								"SELECT <setting> FROM guild_settings WHERE guild_id = :id")
-								.define("setting", setting)
-								.bind("id", guildID)
-								.mapTo(String.class)
-								.findFirst()
-								.orElse("");
-					} else if (tableContainsColumn(handle,
-							"media_settings",
-							setting
-					)) {
-						r = handle.createQuery(
-								"SELECT <setting> FROM media_settings WHERE guild_id = :guildID")
-								.define("setting", setting)
-								.bind("guildID", guildID)
-								.mapTo(String.class)
-								.findFirst()
-								.orElse("");
-					}
-
-					handle.close();
-					return r;
-				});
-	}
-
 	public static String get(String guildID, String table, String setting) {
 		return Jdbi.create(DBConnectionHandler::getConnection)
 				.withHandle(handle ->
@@ -198,6 +164,40 @@ public final class DBQueryHandler {
 									.bind("guildID", guild.getId())
 									.execute());
 		}
+	}
+
+	public static String get(String guildID, String setting) {
+		return Jdbi.create(DBConnectionHandler::getConnection)
+				.withHandle(handle ->
+				{
+					String r = "";
+					if (tableContainsColumn(handle,
+							"guild_settings",
+							setting
+					)) {
+						r = handle.createQuery(
+								"SELECT <setting> FROM guild_settings WHERE guild_id = :id")
+								.define("setting", setting)
+								.bind("id", guildID)
+								.mapTo(String.class)
+								.findFirst()
+								.orElse("");
+					} else if (tableContainsColumn(handle,
+							"media_settings",
+							setting
+					)) {
+						r = handle.createQuery(
+								"SELECT <setting> FROM media_settings WHERE guild_id = :guildID")
+								.define("setting", setting)
+								.bind("guildID", guildID)
+								.mapTo(String.class)
+								.findFirst()
+								.orElse("");
+					}
+
+					handle.close();
+					return r;
+				});
 	}
 
 	public static boolean getPremiumStatus(String guildID) {

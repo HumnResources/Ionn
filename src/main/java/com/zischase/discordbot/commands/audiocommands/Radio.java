@@ -75,9 +75,9 @@ public class Radio extends Command {
 
 	@Override
 	public void handle(CommandContext ctx) {
-		List<String> args        = ctx.getArgs();
-		String       guildID     = ctx.getGuild().getId();
-		TextChannel  textChannel = ctx.getChannel();
+		List<String> args         = ctx.getArgs();
+		String       guildID      = ctx.getGuild().getId();
+		TextChannel  textChannel  = ctx.getChannel();
 		VoiceChannel voiceChannel = ctx.getVoiceChannel();
 
 		String query = String.join(" ", args).toLowerCase();

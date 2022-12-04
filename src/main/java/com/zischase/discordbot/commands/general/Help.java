@@ -20,13 +20,13 @@ public class Help extends Command {
 	}
 
 	@Override
-	public String helpText() {
-		return null;
+	public @NotNull String shortDescription() {
+		return "Displays list of commands.";
 	}
 
 	@Override
-	public @NotNull String shortDescription() {
-		return "Displays list of commands.";
+	public String helpText() {
+		return null;
 	}
 
 	@Override
@@ -68,11 +68,11 @@ public class Help extends Command {
 		GuildContext.get(guildID)
 				.commandHandler();
 		CommandHandler.getCommandList().forEach(command ->
-				{
-					if (!command.isPremium() || GuildContext.get(guildID).isPremium()) {
-						cmdList.appendDescription(String.format("`%s%s`\n", prefix, command.getName()));
-					}
-				});
+		{
+			if (!command.isPremium() || GuildContext.get(guildID).isPremium()) {
+				cmdList.appendDescription(String.format("`%s%s`\n", prefix, command.getName()));
+			}
+		});
 		cmdList.appendDescription("\nUse `[Audio | Media | Music]` for more help.");
 
 		return cmdList.build();

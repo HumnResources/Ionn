@@ -97,7 +97,12 @@ public class TrackScheduler extends AudioEventAdapter {
 	}
 
 	public void prevTrack() {
-		this.player.startTrack(lastTrack.makeClone(), false);
+		if (lastTrack != null) {
+			this.player.startTrack(lastTrack.makeClone(), false);
+		}
+		else {
+			this.player.startTrack(player.getPlayingTrack().makeClone(), false);
+		}
 	}
 
 	@Override
@@ -130,9 +135,9 @@ public class TrackScheduler extends AudioEventAdapter {
 		if (repeatSong) {
 			if (player.getPlayingTrack() != null) {
 				this.lastTrack = player.getPlayingTrack();
+				this.player.startTrack(lastTrack.makeClone(), false);
+				return;
 			}
-			this.player.startTrack(lastTrack.makeClone(), false);
-			return;
 		}
 
 		if (repeatQueue) {

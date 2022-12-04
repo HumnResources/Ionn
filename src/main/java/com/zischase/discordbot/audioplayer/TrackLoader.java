@@ -15,6 +15,7 @@ import org.apache.commons.collections4.map.LinkedMap;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.concurrent.TimeUnit;
 
 public class TrackLoader implements AudioLoadResultHandler {
 
@@ -36,6 +37,27 @@ public class TrackLoader implements AudioLoadResultHandler {
 		}
 	}
 
+	private boolean joinChannels(@Nullable VoiceChannel voiceChannel, TextChannel textChannel) {
+		if (voiceChannel == null) {
+			voiceChannel = textChannel.getGuild().getVoiceChannelById(DBQueryHandler.get(guildID, "media_settings", "voicechannel"));
+			if (voiceChannel == null) {
+				return false;
+			}
+		}
+
+		Member bot = textChannel.getGuild().getMember(textChannel.getJDA().getSelfUser());
+		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
+		DBQueryHandler.set(guildID, "media_settings", "voiceChannel", voiceChannel.getId());
+
+		if (!voiceChannel.getMembers().contains(bot)) {
+			textChannel.getJDA()
+					.getDirectAudioController()
+					.connect(voiceChannel);
+		}
+
+		return true;
+	}
+
 	public void load(TextChannel textChannel, @Nullable VoiceChannel voiceChannel, String uri) {
 		if (joinChannels(voiceChannel, textChannel)) {
 			try {
@@ -53,19 +75,12 @@ public class TrackLoader implements AudioLoadResultHandler {
 							.loadItem(uri, this);
 				}
 			}
-			/* No Match - Search YouTube instead */
-			catch (MalformedURLException e) {
+			/* No Match - Search YouTube instead */ catch (MalformedURLException e) {
 				GuildContext.get(guildID)
 						.audioManager()
 						.getPlayerManager()
 						.loadItem("ytsearch: " + uri, new FunctionalResultHandler(this::trackLoaded, (playlist) -> trackLoaded(playlist.getTracks().get(0)), this::noMatches, this::loadFailed));
 			}
-		}
-	}
-
-	public void load(VoiceChannel voiceChannel, TextChannel textChannel, AudioTrack audioTrack) {
-		if (joinChannels(voiceChannel, textChannel)) {
-			this.trackLoaded(audioTrack);
 		}
 	}
 
@@ -89,14 +104,15 @@ public class TrackLoader implements AudioLoadResultHandler {
 			return;
 		}
 
+		String s;
 		assert channel != null;
 		if (audioTrack.getInfo() != null) {
 			if (audioTrack.getInfo().title != null) {
-				channel.sendMessage("Added: " + audioTrack.getInfo().title).queue();
+				s = "Added: `%s` to queue.".formatted(audioTrack.getInfo().title);
+			} else {
+				s = "Added: `%s` to queue.".formatted(audioTrack.getIdentifier());
 			}
-			else {
-				channel.sendMessage("Added: " + audioTrack.getIdentifier()).queue();
-			}
+			channel.sendMessage(s).queue(success -> success.delete().queueAfter(4, TimeUnit.SECONDS));
 		}
 
 	}
@@ -135,24 +151,9 @@ public class TrackLoader implements AudioLoadResultHandler {
 		if (CACHE.containsValue(lastSong)) CACHE.remove(lastSong.getInfo().uri);
 	}
 
-	private boolean joinChannels(@Nullable VoiceChannel voiceChannel, TextChannel textChannel) {
-		if (voiceChannel == null) {
-			voiceChannel = textChannel.getGuild().getVoiceChannelById(DBQueryHandler.get(guildID, "media_settings", "voicechannel"));
-			if (voiceChannel == null) {
-				return false;
-			}
+	public void load(VoiceChannel voiceChannel, TextChannel textChannel, AudioTrack audioTrack) {
+		if (joinChannels(voiceChannel, textChannel)) {
+			this.trackLoaded(audioTrack);
 		}
-
-		Member bot = textChannel.getGuild().getMember(textChannel.getJDA().getSelfUser());
-		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
-		DBQueryHandler.set(guildID, "media_settings", "voiceChannel", voiceChannel.getId());
-
-		if (!voiceChannel.getMembers().contains(bot)) {
-			textChannel.getJDA()
-					.getDirectAudioController()
-					.connect(voiceChannel);
-		}
-
-		return true;
 	}
 }

@@ -61,7 +61,7 @@ public class Volume extends Command {
 		}
 
 		if (args.get(0).matches("\\d+")) {
-			int num = Integer.parseInt(args.get(0));
+			int     num      = Integer.parseInt(args.get(0));
 			boolean validNum = (num >= 0 && num <= maxVol.get());
 			if (validNum) {
 				setVolume(guildID, num);

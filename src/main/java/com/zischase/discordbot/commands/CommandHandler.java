@@ -23,9 +23,6 @@ public final class CommandHandler {
 	private static final HashMap<String, Command> COMMANDS            = new HashMap<>();
 	private static final long                     COMMAND_TIMEOUT_SEC = 5;
 
-	private final AtomicReference<Command> lastCommand         = new AtomicReference<>(null);
-	private       OffsetDateTime           lastCommandExecTime = OffsetDateTime.now();
-
 	static {
 		addCommand(new Help());
 		addCommand(new Play());
@@ -53,8 +50,19 @@ public final class CommandHandler {
 		}
 	}
 
+	private final AtomicReference<Command> lastCommand         = new AtomicReference<>(null);
+	private       OffsetDateTime           lastCommandExecTime = OffsetDateTime.now();
+
 	public static List<Command> getCommandList() {
 		return List.copyOf(COMMANDS.values());
+	}
+
+	private static void addCommand(Command command) {
+		if (COMMANDS.putIfAbsent(command.getName().toLowerCase(), command) == null) {
+			LOGGER.info("{} - Added", command.getName());
+		} else {
+			LOGGER.warn("{} Already Present! - Replacing", command.getName());
+		}
 	}
 
 	public void invoke(CommandContext ctx) {
@@ -102,14 +110,6 @@ public final class CommandHandler {
 			}
 		}
 		return null;
-	}
-
-	private static void addCommand(Command command) {
-		if (COMMANDS.putIfAbsent(command.getName().toLowerCase(), command) == null) {
-			LOGGER.info("{} - Added", command.getName());
-		} else {
-			LOGGER.warn("{} Already Present! - Replacing", command.getName());
-		}
 	}
 
 }

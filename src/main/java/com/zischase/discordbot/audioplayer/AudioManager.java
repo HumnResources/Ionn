@@ -27,14 +27,19 @@ public class AudioManager {
 		AudioSourceManagers.registerLocalSource(PLAYER_MANAGER);
 	}
 
-	private final AudioPlayer    player;
-	private final TrackScheduler scheduler;
-	private final TrackLoader    trackLoader;
+	private final AudioPlayer              player;
+	private final TrackScheduler           scheduler;
+	private final TrackLoader              trackLoader;
+	private final NowPlayingMessageHandler nowPlayingMessageHandler;
+	private final QueueMessageHandler      queueMessageHandler;
 
 	public AudioManager(Guild guild) {
-		this.player      = PLAYER_MANAGER.createPlayer();
-		this.scheduler   = new TrackScheduler(this.getPlayer(), guild);
-		this.trackLoader = new TrackLoader(guild.getId());
+		this.player                   = PLAYER_MANAGER.createPlayer();
+		this.scheduler                = new TrackScheduler(this.getPlayer(), guild);
+		this.trackLoader              = new TrackLoader(guild.getId());
+		this.nowPlayingMessageHandler = new NowPlayingMessageHandler(this, guild);
+		this.queueMessageHandler      = new QueueMessageHandler(this);
+
 		this.player.addListener(scheduler);
 		guild.getAudioManager().setSendingHandler(this.getSendHandler());
 	}
@@ -59,4 +64,11 @@ public class AudioManager {
 		return scheduler;
 	}
 
+	public NowPlayingMessageHandler getNowPlayingMessageHandler() {
+		return nowPlayingMessageHandler;
+	}
+
+	public QueueMessageHandler getQueueMessageHandler() {
+		return queueMessageHandler;
+	}
 }

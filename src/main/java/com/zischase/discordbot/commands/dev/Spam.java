@@ -12,13 +12,13 @@ public class Spam extends Command {
 	}
 
 	@Override
-	public String helpText() {
-		return null;
+	public @NotNull String shortDescription() {
+		return "Stupid idea, really. Helps with testing.";
 	}
 
 	@Override
-	public @NotNull String shortDescription() {
-		return "Stupid idea, really. Helps with testing.";
+	public String helpText() {
+		return null;
 	}
 
 	@Override

@@ -11,24 +11,23 @@ import java.util.List;
 
 public class CommandContext {
 
-	private final TextChannel textChannel;
+	private final TextChannel  textChannel;
 	private final VoiceChannel voiceChannel;
-	private final Guild guild;
-	private final Member initiator;
-	private final Message message;
+	private final Guild        guild;
+	private final Member       initiator;
+	private final Message      message;
 	private final List<String> args;
 
 	public CommandContext(Guild guild, Member initiator, List<String> args, Message commandMessage, TextChannel textChannel, @Nullable VoiceChannel voiceChannel) {
-		this.initiator = initiator;
-		this.message = commandMessage;
-		this.args = args;
-		this.guild = guild;
+		this.initiator   = initiator;
+		this.message     = commandMessage;
+		this.args        = args;
+		this.guild       = guild;
 		this.textChannel = textChannel;
 
 		if (voiceChannel != null) {
 			this.voiceChannel = voiceChannel;
-		}
-		else {
+		} else {
 			this.voiceChannel = initiator.getVoiceState() != null ? initiator.getVoiceState().getChannel() : null;
 		}
 	}
@@ -37,13 +36,13 @@ public class CommandContext {
 		return DBQueryHandler.getPremiumStatus(getGuild().getId());
 	}
 
-	public List<String> getArgs() {
-		return args;
-	}
-
 	@NonNull
 	public Guild getGuild() {
 		return this.guild;
+	}
+
+	public List<String> getArgs() {
+		return args;
 	}
 
 	@Nullable
@@ -66,13 +65,13 @@ public class CommandContext {
 	}
 
 	@NonNull
-	public JDA getJDA() {
-		return this.initiator.getJDA();
+	public User getSelfUser() {
+		return this.getJDA().getSelfUser();
 	}
 
 	@NonNull
-	public User getSelfUser() {
-		return this.getJDA().getSelfUser();
+	public JDA getJDA() {
+		return this.initiator.getJDA();
 	}
 
 	@NonNull

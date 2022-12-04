@@ -75,10 +75,9 @@ public class Queue extends Command {
 			EmbedBuilder embed = new EmbedBuilder();
 			embed.setColor(Color.BLUE);
 			scheduler.clearQueue();
-		}
-		else if (args.size() == 2 && args.get(1).matches("(?i)(\\d+)")) {
-			int                   index = Integer.parseInt(args.get(1));
-			String arg = args.get(0);
+		} else if (args.size() == 2 && args.get(1).matches("(?i)(\\d+)")) {
+			int    index = Integer.parseInt(args.get(1));
+			String arg   = args.get(0);
 
 			if (index < 0 || index > queue.size()) {
 				return;
@@ -105,8 +104,8 @@ public class Queue extends Command {
 				}
 				case "-page" -> {
 					GuildContext.get(ctx.getGuild().getId())
-							.playerPrinter()
-							.getQueuePrinter()
+							.audioManager()
+							.getQueueMessageHandler()
 							.printQueuePage(ctx.getChannel(), index + 1); // Add one to account for 1 based numeration of pages
 					return;
 				}
@@ -114,11 +113,12 @@ public class Queue extends Command {
 		}
 
 		GuildContext.get(ctx.getGuild().getId())
-				.playerPrinter()
-				.getQueuePrinter()
+				.audioManager()
+				.getQueueMessageHandler()
 				.printQueue(ctx.getChannel());
 		GuildContext.get(ctx.getGuild().getId())
-				.playerPrinter()
+				.audioManager()
+				.getNowPlayingMessageHandler()
 				.printNowPlaying(ctx.getChannel());
 
 	}
