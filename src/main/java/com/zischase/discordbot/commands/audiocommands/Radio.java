@@ -26,11 +26,12 @@ public class Radio extends Command {
 	private static final Logger        LOGGER        = LoggerFactory.getLogger(Radio.class);
 	private static final RadioBrowser  RADIO_BROWSER = new RadioBrowser(5000, "Beta");
 	private static final List<Station> STATION_LIST;
+	private static final int MAX_RADIO_STATIONS = 100000;
 
 	static {
 		AtomicInteger i = new AtomicInteger();
 		LOGGER.info("Loading Radio Stations");
-		STATION_LIST = RADIO_BROWSER.listStations(Paging.at(0, 25000));
+		STATION_LIST = RADIO_BROWSER.listStations(Paging.at(0, MAX_RADIO_STATIONS));
 		STATION_LIST.removeIf(station -> {
 			boolean nullState = station.getState() == null || station.getState().matches("null");
 			boolean noBitRate = station.getBitrate() <= 0;
