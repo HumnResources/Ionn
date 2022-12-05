@@ -25,6 +25,7 @@ import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -98,7 +99,7 @@ public class Youtube extends Command {
 											.collect(Collectors.toList());
 
 									try {
-										ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getMember(), Color.RED).get();
+										ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getMember(), Color.RED).awaitForResult();
 										track.set(playlist.getTracks()
 												.stream()
 												.filter(audioTrack -> audioTrack.getInfo().title.equalsIgnoreCase(choice.getName()))
@@ -108,6 +109,10 @@ public class Youtube extends Command {
 
 									} catch (InvalidHandlerException e) {
 										e.printStackTrace();
+									} catch (ExecutionException e) {
+										throw new RuntimeException(e);
+									} catch (InterruptedException e) {
+										throw new RuntimeException(e);
 									}
 
 								},
@@ -191,14 +196,14 @@ public class Youtube extends Command {
 			/* Waits for user input - blocking - commands handled asynchronously */
 			ISearchable searchable;
 			try {
-				searchable = new ResultSelector(songList, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).get();
+				searchable = new ResultSelector(songList, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).awaitForResult();
 
 				if (searchable == null) {
 					return false;
 				}
 
 				videoUrl = searchable.getUrl();
-			} catch (InvalidHandlerException e) {
+			} catch (InvalidHandlerException | InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
 			trackLoader.load(ctx.getChannel(), voiceChannel, videoUrl);

@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Semaphore;
 
 public class ResultSelector {
 
@@ -36,14 +36,13 @@ public class ResultSelector {
 
 	private final CompletableFuture<ISearchable> futureResult  = new CompletableFuture<>();
 	private final List<Page>                     pages         = new ArrayList<>();
-	private final Semaphore                      semaphore     = new Semaphore(MAX_SEARCHES_PER_GUILD);
+	private final CountDownLatch                  latch         = new CountDownLatch(MAX_SEARCHES_PER_GUILD);
 	private final JDA                            jda;
 	private final Member                         initiator;
 	private final List<ISearchable>              searches;
 	private       OffsetDateTime                 start         = OffsetDateTime.now();
-	private       Color                          embedColor    = Color.PINK;
+	private       Color                         embedColor    = Color.PINK;
 	private       Message                        resultMessage = null;
-	private       Paginator                      paginator;
 
 	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator, Color color) throws InvalidHandlerException {
 		this(searches, textChannel, jda, initiator);
@@ -54,7 +53,7 @@ public class ResultSelector {
 		this.searches  = searches;
 		this.jda       = jda;
 		this.initiator = initiator;
-		this.paginator = PaginatorBuilder
+		Paginator paginator = PaginatorBuilder
 				.createPaginator()
 				.setHandler(jda)
 				.shouldEventLock(true)
@@ -72,7 +71,7 @@ public class ResultSelector {
 			@Override
 			public void run() {
 				if (OffsetDateTime.now().isAfter(start.plusSeconds(TIMEOUT_SEC))) {
-					semaphore.release(MAX_SEARCHES_PER_GUILD);
+					latch.countDown();
 				}
 			}
 		}, TIMEOUT_SEC, TIMEOUT_SEC);
@@ -111,16 +110,9 @@ public class ResultSelector {
 	}
 
 	@Nullable
-	public ISearchable get() {
-		ISearchable result = null;
+	public ISearchable awaitForResult() throws InterruptedException, ExecutionException {
+		ISearchable result;
 		start = OffsetDateTime.now();
-
-		try {
-			semaphore.acquire();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-
 		ListenerAdapter resultListener = new ListenerAdapter() {
 			@Override
 			public void onGuildMessageReceived(@org.jetbrains.annotations.NotNull GuildMessageReceivedEvent event) {
@@ -128,25 +120,20 @@ public class ResultSelector {
 					selectEntry(event);
 					event.getMessage().delete().submit();
 				} else if (event.getMessage().getAuthor() == initiator.getUser()) {
-					semaphore.release();
+					latch.countDown();
 				}
 			}
 		};
 
 		jda.addEventListener(resultListener);
 
-		try {
-			semaphore.acquire();
-			result = futureResult.get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
+		latch.await();
+
+		result = futureResult.get();
 
 		resultMessage.delete().queue();
-
 		jda.removeEventListener(resultListener);
-
-		semaphore.release();
+		latch.countDown();
 		return result;
 	}
 
@@ -158,7 +145,7 @@ public class ResultSelector {
 		int num = Integer.parseInt(event.getMessage().getContentDisplay());
 		if (num > 0 && num <= searches.size()) {
 			futureResult.complete(searches.get(num - 1));
-			semaphore.release();
+			latch.countDown();
 		}
 	}
 }

@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -110,13 +111,15 @@ public class Radio extends Command {
 
 		ISearchable result = null;
 		try {
-			result = new ResultSelector(results, textChannel, textChannel.getJDA(), initiator).get();
+			result = new ResultSelector(results, textChannel, textChannel.getJDA(), initiator).awaitForResult();
 			GuildContext.get(guildID)
 					.audioManager()
 					.getTrackLoader()
 					.load(textChannel, voiceChannel, result.getUrl());
 		} catch (InvalidHandlerException e) {
 			e.printStackTrace();
+		} catch (ExecutionException | InterruptedException e) {
+			throw new RuntimeException(e);
 		}
 	}
 }
