@@ -1,30 +1,30 @@
 package com.zischase.discordbot.commands;
 
-import com.github.ygimenez.exception.InvalidHandlerException;
-import com.github.ygimenez.method.Pages;
-import com.github.ygimenez.model.Page;
-import com.github.ygimenez.model.Paginator;
-import com.github.ygimenez.model.PaginatorBuilder;
-import com.sun.istack.NotNull;
-import com.sun.istack.Nullable;
-import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
+		import com.github.ygimenez.exception.InvalidHandlerException;
+		import com.github.ygimenez.method.Pages;
+		import com.github.ygimenez.model.Page;
+		import com.github.ygimenez.model.Paginator;
+		import com.github.ygimenez.model.PaginatorBuilder;
+		import com.sun.istack.NotNull;
+		import com.sun.istack.Nullable;
+		import net.dv8tion.jda.api.EmbedBuilder;
+		import net.dv8tion.jda.api.JDA;
+		import net.dv8tion.jda.api.MessageBuilder;
+		import net.dv8tion.jda.api.entities.Member;
+		import net.dv8tion.jda.api.entities.Message;
+		import net.dv8tion.jda.api.entities.TextChannel;
+		import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+		import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
-import java.awt.*;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
+		import java.awt.*;
+		import java.time.OffsetDateTime;
+		import java.util.ArrayList;
+		import java.util.List;
+		import java.util.Timer;
+		import java.util.TimerTask;
+		import java.util.concurrent.CompletableFuture;
+		import java.util.concurrent.ExecutionException;
+		import java.util.concurrent.Semaphore;
 
 public class ResultSelector {
 
@@ -36,13 +36,14 @@ public class ResultSelector {
 
 	private final CompletableFuture<ISearchable> futureResult  = new CompletableFuture<>();
 	private final List<Page>                     pages         = new ArrayList<>();
-	private final CountDownLatch                  latch         = new CountDownLatch(MAX_SEARCHES_PER_GUILD);
+	private final Semaphore                      semaphore     = new Semaphore(MAX_SEARCHES_PER_GUILD);
 	private final JDA                            jda;
 	private final Member                         initiator;
 	private final List<ISearchable>              searches;
 	private       OffsetDateTime                 start         = OffsetDateTime.now();
-	private       Color                         embedColor    = Color.PINK;
+	private       Color                          embedColor    = Color.PINK;
 	private       Message                        resultMessage = null;
+	private       Paginator                      paginator;
 
 	public ResultSelector(List<ISearchable> searches, TextChannel textChannel, JDA jda, Member initiator, Color color) throws InvalidHandlerException {
 		this(searches, textChannel, jda, initiator);
@@ -53,7 +54,7 @@ public class ResultSelector {
 		this.searches  = searches;
 		this.jda       = jda;
 		this.initiator = initiator;
-		Paginator paginator = PaginatorBuilder
+		this.paginator = PaginatorBuilder
 				.createPaginator()
 				.setHandler(jda)
 				.shouldEventLock(true)
@@ -71,7 +72,7 @@ public class ResultSelector {
 			@Override
 			public void run() {
 				if (OffsetDateTime.now().isAfter(start.plusSeconds(TIMEOUT_SEC))) {
-					latch.countDown();
+					semaphore.release(MAX_SEARCHES_PER_GUILD);
 				}
 			}
 		}, TIMEOUT_SEC, TIMEOUT_SEC);
@@ -111,8 +112,15 @@ public class ResultSelector {
 
 	@Nullable
 	public ISearchable awaitForResult() throws InterruptedException, ExecutionException {
-		ISearchable result;
+		ISearchable result = null;
 		start = OffsetDateTime.now();
+
+		try {
+			semaphore.acquire();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
 		ListenerAdapter resultListener = new ListenerAdapter() {
 			@Override
 			public void onGuildMessageReceived(@org.jetbrains.annotations.NotNull GuildMessageReceivedEvent event) {
@@ -120,20 +128,25 @@ public class ResultSelector {
 					selectEntry(event);
 					event.getMessage().delete().submit();
 				} else if (event.getMessage().getAuthor() == initiator.getUser()) {
-					latch.countDown();
+					semaphore.release();
 				}
 			}
 		};
 
 		jda.addEventListener(resultListener);
 
-		latch.await();
-
-		result = futureResult.get();
+		try {
+			semaphore.acquire();
+			result = futureResult.get();
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+		}
 
 		resultMessage.delete().queue();
+
 		jda.removeEventListener(resultListener);
-		latch.countDown();
+
+		semaphore.release();
 		return result;
 	}
 
@@ -145,7 +158,7 @@ public class ResultSelector {
 		int num = Integer.parseInt(event.getMessage().getContentDisplay());
 		if (num > 0 && num <= searches.size()) {
 			futureResult.complete(searches.get(num - 1));
-			latch.countDown();
+			semaphore.release();
 		}
 	}
 }
