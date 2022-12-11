@@ -28,10 +28,12 @@ public class ResultSelector {
 	private final JDA                            jda;
 	private final List<ISearchable> searchResultList;
 	private       int               offset = 0;
+	private final Member initiator;
 
 	public ResultSelector(SlashCommandInteractionEvent event, @NotNull List<ISearchable> searchResultList, TextChannel textChannel, JDA jda, Member initiator) throws InvalidHandlerException {
 		this.searchResultList = searchResultList;
 		this.jda              = jda;
+		this.initiator = initiator;
 
 		buildOptions(event.getHook());
 	}
@@ -71,6 +73,8 @@ public class ResultSelector {
 		ListenerAdapter resultListener = new ListenerAdapter() {
 			@Override
 			public void onStringSelectInteraction(@org.jetbrains.annotations.NotNull StringSelectInteractionEvent event) {
+				if (event.getMember() != initiator) return;
+
 				event.deferEdit().queue();
 				if (event.getSelectedOptions().get(0).getValue().equals("forward")) {
 					offset += PAGE_SIZE;
@@ -86,12 +90,12 @@ public class ResultSelector {
 
 				if (index >= 0 && index < searchResultList.size())
 					futureResult.complete(searchResultList.get(index));
-
-				event.getMessage().delete().complete();
 			}
 
 			@Override
 			public void onButtonInteraction(@org.jetbrains.annotations.NotNull ButtonInteractionEvent event) {
+				if (event.getMember() != initiator) return;
+
 				if (event.getButton().getLabel().equals("forward")) {
 					offset += PAGE_SIZE;
 				} else if (event.getButton().getLabel().equals("backward")) {
