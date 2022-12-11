@@ -1,7 +1,6 @@
 package com.zischase.discordbot.commands;
 
 import com.sun.istack.Nullable;
-import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.audiocommands.*;
 import com.zischase.discordbot.commands.general.Clear;
 import com.zischase.discordbot.commands.general.Help;
@@ -15,7 +14,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
 
 public final class CommandHandler {
 
@@ -42,7 +40,7 @@ public final class CommandHandler {
 
 		/* Takes a hot minute. */
 		CompletableFuture.runAsync(() -> addCommand(new Radio()));
-		CompletableFuture.runAsync(() -> addCommand(new Lyrics()));
+//		CompletableFuture.runAsync(() -> addCommand(new Lyrics()));
 
 		if (COMMANDS.size() <= 0) {
 			LOGGER.warn("Commands not added !!");
@@ -66,50 +64,37 @@ public final class CommandHandler {
 	}
 
 	public void invoke(CommandContext ctx) {
-		String prefix = DBQueryHandler.get(ctx.getGuild().getId(), "prefix");
-		String invoke = ctx.getMessage()
-				.getContentRaw()
-				.replaceFirst("(?i)" + Pattern.quote(prefix), "") // Remove prefix
-				.split("\\s")[0] // Select first word (command)
-				.toLowerCase();
-		Command cmd = getCommand(invoke);
+		Command cmd = getCommand(ctx.getEvent().getName());
 
+		if (cmd == null) return;
 
-		if (cmd != null) {
-			if (cmd.isPremium() && !ctx.isPremiumGuild()) {
-				ctx.getChannel().sendMessage("Sorry, this feature is for premium guilds only :c").queue();
-			} else {
-				LOGGER.info("{} - {}:{}", ctx.getGuild().getName(), ctx.getMember().getUser().getName(), ctx.getMessage().getContentRaw());
+		if (cmd.isPremium() && !ctx.isPremiumGuild()) {
+			ctx.getChannel().sendMessage("Sorry, this feature is for premium guilds only :c").queue();
+		} else {
+			LOGGER.info("{} - {}:{}", ctx.getGuild().getName(), ctx.getMember().getUser().getName(), ctx.getMessage().getContent());
 
-				if (lastCommand.get() != null && cmd.getName().equalsIgnoreCase(lastCommand.get().getName())) {
-
-					if (OffsetDateTime.now().isBefore(lastCommandExecTime.plusSeconds(COMMAND_TIMEOUT_SEC))) {
-						lastCommand.set(cmd);
-						ctx.getChannel().sendMessage("Command on cooldown").queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
-						LOGGER.warn("Timeout! - {}:{}:{}", ctx.getGuild().getName(), ctx.getMember().getUser().getName(), cmd.getName());
-						return;
-					}
-				}
-				lastCommandExecTime = OffsetDateTime.now();
+			if ((lastCommand.get() != null && cmd.getName().equalsIgnoreCase(lastCommand.get().getName()) &&
+					OffsetDateTime.now().isBefore(lastCommandExecTime.plusSeconds(COMMAND_TIMEOUT_SEC))
+			)) {
 				lastCommand.set(cmd);
-				cmd.handle(ctx);
+				ctx.getChannel().sendMessage("Command on cooldown").queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
+				LOGGER.warn("Timeout! - {}:{}:{}", ctx.getGuild().getName(), ctx.getMember().getUser().getName(), cmd.getName());
+				return;
 			}
+
+			lastCommandExecTime = OffsetDateTime.now();
+			lastCommand.set(cmd);
+			cmd.handle(ctx);
 		}
 	}
 
 	@Nullable
 	public static Command getCommand(String search) {
 		for (Command c : COMMANDS.values()) {
-			if (search.equalsIgnoreCase(c.getName())) {
+			if (search.equalsIgnoreCase(c.getName()) || c.getAliases().contains(search)) {
 				return c;
-			}
-			for (String s : c.getAliases()) {
-				if (s.equalsIgnoreCase(search)) {
-					return c;
-				}
 			}
 		}
 		return null;
 	}
-
 }

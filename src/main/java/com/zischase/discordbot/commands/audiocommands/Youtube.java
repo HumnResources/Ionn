@@ -9,11 +9,11 @@ import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.audioplayer.TrackScheduler;
 import com.zischase.discordbot.commands.*;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -21,7 +21,6 @@ import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +38,7 @@ public class Youtube extends Command {
 	}
 
 	@Override
-	public CommandData getCommandData() {
+	public SlashCommandData getCommandData() {
 		OptionData query = new OptionData(OptionType.STRING, "query", "Displays a list from search result", true);
 
 		return super.getCommandData().addOptions(query);
@@ -98,7 +97,7 @@ public class Youtube extends Command {
 											.collect(Collectors.toList());
 
 									try {
-										ISearchable choice = new ResultSelector(searchables, ctx.getChannel(), ctx.getJDA(), ctx.getMember(), Color.RED).get();
+										ISearchable choice = new ResultSelector(ctx.getEvent(), searchables, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).get();
 										track.set(playlist.getTracks()
 												.stream()
 												.filter(audioTrack -> audioTrack.getInfo().title.equalsIgnoreCase(choice.getName()))
@@ -133,7 +132,7 @@ public class Youtube extends Command {
 		String      guildID     = ctx.getGuild().getId();
 		TextChannel textChannel = ctx.getChannel();
 		VoiceChannel voiceChannel = ctx.getMember().getVoiceState() != null ?
-				ctx.getMember().getVoiceState().getChannel() : null;
+				ctx.getMember().getVoiceState().getChannel().asVoiceChannel() : null;
 
 		List<ISearchable> songList = new ArrayList<>();
 		String            videoUrl = "https://www.youtube.com/watch?v=";
@@ -191,7 +190,7 @@ public class Youtube extends Command {
 			/* Waits for user input - blocking - commands handled asynchronously */
 			ISearchable searchable;
 			try {
-				searchable = new ResultSelector(songList, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).get();
+				searchable = new ResultSelector(ctx.getEvent(), songList, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).get();
 
 				if (searchable == null) {
 					return false;
@@ -215,7 +214,7 @@ public class Youtube extends Command {
 
 				int index = queue.size() - 1; // Subtract 1 for '0' based numeration.
 
-				if (index < 0 || index > queue.size()) {
+				if (index < 0) {
 					return false;
 				}
 

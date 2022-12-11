@@ -8,11 +8,11 @@ import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,7 +31,7 @@ public class Play extends Command {
 	}
 
 	@Override
-	public CommandData getCommandData() {
+	public SlashCommandData getCommandData() {
 		OptionData name   = new OptionData(OptionType.STRING, "name", "Plays song by name", true);
 		OptionData link   = new OptionData(OptionType.STRING, "link", "Plays audio by url", true);
 		OptionData search = new OptionData(OptionType.STRING, "search", "Youtube search query", true);
@@ -63,14 +63,14 @@ public class Play extends Command {
 
 	@Override
 	public void handle(CommandContext ctx) {
-		VoiceChannel voiceChannel = ctx.getMember().getVoiceState() != null ?
-				ctx.getMember().getVoiceState().getChannel() : null;
 
 		List<String> args    = ctx.getArgs();
 		String       guildID = ctx.getGuild().getId();
 		TrackLoader trackLoader = GuildContext.get(guildID)
 				.audioManager()
 				.getTrackLoader();
+
+		VoiceChannel voiceChannel = ctx.getVoiceChannel();
 
 		// Get arg or set default if no args input - Ignored if user inputs a search param
 		String arg = !args.isEmpty() ? args.get(0) : "-pause";

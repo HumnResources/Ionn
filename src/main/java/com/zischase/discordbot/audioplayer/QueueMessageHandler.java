@@ -3,12 +3,15 @@ package com.zischase.discordbot.audioplayer;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageType;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.react.GenericGuildMessageReactionEvent;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.message.react.GenericMessageReactionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,7 +29,7 @@ import static com.zischase.discordbot.audioplayer.MediaControls.*;
 public class QueueMessageHandler extends ListenerAdapter {
 
 	private final AtomicReference<Message> queueMessage = new AtomicReference<>(null);
-	private final List<Message>            queuePages   = new ArrayList<>();
+	private final List<MessageCreateData>  queuePages   = new ArrayList<>();
 	private final AudioManager             manager;
 
 	private final AtomicInteger queuePageNum = new AtomicInteger(0);
@@ -36,33 +39,34 @@ public class QueueMessageHandler extends ListenerAdapter {
 	}
 
 	@Override
-	public void onGenericGuildMessageReaction(@NotNull GenericGuildMessageReactionEvent event) {
-		if (event.getMember() == null || event.getMember().getUser().isBot() || event.getReaction().isSelf()) {
-			return;
+	public void onGenericMessageReaction(@NotNull GenericMessageReactionEvent event) {
+		Message qMessage = this.queueMessage.get();
+		Message eventMessage = event.retrieveMessage().complete();
+
+		/* Validates message and user entry */
+		if (qMessage == null || qMessage.getIdLong() != eventMessage.getIdLong() || event.getMember() == null || event.getMember().getUser().isBot()) return;
+
+		String reaction = event.getReaction().getEmoji().getName();
+		TextChannel textChannel = event.getChannel().asTextChannel();
+
+		switch (reaction) {
+			case SHUFFLE -> Shuffle.shuffle(event.getGuild().getId(), manager);
+			case REPEAT_QUEUE -> {
+				manager.getScheduler().setRepeatQueue(!manager.getScheduler().isRepeatQueue());
+				printQueuePage(textChannel, getCurrentPageNum());
+			}
+			case REVERSE -> printQueuePage(textChannel, Math.max(getCurrentPageNum() - 1, 0));
+			case PREV_TRACK -> printQueuePage(textChannel, 0);
+			case PLAY -> printQueuePage(textChannel, Math.min(getCurrentPageNum() + 1, getMaxPages()));
+			case NEXT_TRACK -> printQueuePage(textChannel, getMaxPages());
+			case STOP -> manager.getScheduler().clearQueue();
 		}
 
-		Message eventMessage = event.retrieveMessage().complete();
-		Message queueMessage = this.queueMessage.get();
-
-		if (queueMessage != null && eventMessage.getId().equals(queueMessage.getId())) {
-			String reaction = event.getReaction().getReactionEmote().getName();
-			switch (reaction) {
-				case SHUFFLE -> Shuffle.shuffle(event.getGuild().getId(), manager);
-				case REPEAT_QUEUE -> {
-					manager.getScheduler().setRepeatQueue(!manager.getScheduler().isRepeatQueue());
-					printQueuePage(event.getChannel(), getCurrentPageNum());
-				}
-				case REVERSE -> printQueuePage(event.getChannel(), Math.max(getCurrentPageNum() - 1, 0));
-				case PREV_TRACK -> printQueuePage(event.getChannel(), 0);
-				case PLAY -> printQueuePage(event.getChannel(), Math.min(getCurrentPageNum() + 1, getMaxPages()));
-				case NEXT_TRACK -> printQueuePage(event.getChannel(), getMaxPages());
-				case STOP -> manager.getScheduler().clearQueue();
-			}
-			try {
-				Thread.sleep(REACTION_TIMEOUT_MS);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+		/* Sleep thread to add all reactions / prevent overflow in responses */
+		try {
+			Thread.sleep(REACTION_TIMEOUT_MS);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -81,7 +85,7 @@ public class QueueMessageHandler extends ListenerAdapter {
 						if (!manager.getScheduler().getQueue().isEmpty()) addReactions(msg);
 					});
 		} else {
-			textChannel.editMessageById(message.getId(), queuePages.get(this.queuePageNum.get()))
+			textChannel.editMessageById(message.getId(), MessageEditData.fromCreateData(queuePages.get(this.queuePageNum.get())))
 					.queue(msg -> {
 						this.queueMessage.set(msg);
 						if (!manager.getScheduler().getQueue().isEmpty()) addReactions(msg);
@@ -92,6 +96,15 @@ public class QueueMessageHandler extends ListenerAdapter {
 			Thread.sleep(PRINT_TIMEOUT_MS);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+		}
+	}
+
+	private void setPageNum(int num) {
+		if (num > getMaxPages()) {
+			this.queuePageNum.set(getMaxPages());
+		}
+		else {
+			this.queuePageNum.set(Math.max(num, 0));
 		}
 	}
 
@@ -136,11 +149,13 @@ public class QueueMessageHandler extends ListenerAdapter {
 
 		queuePages.clear();
 
+
+
 		if (size == 0) {
 			eb.setColor(Color.cyan);
 			eb.appendDescription("Empty...");
 			eb.setFooter("Page: %d/%d - Tracks: %d %s".formatted(pageCount, getMaxPages(), size, repeat));
-			queuePages.add(new MessageBuilder().append(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
+			queuePages.add(new MessageCreateBuilder().addContent(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
 			return;
 		}
 
@@ -158,18 +173,14 @@ public class QueueMessageHandler extends ListenerAdapter {
 			if (i % QUEUE_PAGE_SIZE == 0 || i == size) {
 				eb.setFooter("Page: %d/%d - Tracks: %d - Runtime: %s %s".formatted(pageCount, getMaxPages(), size, runtimeFormatted, repeat));
 				pageCount++;
-				queuePages.add(new MessageBuilder().append(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
+				queuePages.add(new MessageCreateBuilder().addContent(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
 				eb.clear();
 			}
 		}
 	}
 
-	private void setPageNum(int num) {
-		if (num > getMaxPages()) {
-			this.queuePageNum.set(getMaxPages() - 1);
-		} else {
-			this.queuePageNum.set(Math.max(num, 0));
-		}
+	public void printQueue(@NotNull TextChannel textChannel) {
+		printQueuePage(textChannel, 0);
 	}
 
 	private void addReactions(Message queueMessage) {
@@ -181,18 +192,14 @@ public class QueueMessageHandler extends ListenerAdapter {
 
 		List<String> reactionsPresent = queueMessage.getReactions()
 				.stream()
-				.map(reaction -> reaction.getReactionEmote().getName())
+				.map(reaction -> reaction.getEmoji().getName())
 				.collect(Collectors.toList());
 
 		/* Only add a reaction if it's missing. Saves on queues submit to discord API */
 		for (String reaction : MediaControls.getQueueReactions()) {
 			if (!reactionsPresent.contains(reaction)) {
-				queueMessage.addReaction(reaction).submit();
+				queueMessage.addReaction(Emoji.fromFormatted(reaction)).submit();
 			}
 		}
-	}
-
-	public void printQueue(@NotNull TextChannel textChannel) {
-		printQueuePage(textChannel, 0);
 	}
 }

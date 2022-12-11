@@ -1,6 +1,6 @@
 package com.zischase.discordbot.commands;
 
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.utils.data.DataObject;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,8 +14,8 @@ public abstract class Command {
 		this.premiumCommand = premiumCommand;
 	}
 
-	public CommandData getCommandData() {
-		return CommandData.fromData(DataObject.fromJson("""
+	public SlashCommandData getCommandData() {
+		return SlashCommandData.fromData(DataObject.fromJson("""
 				{
 					"name": "%s",
 					"description": "%s"

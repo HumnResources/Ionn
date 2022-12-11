@@ -6,11 +6,11 @@ import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.commands.CommandHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.utils.data.DataObject;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -134,8 +134,8 @@ public final class Lyrics extends Command {
 	}
 
 	@Override
-	public CommandData getCommandData() {
-		return CommandData.fromData(DataObject.fromJson("""
+	public SlashCommandData getCommandData() {
+		return SlashCommandData.fromData(DataObject.fromJson("""
 				{
 					"name": "lyrics",
 					"description": "Displays the lyrics for the current song",
@@ -195,7 +195,7 @@ public final class Lyrics extends Command {
 		/* Calls the Now PLaying command for respective guild. This keeps the player visible TODO: Address this in track watcher */
 		if (GuildContext.get(ctx.getGuild().getId()).audioManager().getPlayer().getPlayingTrack() != null) {
 			Objects.requireNonNull(CommandHandler.getCommand("NowPlaying"))
-					.handle(new CommandContext(ctx.getGuild(), ctx.getMember(), List.of(), ctx.getMessage(), ctx.getChannel(), null));
+					.handle(new CommandContext(ctx.getGuild(), ctx.getMember(), List.of(), ctx.getMessage(), ctx.getChannel(), null, null));
 		}
 	}
 
@@ -212,10 +212,10 @@ public final class Lyrics extends Command {
 		String         query;
 		String         lyrics;
 		EmbedBuilder   embedBuilder;
-		MessageBuilder messageBuilder;
+		MessageCreateBuilder messageBuilder;
 		Document       doc;
 		Element        searchResultElement;
-		Message[]      messages;
+		MessageCreateData[]      messages;
 		int            length;
 		int            nMessages;
 
@@ -287,9 +287,9 @@ public final class Lyrics extends Command {
 
 		/* Get number of messages needed to meet Discord criteria */
 		nMessages      = (int) Math.ceil(((float) length / MAX_MESSAGE_SIZE));
-		messages       = new Message[nMessages];
+		messages       = new MessageCreateData[nMessages];
 		embedBuilder   = new EmbedBuilder();
-		messageBuilder = new MessageBuilder();
+		messageBuilder = new MessageCreateBuilder();
 		embedBuilder.setTitle("%s - %s".formatted(artist, title));
 
 		/* Handle multiple messages */
@@ -322,7 +322,7 @@ public final class Lyrics extends Command {
 
 				/* Reset for next set of lyrics */
 				embedBuilder   = new EmbedBuilder();
-				messageBuilder = new MessageBuilder();
+				messageBuilder = new MessageCreateBuilder();
 			}
 		} else {
 			/* Only need one message */
@@ -331,7 +331,7 @@ public final class Lyrics extends Command {
 		}
 
 		/* Sends any messages we received */
-		for (Message m : messages) {
+		for (MessageCreateData m : messages) {
 			textChannel.sendMessage(m).submit();
 		}
 	}

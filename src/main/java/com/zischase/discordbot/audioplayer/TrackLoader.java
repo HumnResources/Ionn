@@ -9,8 +9,8 @@ import com.sun.istack.Nullable;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import org.apache.commons.collections4.map.LinkedMap;
 
 import java.net.MalformedURLException;

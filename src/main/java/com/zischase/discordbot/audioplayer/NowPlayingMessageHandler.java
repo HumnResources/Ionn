@@ -8,10 +8,18 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.message.guild.react.GenericGuildMessageReactionEvent;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageType;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.message.react.GenericMessageReactionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
@@ -49,9 +57,9 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 		AudioEventListener audioEventListener = audioEvent -> {
 
 			/* Check for available channel to display Now PLaying prompt */
-			TextChannel              textChannel              = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textchannel"));
-			VoiceChannel             voiceChannel             = guild.getVoiceChannelById(DBQueryHandler.get(id, "media_settings", "voicechannel"));
-			TrackScheduler           scheduler                = audioManager.getScheduler();
+			TextChannel  textChannel  = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textchannel"));
+			VoiceChannel voiceChannel = guild.getVoiceChannelById(DBQueryHandler.get(id, "media_settings", "voicechannel"));
+			TrackScheduler scheduler    = audioManager.getScheduler();
 			NowPlayingMessageHandler nowPlayingMessageHandler = audioManager.getNowPlayingMessageHandler();
 			QueueMessageHandler      queueMessageHandler      = audioManager.getQueueMessageHandler();
 
@@ -184,24 +192,21 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 
 	public synchronized void printNowPlaying(TextChannel textChannel, boolean forcePrint) {
 		this.nowPlayingMessage = getNPMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
-		Message builtMessage = buildNowPlaying();
 
-		if (forcePrint) {
-			this.nowPlayingMessage = null;
-		}
+		MessageCreateData msg = buildNowPlaying();
 
-		if (this.nowPlayingMessage == null || this.nowPlayingMessage.getType() == MessageType.UNKNOWN) {
+		if (this.nowPlayingMessage == null || forcePrint || this.nowPlayingMessage.getType() == MessageType.UNKNOWN) {
 			deletePrevious(textChannel);
 
 			QueueMessageHandler queueMessageHandler = audioManager.getQueueMessageHandler();
 			queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
 
-			textChannel.sendMessage(builtMessage).queue(message -> {
+			textChannel.sendMessage(msg).queue(message -> {
 				addReactions(message);
 				this.nowPlayingMessage = message;
 			});
 		} else {
-			textChannel.editMessageById(this.nowPlayingMessage.getId(), builtMessage).queue();
+			textChannel.editMessageById(this.nowPlayingMessage.getId(), MessageEditData.fromCreateData(msg)).queue();
 		}
 
 		try {
@@ -228,21 +233,21 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 				.orElse(null);
 	}
 
-	private Message buildNowPlaying() {
-		AudioPlayer    player         = audioManager.getPlayer();
-		AudioTrack     track          = player.getPlayingTrack();
-		MessageBuilder messageBuilder = new MessageBuilder();
+	private MessageCreateData buildNowPlaying() {
+		AudioPlayer          player         = audioManager.getPlayer();
+		AudioTrack           track          = player.getPlayingTrack();
+		MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
 		EmbedBuilder   embedBuilder   = new EmbedBuilder();
 
 		String paused     = player.isPaused() ? MediaControls.PAUSE : MediaControls.PLAY;
 		String repeatSong = audioManager.getScheduler().isRepeatSong() ? MediaControls.REPEAT_ONE : "";
 
 		if (track == null) {
-			messageBuilder.append(NOTHING_PLAYING_MSG_NAME);
+			messageBuilder.addContent(NOTHING_PLAYING_MSG_NAME);
 			embedBuilder.setColor(Color.darkGray);
 			embedBuilder.setTitle("...");
 		} else {
-			messageBuilder.append(NOW_PLAYING_MSG_NAME);
+			messageBuilder.addContent(NOW_PLAYING_MSG_NAME);
 
 			AudioTrackInfo info        = track.getInfo();
 			long           duration    = info.length / 1000;
@@ -279,7 +284,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 		embedBuilder.addField("", "%s **%s**".formatted(MediaControls.VOLUME_HIGH, audioManager.getPlayer().getVolume()), true);
 		embedBuilder.addField("", "%s %s".formatted(paused, repeatSong), true);
 
-		return messageBuilder.setEmbeds(embedBuilder.build()).build();
+		return messageBuilder.addEmbeds(embedBuilder.build()).build();
 	}
 
 	private void addReactions(Message nowPlayingMsg) {
@@ -291,13 +296,13 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 
 		List<String> reactionsPresent = nowPlayingMsg.getReactions()
 				.stream()
-				.map(reaction -> reaction.getReactionEmote().getName())
+				.map(reaction -> reaction.getEmoji().getName())
 				.collect(Collectors.toList());
 
 		/* Only add a reaction if it's missing. Saves on queues submit to discord API */
 		for (String reaction : MediaControls.getNowPlayingReactions()) {
 			if (!reactionsPresent.contains(reaction)) {
-				nowPlayingMsg.addReaction(reaction).submit();
+				nowPlayingMsg.addReaction(Emoji.fromFormatted(reaction)).submit();
 			}
 		}
 	}
@@ -322,7 +327,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 	}
 
 	@Override
-	public void onGenericGuildMessageReaction(@NotNull GenericGuildMessageReactionEvent event) {
+	public void onGenericMessageReaction(@NotNull GenericMessageReactionEvent event) {
 		Member eventMember = event.getMember();
 		if (eventMember == null || eventMember.getUser().isBot() || event.getReaction().isSelf()) {
 			return;
@@ -332,7 +337,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 			return;
 		}
 		Message currentNPMessage = audioManager.getNowPlayingMessageHandler().getNowPlayingMessage();
-		String  reaction         = event.getReaction().getReactionEmote().getName();
+		String  reaction         = event.getReaction().getEmoji().getName();
 
 		CompletableFuture.runAsync(() -> {
 			if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId())) {
@@ -359,6 +364,6 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 				audioManager.getPlayer().stopTrack();
 			}
 		}
-		printNowPlaying(currentNPMessage.getTextChannel());
+		printNowPlaying(currentNPMessage.getChannel().asTextChannel());
 	}
 }

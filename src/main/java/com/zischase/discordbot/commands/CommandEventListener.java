@@ -1,30 +1,27 @@
 package com.zischase.discordbot.commands;
 
-import com.zischase.discordbot.Config;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.events.ReadyEvent;
-import net.dv8tion.jda.api.events.ShutdownEvent;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.session.ReadyEvent;
+import net.dv8tion.jda.api.events.session.ShutdownEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.regex.Pattern;
 
 public class CommandEventListener extends ListenerAdapter {
 
@@ -45,24 +42,18 @@ public class CommandEventListener extends ListenerAdapter {
 	}
 
 	@Override
-	public void onSlashCommand(@NotNull SlashCommandEvent event) {
-		if (event.isAcknowledged()) {
-			return;
-		}
+	public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
+		if (event.isAcknowledged()) return;
 
-		event.isAcknowledged();
-		event.deferReply(false).queue(
-				(m) -> event.getHook().deleteOriginal().queue(),
-				err -> LOGGER.warn("Slash Command Timeout: {} !", event.getName())
-		);
+		event.deferReply(true).queue();
 
-		List<String>   args           = new ArrayList<>();
-		MessageBuilder commandMessage = new MessageBuilder();
-		commandMessage.append(event.getName().concat(" "));
+		if (event.getGuild() == null) return;
 
-		if (event.getSubcommandName() != null) {
-			args.add("-".concat(event.getSubcommandName()));
-		}
+		List<String>         args           = new ArrayList<>();
+		MessageCreateBuilder commandMessage = new MessageCreateBuilder();
+		commandMessage.addContent(event.getName().concat(" "));
+
+		if (event.getSubcommandName() != null) args.add("-".concat(event.getSubcommandName()));
 
 		event.getOptions().forEach((opt) -> {
 			if (opt.getType() == OptionType.STRING || opt.getType() == OptionType.INTEGER) {
@@ -70,48 +61,22 @@ public class CommandEventListener extends ListenerAdapter {
 			}
 		});
 
-		CommandContext ctx = new CommandContext(event.getGuild(), event.getMember(), args, commandMessage.build(), event.getTextChannel(), null);
-		executeCommand(ctx);
-	}
+		String         vChannelID   = DBQueryHandler.get(event.getGuild().getId(), "voicechannel");
+		VoiceChannel   voiceChannel = GuildContext.get(event.getGuild().getId()).guild().getVoiceChannelById(vChannelID);
 
-	private void executeCommand(CommandContext ctx) {
+		CommandContext ctx          = new CommandContext(event.getGuild(), event.getMember(), args, commandMessage.build(), event.getChannel().asTextChannel(), voiceChannel, event);
 
-
-		CompletableFuture.runAsync(() -> GuildContext.get(ctx.getGuild().getId()).commandHandler().invoke(ctx));
-
-	}
-
-	@Override
-	public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent event) {
-		String prefix = DBQueryHandler.get(event.getGuild().getId(), "prefix");
-		String raw    = event.getMessage().getContentRaw();
-
-		if (raw.startsWith(prefix)) {
-			String[]     msgArr = raw.replaceFirst("(?i)" + Pattern.quote(prefix), "").split("\\s");
-			List<String> args   = Arrays.asList(msgArr).subList(1, msgArr.length);
-
-			CommandContext ctx = new CommandContext(event.getGuild(), event.getMember(), args, event.getMessage(), event.getChannel(), null);
-
-			if (event.getAuthor().getId().equals(Config.get("OWNER_ID"))) {
-				if (msgArr[0].equalsIgnoreCase("slash")) {
-					updateSlashCommands(event.getJDA(), false);
-					return;
-				} else if (msgArr[0].equalsIgnoreCase("slashforce")) {
-					updateSlashCommands(event.getJDA(), true);
-					return;
-				} else if (msgArr[0].equalsIgnoreCase("delslash")) {
-					deleteSlashCommands(event.getJDA());
-					return;
-				}
-			}
-			executeCommand(ctx);
-		}
+		CompletableFuture.runAsync(() -> {
+			GuildContext.get(ctx.getGuild().getId()).commandHandler().invoke(ctx);
+			ctx.getEvent().getHook().deleteOriginal().submit();
+		});
 	}
 
 	@Override
 	public void onGuildJoin(@NotNull GuildJoinEvent event) {
 		new GuildContext(event.getGuild());
 		LOGGER.info("Joined a new guild : " + event.getGuild().getName() + " " + event.getGuild().getId());
+		updateSlashCommands(event.getJDA(), true);
 	}
 
 	@Override

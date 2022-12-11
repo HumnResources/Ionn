@@ -5,8 +5,8 @@ import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -18,7 +18,7 @@ public class Prefix extends Command {
 	}
 
 	@Override
-	public CommandData getCommandData() {
+	public SlashCommandData getCommandData() {
 		return super.getCommandData().addOptions(new OptionData(OptionType.STRING, "set", "sets new prefix"));
 	}
 

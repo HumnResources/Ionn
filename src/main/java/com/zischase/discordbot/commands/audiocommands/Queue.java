@@ -7,8 +7,8 @@ import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,7 +23,7 @@ public class Queue extends Command {
 	}
 
 	@Override
-	public CommandData getCommandData() {
+	public SlashCommandData getCommandData() {
 		OptionData index = new OptionData(OptionType.STRING, "index", "Use queue command to get index numbers", true);
 
 		return super.getCommandData().addSubcommands(
@@ -33,6 +33,7 @@ public class Queue extends Command {
 				new SubcommandData("jump", "Shifts the queue to the index number - See queue").addOptions(index),
 				new SubcommandData("page", "Goes to page number").addOptions(index.setRequired(true))
 		);
+
 	}
 
 	@Override

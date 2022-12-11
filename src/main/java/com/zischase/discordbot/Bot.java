@@ -8,10 +8,9 @@ import me.duncte123.botcommons.BotCommons;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.security.auth.login.LoginException;
 
 public class Bot {
 
@@ -22,15 +21,7 @@ public class Bot {
 	}
 
 	public static void main(String[] args) {
-		JDA jda = null;
-		try {
-			jda = JDABuilder.createDefault(Config.get("TOKEN")).build();
-		} catch (LoginException e) {
-			e.printStackTrace();
-		}
-		if (jda == null) {
-			throw new RuntimeException();
-		}
+		JDA jda = JDABuilder.createDefault(Config.get("TOKEN")).enableIntents(GatewayIntent.GUILD_MESSAGES).build();
 
 		setShutdownHook(jda);
 		jda.getPresence().setActivity(Activity.listening(" starting..."));

@@ -7,10 +7,11 @@ import de.sfuhrm.radiobrowser4j.Paging;
 import de.sfuhrm.radiobrowser4j.RadioBrowser;
 import de.sfuhrm.radiobrowser4j.Station;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +52,7 @@ public class Radio extends Command {
 	}
 
 	@Override
-	public CommandData getCommandData() {
+	public SlashCommandData getCommandData() {
 		return super.getCommandData().addOption(OptionType.STRING, "query", "Displays a list from search result", true);
 	}
 
@@ -68,7 +69,7 @@ public class Radio extends Command {
 	@Override
 	public String helpText() {
 		return String.format("""
-				Radio 
+				Radio
 				Radio [search term]
 				Aliases: %s
 				""", getAliases());
@@ -82,11 +83,11 @@ public class Radio extends Command {
 		VoiceChannel voiceChannel = ctx.getVoiceChannel();
 
 		String query = String.join(" ", args).toLowerCase();
-		searchByString(guildID, textChannel, voiceChannel, query, ctx.getMember());
+		searchByString(ctx.getEvent(), guildID, textChannel, voiceChannel, query, ctx.getMember());
 	}
 
 
-	private void searchByString(String guildID, TextChannel textChannel, VoiceChannel voiceChannel, String query, Member initiator) {
+	private void searchByString(SlashCommandInteractionEvent event, String guildID, TextChannel textChannel, VoiceChannel voiceChannel, String query, Member initiator) {
 		// RegEx for negative lookahead searching for only non word characters.
 		String finalQuery = query.replaceAll("(?!\\w|\\s)(\\W)", "")
 				.toLowerCase();
@@ -108,9 +109,9 @@ public class Radio extends Command {
 			results.add(new SearchInfo(s));
 		}
 
-		ISearchable result = null;
+		ISearchable result;
 		try {
-			result = new ResultSelector(results, textChannel, textChannel.getJDA(), initiator).get();
+			result = new ResultSelector(event, results, textChannel, textChannel.getJDA(), initiator).get();
 			GuildContext.get(guildID)
 					.audioManager()
 					.getTrackLoader()

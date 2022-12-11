@@ -5,8 +5,8 @@ import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.interactions.commands.Command.Choice;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -18,7 +18,7 @@ public class Repeat extends Command {
 	}
 
 	@Override
-	public CommandData getCommandData() {
+	public SlashCommandData getCommandData() {
 		return super.getCommandData().addOptions(
 				new OptionData(OptionType.STRING, "queue", "Sets repeat on or off for current queue").addChoices(
 						new Choice("on", "-q on"),
@@ -89,8 +89,7 @@ public class Repeat extends Command {
 				Repeat Queue: `%s`
 				Repeat Song : `%s`
 				""".formatted(repeatQueue, repeatSong);
-		ctx.getMessage()
-				.getChannel()
+		ctx.getChannel()
 				.sendMessage(message)
 				.queue();
 	}
