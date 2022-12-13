@@ -1,6 +1,6 @@
 package com.zischase.discordbot.commands;
 
-public interface ISearchable {
+public interface ISearchResult {
 
 	String getName();
 

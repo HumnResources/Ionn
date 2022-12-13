@@ -104,12 +104,12 @@ public class Radio extends Command {
 			return;
 		}
 
-		List<ISearchable> results = new ArrayList<>();
+		List<ISearchResult> results = new ArrayList<>();
 		for (Station s : stations) {
 			results.add(new SearchInfo(s));
 		}
 
-		ISearchable result;
+		ISearchResult result;
 		try {
 			result = new ResultSelector(event, results, textChannel, textChannel.getJDA(), initiator).get();
 			GuildContext.get(guildID)

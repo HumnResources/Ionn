@@ -90,14 +90,17 @@ public class Youtube extends Command {
 						new FunctionalResultHandler(
 								(audioTrack) -> g_ctx.audioManager().getTrackLoader().load(ctx.getVoiceChannel(), ctx.getChannel(), audioTrack),
 								(playlist) -> {
-									List<ISearchable> searchables;
+									List<ISearchResult> searchables;
 									searchables = playlist.getTracks()
 											.stream()
 											.map(SearchInfo::new)
 											.collect(Collectors.toList());
 
 									try {
-										ISearchable choice = new ResultSelector(ctx.getEvent(), searchables, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).get();
+										ISearchResult choice = new ResultSelector(ctx.getEvent(), searchables, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).get();
+
+										if (choice == null) return;
+
 										track.set(playlist.getTracks()
 												.stream()
 												.filter(audioTrack -> audioTrack.getInfo().title.equalsIgnoreCase(choice.getName()))
@@ -134,8 +137,8 @@ public class Youtube extends Command {
 		VoiceChannel voiceChannel = ctx.getMember().getVoiceState() != null ?
 				ctx.getMember().getVoiceState().getChannel().asVoiceChannel() : null;
 
-		List<ISearchable> songList = new ArrayList<>();
-		String            videoUrl = "https://www.youtube.com/watch?v=";
+		List<ISearchResult> songList = new ArrayList<>();
+		String              videoUrl = "https://www.youtube.com/watch?v=";
 		String            videoID  = "";
 		Document          doc      = null;
 
@@ -156,8 +159,7 @@ public class Youtube extends Command {
 
 		if (doc != null) {
 			Element element = new Element("script");
-			doc.select("script")
-					.forEach(e -> element.append(e.html()));
+			doc.select("script").forEach(e -> element.append(e.html()));
 
 			//			RegEx
 //			(?im)            - caseInsensitive, Multiline
@@ -188,42 +190,40 @@ public class Youtube extends Command {
 			}
 
 			/* Waits for user input - blocking - commands handled asynchronously */
-			ISearchable searchable;
+			ISearchResult searchResult;
 			try {
-				searchable = new ResultSelector(ctx.getEvent(), songList, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).get();
+				searchResult = new ResultSelector(ctx.getEvent(), songList, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).get();
 
-				if (searchable == null) {
+				if (searchResult == null) {
 					return false;
 				}
 
-				videoUrl = searchable.getUrl();
+				videoUrl = searchResult.getUrl();
 			} catch (InvalidHandlerException e) {
 				e.printStackTrace();
 			}
 			trackLoader.load(ctx.getChannel(), voiceChannel, videoUrl);
 			/* while end */
 		}
-		if (ctx.getArgs().size() <= 2) {
+		if (ctx.getArgs().size() <= 2 && hasNextFlag) {
 
-			if (hasNextFlag) {
-				TrackScheduler scheduler = GuildContext.get(guildID)
-						.audioManager()
-						.getScheduler();
+			TrackScheduler scheduler = GuildContext.get(guildID)
+					.audioManager()
+					.getScheduler();
 
-				ArrayList<AudioTrack> queue = scheduler.getQueue();
+			ArrayList<AudioTrack> queue = scheduler.getQueue();
 
-				int index = queue.size() - 1; // Subtract 1 for '0' based numeration.
+			int index = queue.size() - 1; // Subtract 1 for '0' based numeration.
 
-				if (index < 0) {
-					return false;
-				}
-
-				queue.add(0, queue.get(index));
-				queue.remove(index + 1); // Adding one to account for -> shift of list
-
-				scheduler.clearQueue();
-				scheduler.queueList(queue);
+			if (index < 0) {
+				return false;
 			}
+
+			queue.add(0, queue.get(index));
+			queue.remove(index + 1); // Adding one to account for -> shift of list
+
+			scheduler.clearQueue();
+			scheduler.queueList(queue);
 		}
 		return true;
 	}

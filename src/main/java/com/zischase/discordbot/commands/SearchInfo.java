@@ -3,7 +3,7 @@ package com.zischase.discordbot.commands;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import de.sfuhrm.radiobrowser4j.Station;
 
-public class SearchInfo implements ISearchable {
+public class SearchInfo implements ISearchResult {
 
 	private final String url;
 	private final String name;
