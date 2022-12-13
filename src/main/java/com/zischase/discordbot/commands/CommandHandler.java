@@ -64,7 +64,13 @@ public final class CommandHandler {
 	}
 
 	public void invoke(CommandContext ctx) {
-		Command cmd = getCommand(ctx.getEvent().getName());
+		Command cmd;
+		if (ctx.getEvent() != null) {
+			 cmd = getCommand(ctx.getEvent().getName());
+		}
+		else {
+			cmd = CommandHandler.getCommand(ctx.getArgs().get(0));
+		}
 
 		if (cmd == null) return;
 

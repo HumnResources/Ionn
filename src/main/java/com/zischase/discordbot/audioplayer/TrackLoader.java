@@ -15,6 +15,7 @@ import org.apache.commons.collections4.map.LinkedMap;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class TrackLoader implements AudioLoadResultHandler {
@@ -81,6 +82,15 @@ public class TrackLoader implements AudioLoadResultHandler {
 						.getPlayerManager()
 						.loadItem("ytsearch: " + uri, new FunctionalResultHandler(this::trackLoaded, (playlist) -> trackLoaded(playlist.getTracks().get(0)), this::noMatches, this::loadFailed));
 			}
+		}
+	}
+
+	public void loadURIList(List<String> uriList) {
+		for (String uri : uriList) {
+			GuildContext.get(guildID)
+					.audioManager()
+					.getPlayerManager()
+					.loadItem(uri, this);
 		}
 	}
 

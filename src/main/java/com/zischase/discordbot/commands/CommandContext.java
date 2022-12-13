@@ -3,17 +3,20 @@ package com.zischase.discordbot.commands;
 import com.sun.istack.Nullable;
 import com.zischase.discordbot.DBQueryHandler;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.components.LayoutComponent;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.AttachedFile;
 import net.dv8tion.jda.api.utils.messages.MessageData;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 public class CommandContext {
 
@@ -33,11 +36,76 @@ public class CommandContext {
 		this.textChannel = textChannel;
 		this.event = event;
 
-//		if (voiceChannel != null)
+		if (voiceChannel != null) {
 			this.voiceChannel = voiceChannel;
-//		} else {
-//			this.voiceChannel = initiator.getVoiceState() != null ? initiator.getVoiceState().getChannel().asVoiceChannel() : null;
-//		}
+		} else {
+			this.voiceChannel = guild.getChannelById(VoiceChannel.class, DBQueryHandler.get(guild.getId(), "voicechannel"));
+		}
+	}
+
+	public CommandContext(Guild guild, Member initiator, List<String> args) {
+		this.voiceChannel = guild.getChannelById(VoiceChannel.class, DBQueryHandler.get(guild.getId(), "voicechannel"));
+		this.textChannel = guild.getChannelById(TextChannel.class, DBQueryHandler.get(guild.getId(), "textchannel"));
+		this.event = null;
+		this.args = args;
+		this.initiator = initiator;
+		this.guild = guild;
+
+		this.message = new MessageData() {
+			@NotNull
+			@Override
+			public String getContent() {
+				String s = DBQueryHandler.get(guild.getId(), "prefix");
+				s += String.join(" ", args);
+				return s;
+			}
+
+			@NotNull
+			@Override
+			public List<MessageEmbed> getEmbeds() {
+				return List.of();
+			}
+
+			@NotNull
+			@Override
+			public List<LayoutComponent> getComponents() {
+				return List.of();
+			}
+
+			@NotNull
+			@Override
+			public List<? extends AttachedFile> getAttachments() {
+				return List.of();
+			}
+
+			@Override
+			public boolean isSuppressEmbeds() {
+				return false;
+			}
+
+			@NotNull
+			@Override
+			public Set<String> getMentionedUsers() {
+				return Set.of();
+			}
+
+			@NotNull
+			@Override
+			public Set<String> getMentionedRoles() {
+				return Set.of();
+			}
+
+			@NotNull
+			@Override
+			public EnumSet<Message.MentionType> getAllowedMentions() {
+				return EnumSet.of(Message.MentionType.SLASH_COMMAND);
+			}
+
+			@Override
+			public boolean isMentionRepliedUser() {
+				return false;
+			}
+		};
 	}
 
 	public final boolean isPremiumGuild() {

@@ -62,18 +62,15 @@ public class Youtube extends Command {
 
 	@Override
 	public void handle(CommandContext ctx) {
-		if (!youtubeWebScrape(ctx)) {
-			if (!youtubeLavaplayer(ctx)) {
+		if (!youtubeWebScrape(ctx))
+			if (!youtubeLavaplayer(ctx))
 				LOGGER.warn("Failed both search attempts! - {}:{}", ctx.getMember().getUser().getName(), String.join(" ", ctx.getArgs()));
-			}
-		}
 	}
 
 	private boolean youtubeLavaplayer(CommandContext ctx) {
 		List<String> args = ctx.getArgs();
-		if (args.isEmpty()) {
-			return false;
-		}
+		if (args.isEmpty()) return false;
+
 
 		String query = String.join(" ", args)
 				.trim();
@@ -173,9 +170,8 @@ public class Youtube extends Command {
 			Matcher nameMatcher;
 
 			while (videoMatcher.find()) {
-				if (videoID.matches(videoMatcher.group(0))) {
-					continue;
-				}
+				if (videoID.matches(videoMatcher.group(0))) continue;
+
 //				RegEx. . . again . . . 				 - https://regex101.com/r/1c2wAQ/1
 //				(?im)                                - caseInsensitive, Multiline
 //				(?=i.ytimg.com/vi/"+uri+").{1,300}   - Positive lookahead to contain video ID near title. Arbitrarily up to 300 chars
@@ -184,9 +180,9 @@ public class Youtube extends Command {
 				videoID = videoMatcher.group(0);
 				songName_Pattern = Pattern.compile("(?im)(?=vi/" + videoID + "/).{1,300}(?<=\"title\":\\{\"runs\":\\[\\{\"text\":\")(.+?)(?=\"}])");
 				nameMatcher      = songName_Pattern.matcher(element.html());
-				if (nameMatcher.find()) {
-					songList.add(new SearchInfo(nameMatcher.group(1), "https://www.youtube.com/watch?v=" + videoID));
-				}
+
+				if (nameMatcher.find()) songList.add(new SearchInfo(nameMatcher.group(1), "https://www.youtube.com/watch?v=" + videoID));
+
 			}
 
 			/* Waits for user input - blocking - commands handled asynchronously */
@@ -194,14 +190,13 @@ public class Youtube extends Command {
 			try {
 				searchResult = new ResultSelector(ctx.getEvent(), songList, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).get();
 
-				if (searchResult == null) {
-					return false;
-				}
+				if (searchResult == null) return false;
 
 				videoUrl = searchResult.getUrl();
 			} catch (InvalidHandlerException e) {
 				e.printStackTrace();
 			}
+
 			trackLoader.load(ctx.getChannel(), voiceChannel, videoUrl);
 			/* while end */
 		}
@@ -215,9 +210,7 @@ public class Youtube extends Command {
 
 			int index = queue.size() - 1; // Subtract 1 for '0' based numeration.
 
-			if (index < 0) {
-				return false;
-			}
+			if (index < 0) return false;
 
 			queue.add(0, queue.get(index));
 			queue.remove(index + 1); // Adding one to account for -> shift of list
@@ -227,5 +220,4 @@ public class Youtube extends Command {
 		}
 		return true;
 	}
-
 }

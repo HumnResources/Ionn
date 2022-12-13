@@ -42,7 +42,7 @@ public class Join extends Command {
 				}
 			}
 		}
-		if (voiceChannel == null) {
+		if (voiceChannel == null && ctx.getMember().getUser() != ctx.getJDA().getSelfUser()) {
 			ctx.getChannel()
 					.sendMessage("You must be in a voice channel for that !")
 					.queue();
