@@ -90,7 +90,40 @@ public class TrackLoader implements AudioLoadResultHandler {
 			GuildContext.get(guildID)
 					.audioManager()
 					.getPlayerManager()
-					.loadItem(uri, this);
+					.loadItem(uri, new AudioLoadResultHandler() {
+						@Override
+						public void trackLoaded(AudioTrack audioTrack) {
+							CACHE.putIfAbsent(audioTrack.getInfo().uri, audioTrack);
+							if (CACHE.size() > 300) {
+								CACHE.remove(0);
+							}
+							GuildContext.get(guildID)
+									.audioManager()
+									.getScheduler()
+									.queueAudio(audioTrack);
+							TextChannel channel = GuildContext.get(guildID)
+									.guild()
+									.getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
+						}
+
+						@Override
+						public void playlistLoaded(AudioPlaylist audioPlaylist) {
+							GuildContext.get(guildID)
+									.audioManager()
+									.getScheduler()
+									.queueList(audioPlaylist);
+						}
+
+						@Override
+						public void noMatches() {
+
+						}
+
+						@Override
+						public void loadFailed(FriendlyException e) {
+
+						}
+					});
 		}
 	}
 
@@ -114,17 +147,21 @@ public class TrackLoader implements AudioLoadResultHandler {
 			return;
 		}
 
-		String s;
-		assert channel != null;
+		songAddedConfirmation(channel, audioTrack);
+	}
+
+	private void songAddedConfirmation(TextChannel channel, AudioTrack audioTrack) {
 		if (audioTrack.getInfo() != null) {
+			String s;
+
 			if (audioTrack.getInfo().title != null) {
 				s = "Added: `%s` to queue.".formatted(audioTrack.getInfo().title);
 			} else {
 				s = "Added: `%s` to queue.".formatted(audioTrack.getIdentifier());
 			}
+
 			channel.sendMessage(s).queue(success -> success.delete().queueAfter(4, TimeUnit.SECONDS));
 		}
-
 	}
 
 	@Override
