@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
@@ -43,9 +44,19 @@ public class GuildContext implements IGuildContext {
 
 				audioManager.getTrackLoader().load(textChannel, voiceChannel, activeSongURL);
 
-				while (audioManager.getPlayerState() == AudioPlayerState.LOADING_TRACK) {
+				OffsetDateTime now     = OffsetDateTime.now();
+				int            timeout = 3;
+				while (true) {
+					if (audioManager.getPlayerState() == AudioPlayerState.LOADING_TRACK) {
+						continue;
+					}
+
 					if (currentSongPosition >=0 && audioManager.getPlayer().getPlayingTrack().isSeekable()) {
 						audioManager.getPlayer().getPlayingTrack().setPosition(currentSongPosition);
+						break;
+					}
+					else if (now.isAfter(now.plusSeconds(timeout))) {
+						break;
 					}
 				}
 

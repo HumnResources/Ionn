@@ -41,17 +41,10 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 	private List<AudioTrack> copyQueue         = new ArrayList<>();
 	private TimerTask        trackTimerTask    = null;
 	private Message          nowPlayingMessage = null;
-	TrackScheduler scheduler;
-	NowPlayingMessageHandler nowPlayingMessageHandler;
-	QueueMessageHandler      queueMessageHandler;
 
 	public NowPlayingMessageHandler(AudioManager audioManager, Guild guild) {
 		this.guildID      = guild.getId();
 		this.audioManager = audioManager;
-		scheduler    = audioManager.getScheduler();
-		nowPlayingMessageHandler = audioManager.getNowPlayingMessageHandler();
-		queueMessageHandler      = audioManager.getQueueMessageHandler();
-
 		initializeTrackListener(guild);
 	}
 
@@ -65,6 +58,9 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 			/* Check for available channel to display Now PLaying prompt */
 			TextChannel  textChannel  = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textchannel"));
 			VoiceChannel voiceChannel = guild.getVoiceChannelById(DBQueryHandler.get(id, "media_settings", "voicechannel"));
+			TrackScheduler scheduler    = audioManager.getScheduler();
+			NowPlayingMessageHandler nowPlayingMessageHandler = audioManager.getNowPlayingMessageHandler();
+			QueueMessageHandler      queueMessageHandler      = audioManager.getQueueMessageHandler();
 
 			if (textChannel == null || voiceChannel == null) {
 				return;
@@ -130,6 +126,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 
 							if (track != null && track.getPosition() < track.getDuration()) {
 								printNowPlaying(textChannel);
+								audioManager.saveAudioState();
 
 								if (listChanged(audioManager.getScheduler().getQueue(), copyQueue)) {
 									queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());

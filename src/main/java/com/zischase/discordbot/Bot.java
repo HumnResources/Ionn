@@ -1,10 +1,7 @@
 package com.zischase.discordbot;
 
 import com.github.ygimenez.method.Pages;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.commands.CommandEventListener;
-import com.zischase.discordbot.commands.audiocommands.Lyrics;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import me.duncte123.botcommons.BotCommons;
 import net.dv8tion.jda.api.JDA;
@@ -16,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Bot {
 
@@ -55,43 +51,20 @@ public class Bot {
 	}
 
 	private static void setShutdownHook(JDA jda) {
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			LOGGER.info("Shutting down.");
 
-			Lyrics.shutdown();
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			LOGGER.warn("Shutting down.");
+
+//			Lyrics.shutdown();
 			Pages.deactivate();
-			BotCommons.shutdown(jda);
 
 			/* Iterate over each guild and save their audio state if premium subs */
-			for (Guild guild : getPremiumGuilds()) {
-				String       id = guild.getId();
-				AudioManager audioManager = GuildContext.get(id).audioManager();
-
-				List<String> queueURLs = audioManager.getScheduler()
-						.getQueue()
-						.stream()
-						.map((track) -> track.getInfo().uri)
-						.collect(Collectors.toList());
-
-				AudioTrack playingTrack = audioManager.getPlayer().getPlayingTrack();
-
-				if (playingTrack != null) {
-					DBQueryHandler.set(id, "media_settings", "activesong", playingTrack.getInfo().uri);
-					DBQueryHandler.set(id, "media_settings", "activesongduration", playingTrack.getPosition());
-				}
-				else {
-					DBQueryHandler.set(id, "media_settings", "activesong", "");
-					DBQueryHandler.set(id, "media_settings", "activesongduration", 0);
-
-				}
-
-				/* Check not required as empty queue adds nothing */
-				DBQueryHandler.set(id, "media_settings", "currentqueue", String.join(",", queueURLs));
+			for (Guild guild : jda.getGuilds()) {
+				GuildContext.get(guild.getId()).audioManager().onShutdown();
 			}
 
+			BotCommons.shutdown(jda);
 			jda.shutdown();
-
-			Runtime.getRuntime().halt(0);
 		}));
 	}
 
