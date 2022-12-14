@@ -1,6 +1,7 @@
 package com.zischase.discordbot.commands;
 
 import com.sun.istack.Nullable;
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
@@ -39,13 +40,13 @@ public class CommandContext {
 		if (voiceChannel != null) {
 			this.voiceChannel = voiceChannel;
 		} else {
-			this.voiceChannel = guild.getChannelById(VoiceChannel.class, DBQueryHandler.get(guild.getId(), "voicechannel"));
+			this.voiceChannel = guild.getChannelById(VoiceChannel.class, DBQueryHandler.get(guild.getId(), DBQuery.VOICECHANNEL));
 		}
 	}
 
 	public CommandContext(Guild guild, Member initiator, List<String> args) {
-		this.voiceChannel = guild.getChannelById(VoiceChannel.class, DBQueryHandler.get(guild.getId(), "voicechannel"));
-		this.textChannel = guild.getChannelById(TextChannel.class, DBQueryHandler.get(guild.getId(), "textchannel"));
+		this.voiceChannel = guild.getChannelById(VoiceChannel.class, DBQueryHandler.get(guild.getId(), DBQuery.VOICECHANNEL));
+		this.textChannel = guild.getChannelById(TextChannel.class, DBQueryHandler.get(guild.getId(), DBQuery.TEXTCHANNEL));
 		this.event = null;
 		this.args = args;
 		this.initiator = initiator;
@@ -55,7 +56,7 @@ public class CommandContext {
 			@NotNull
 			@Override
 			public String getContent() {
-				String s = DBQueryHandler.get(guild.getId(), "prefix");
+				String s = DBQueryHandler.get(guild.getId(), DBQuery.PREFIX);
 				s += String.join(" ", args);
 				return s;
 			}

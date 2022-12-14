@@ -4,6 +4,7 @@ import com.github.ygimenez.exception.InvalidHandlerException;
 import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.audioplayer.TrackScheduler;
@@ -139,7 +140,7 @@ public class Youtube extends Command {
 		String            videoID  = "";
 		Document          doc      = null;
 
-		DBQueryHandler.set(guildID, "media_settings", "textChannel", textChannel.getId());
+		DBQueryHandler.set(guildID, DBQuery.MEDIA_SETTINGS, DBQuery.TEXTCHANNEL, textChannel.getId());
 
 		boolean hasNextFlag = args.get(0).equalsIgnoreCase("-n");
 

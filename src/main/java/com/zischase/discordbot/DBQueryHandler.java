@@ -14,8 +14,8 @@ public final class DBQueryHandler {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DBQueryHandler.class);
 
 	/* Using generic object to pass data types to database - This means you must know the sata type being used however */
-	public static void set(String guildID, String setting, Object value) {
-		if (setting.matches("(?i)(premium|id|guild_id|is_valid|expiry_date)")) {
+	public static void set(String guildID, DBQuery setting, Object value) {
+		if (setting.toString().matches("(?i)(premium|id|guild_id|is_valid|expiry_date)")) {
 			try {
 				throw new IllegalAccessException();
 			} catch (IllegalAccessException e) {
@@ -28,20 +28,14 @@ public final class DBQueryHandler {
 		Jdbi.create(DBConnectionHandler::getConnection)
 				.useHandle(handle ->
 				{
-					if (tableContainsColumn(handle,
-							"guild_settings",
-							setting
-					)) {
+					if (tableContainsColumn(handle, DBQuery.GUILD_SETTINGS, setting)) {
 						handle.createUpdate(
 								"UPDATE guild_settings SET <setting> = :value WHERE guild_id = :guildID")
 								.define("setting", setting)
 								.bind("value", value)
 								.bind("guildID", guildID)
 								.execute();
-					} else if (tableContainsColumn(handle,
-							"media_settings",
-							setting
-					)) {
+					} else if (tableContainsColumn(handle, DBQuery.MEDIA_SETTINGS, setting)) {
 						handle.createUpdate(
 								"UPDATE media_settings SET <setting> = :value WHERE guild_id = :guildID")
 								.define("setting", setting)
@@ -52,19 +46,19 @@ public final class DBQueryHandler {
 				});
 	}
 
-	private static boolean tableContainsColumn(Handle handle, String table, String setting) {
+	private static boolean tableContainsColumn(Handle handle, DBQuery table, DBQuery setting) {
 		/* Language=PostgreSQL */
 		List<String> l = handle.createQuery(
 				"SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = :table")
-				.bind("table", table.toLowerCase())
+				.bind("table", table.toString().toLowerCase())
 				.mapTo(String.class)
 				.list();
 
-		return l.contains(setting.toLowerCase());
+		return l.contains(setting.toString().toLowerCase());
 	}
 
-	public static void set(String guildID, String table, String setting, Object value) {
-		if (setting.matches("(?i)(premium|id|guild_id|is_valid|expiry_date)")) {
+	public static void set(String guildID, DBQuery table, DBQuery setting, Object value) {
+		if (setting.toString().matches("(?i)(premium|id|guild_id|is_valid|expiry_date)")) {
 			try {
 				throw new IllegalAccessException();
 			} catch (IllegalAccessException e) {
@@ -89,7 +83,7 @@ public final class DBQueryHandler {
 				});
 	}
 
-	public static String get(String guildID, String table, String setting) {
+	public static String get(String guildID, DBQuery table, DBQuery setting) {
 		return Jdbi.create(DBConnectionHandler::getConnection)
 				.withHandle(handle ->
 				{
@@ -109,7 +103,7 @@ public final class DBQueryHandler {
 				});
 	}
 
-	public static List<String> getList(String guildID, String table, String setting) {
+	public static List<String> getList(String guildID, DBQuery table, DBQuery setting) {
 		return Jdbi.create(DBConnectionHandler::getConnection)
 				.withHandle(handle ->
 				{
@@ -151,7 +145,7 @@ public final class DBQueryHandler {
 	}
 
 	public static void addGuild(Guild guild) {
-		boolean add = DBQueryHandler.get(guild.getId(), "prefix").isEmpty();
+		boolean add = DBQueryHandler.get(guild.getId(), DBQuery.PREFIX).isEmpty();
 		if (add) {
 			Jdbi.create(DBConnectionHandler::getConnection)
 					.useHandle(handle ->
@@ -166,15 +160,13 @@ public final class DBQueryHandler {
 		}
 	}
 
-	public static String get(String guildID, String setting) {
+	public static String get(String guildID, DBQuery settingQuery) {
+		String setting = settingQuery.toString().toLowerCase();
 		return Jdbi.create(DBConnectionHandler::getConnection)
 				.withHandle(handle ->
 				{
 					String r = "";
-					if (tableContainsColumn(handle,
-							"guild_settings",
-							setting
-					)) {
+					if (tableContainsColumn(handle, DBQuery.GUILD_SETTINGS, settingQuery)) {
 						r = handle.createQuery(
 								"SELECT <setting> FROM guild_settings WHERE guild_id = :id")
 								.define("setting", setting)
@@ -182,10 +174,7 @@ public final class DBQueryHandler {
 								.mapTo(String.class)
 								.findFirst()
 								.orElse("");
-					} else if (tableContainsColumn(handle,
-							"media_settings",
-							setting
-					)) {
+					} else if (tableContainsColumn(handle, DBQuery.MEDIA_SETTINGS, settingQuery)) {
 						r = handle.createQuery(
 								"SELECT <setting> FROM media_settings WHERE guild_id = :guildID")
 								.define("setting", setting)

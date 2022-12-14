@@ -1,17 +1,13 @@
 package com.zischase.discordbot.guildcontrol;
 
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
-import com.zischase.discordbot.audioplayer.AudioPlayerState;
-import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.commands.CommandHandler;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 
-import java.time.OffsetDateTime;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.HashMap;
+import java.util.Map;
 
 public class GuildContext implements IGuildContext {
 
@@ -28,52 +24,13 @@ public class GuildContext implements IGuildContext {
 		/* Update global GuildContext references */
 		setGuild(this);
 
-		String activeSongURL = DBQueryHandler.get(guild.getId(), "activesong");
-		boolean hasActiveMedia = !activeSongURL.isEmpty();
-
-		if (hasActiveMedia) {
-
-			CompletableFuture.runAsync(() -> {
-				CommandContext ctx = new CommandContext(guild, guild.getSelfMember(), List.of("join"));
-				GuildContext.get(guild.getId()).commandHandler().invoke(ctx);
-
-				VoiceChannel voiceChannel = guild.getChannelById(VoiceChannel.class, DBQueryHandler.get(guild.getId(), "voicechannel"));
-				TextChannel textChannel = guild.getChannelById(TextChannel.class, DBQueryHandler.get(guild.getId(), "textchannel"));
-				List<String> queueURLs = List.of(DBQueryHandler.get(guild.getId(), "currentqueue").split(","));
-				long currentSongPosition = Long.parseLong(DBQueryHandler.get(guild.getId(), "activesongduration"));
-
-				audioManager.getTrackLoader().load(textChannel, voiceChannel, activeSongURL);
-
-				OffsetDateTime now     = OffsetDateTime.now();
-				int            timeout = 3;
-				while (true) {
-					if (audioManager.getPlayerState() == AudioPlayerState.LOADING_TRACK) {
-						continue;
-					}
-
-					if (currentSongPosition >=0 && audioManager.getPlayer().getPlayingTrack().isSeekable()) {
-						audioManager.getPlayer().getPlayingTrack().setPosition(currentSongPosition);
-						break;
-					}
-					else if (now.isAfter(now.plusSeconds(timeout))) {
-						break;
-					}
-				}
-
-				/* Checks that the list both has items in it and the first item if only one listed is not empty */
-				boolean validQURI = !queueURLs.isEmpty() && !(queueURLs.size() == 1 && queueURLs.get(0).equals(""));
-				if (validQURI){
-					audioManager.getTrackLoader().loadURIList(queueURLs);
-				}
-
-			});
-		}
+		audioManager.loadAudioState();
 	}
 
 	private static void setGuild(GuildContext guildContext) {
 		Guild guild = guildContext.guild();
 		GUILDS.putIfAbsent(guild.getIdLong(), guildContext);
-		int v = Integer.parseInt(DBQueryHandler.get(guild.getId(), "volume"));
+		int v = Integer.parseInt(DBQueryHandler.get(guild.getId(), DBQuery.VOLUME));
 		guildContext.audioManager()
 				.getPlayer()
 				.setVolume(v);

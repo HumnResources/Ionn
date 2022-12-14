@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands.general;
 
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
@@ -37,7 +38,7 @@ public class Prefix extends Command {
 		Guild        guild = ctx.getGuild();
 		List<String> args  = ctx.getArgs();
 
-		String prefix = DBQueryHandler.get(guild.getId(), "prefix");
+		String prefix = DBQueryHandler.get(guild.getId(), DBQuery.PREFIX);
 
 		if (args.isEmpty()) {
 			ctx.getChannel()
@@ -46,8 +47,8 @@ public class Prefix extends Command {
 			return;
 		}
 
-		DBQueryHandler.set(guild.getId(), "prefix", args.get(0));
-		prefix = DBQueryHandler.get(guild.getId(), "prefix");
+		DBQueryHandler.set(guild.getId(), DBQuery.PREFIX, args.get(0));
+		prefix = DBQueryHandler.get(guild.getId(), DBQuery.PREFIX);
 
 		ctx.getChannel()
 				.sendMessage("The new prefix has been set to `" + prefix + "`")

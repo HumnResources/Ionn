@@ -6,6 +6,7 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import net.dv8tion.jda.api.entities.Guild;
 import org.slf4j.Logger;
@@ -34,8 +35,8 @@ public class TrackScheduler extends AudioEventAdapter {
 		this.guildID = guild.getId();
 		this.player  = player;
 		this.queue   = new LinkedBlockingQueue<>();
-		repeatQueue = Boolean.parseBoolean(DBQueryHandler.get(guildID, "repeatqueue"));
-		repeatSong = Boolean.parseBoolean(DBQueryHandler.get(guildID, "repeatsong"));
+		repeatQueue = Boolean.parseBoolean(DBQueryHandler.get(guildID, DBQuery.REPEATQUEUE));
+		repeatSong = Boolean.parseBoolean(DBQueryHandler.get(guildID, DBQuery.REPEATSONG));
 	}
 
 	public AudioTrack getLastTrack() {
@@ -49,7 +50,7 @@ public class TrackScheduler extends AudioEventAdapter {
 	public void setRepeatSong(boolean repeatSong) {
 		if (DBQueryHandler.getPremiumStatus(guildID)) {
 			this.repeatSong = repeatSong;
-			DBQueryHandler.set(guildID, "repeatsong", repeatSong);
+			DBQueryHandler.set(guildID, DBQuery.REPEATSONG, repeatSong);
 		}
 	}
 
@@ -60,7 +61,7 @@ public class TrackScheduler extends AudioEventAdapter {
 	public void setRepeatQueue(boolean repeatQueue) {
 		if (DBQueryHandler.getPremiumStatus(guildID)) {
 			this.repeatQueue = repeatQueue;
-			DBQueryHandler.set(guildID, "repeatqueue", repeatSong);
+			DBQueryHandler.set(guildID, DBQuery.REPEATQUEUE, repeatSong);
 		}
 	}
 

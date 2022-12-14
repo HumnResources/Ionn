@@ -1,6 +1,7 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
@@ -71,7 +72,7 @@ public class Playlist extends Command {
 		VoiceChannel voiceChannel = ctx.getVoiceChannel();
 
 		if (!playlistsInitialized) {
-			List<String> dbPlaylists = DBQueryHandler.getList(ctx.getGuild().getId(), "playlists", "name");
+			List<String> dbPlaylists = DBQueryHandler.getList(ctx.getGuild().getId(), DBQuery.PLAYLISTS, DBQuery.NAME);
 
 			for (String playlist : dbPlaylists) {
 				this.playlists.put(playlist, DBQueryHandler.getPlaylist(ctx.getGuild().getId(), playlist));

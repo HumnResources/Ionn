@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands;
 
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.JDA;
@@ -61,7 +62,7 @@ public class CommandEventListener extends ListenerAdapter {
 			}
 		});
 
-		String         vChannelID   = DBQueryHandler.get(event.getGuild().getId(), "voicechannel");
+		String         vChannelID   = DBQueryHandler.get(event.getGuild().getId(), DBQuery.VOICECHANNEL);
 		VoiceChannel   voiceChannel = GuildContext.get(event.getGuild().getId()).guild().getVoiceChannelById(vChannelID);
 
 		CommandContext ctx          = new CommandContext(event.getGuild(), event.getMember(), args, commandMessage.build(), event.getChannel().asTextChannel(), voiceChannel, event);

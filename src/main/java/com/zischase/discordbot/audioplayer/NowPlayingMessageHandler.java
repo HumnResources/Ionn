@@ -5,6 +5,7 @@ import com.sedmelluq.discord.lavaplayer.player.event.AudioEventListener;
 import com.sedmelluq.discord.lavaplayer.player.event.TrackExceptionEvent;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -56,8 +57,8 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 		/* Set up a timer to continually update the running time of the song */
 		AudioEventListener audioEventListener = audioEvent -> {
 			/* Check for available channel to display Now PLaying prompt */
-			TextChannel  textChannel  = guild.getTextChannelById(DBQueryHandler.get(id, "media_settings", "textchannel"));
-			VoiceChannel voiceChannel = guild.getVoiceChannelById(DBQueryHandler.get(id, "media_settings", "voicechannel"));
+			TextChannel  textChannel  = guild.getTextChannelById(DBQueryHandler.get(id, DBQuery.MEDIA_SETTINGS, DBQuery.TEXTCHANNEL));
+			VoiceChannel voiceChannel = guild.getVoiceChannelById(DBQueryHandler.get(id, DBQuery.MEDIA_SETTINGS, DBQuery.VOICECHANNEL));
 			TrackScheduler scheduler    = audioManager.getScheduler();
 			NowPlayingMessageHandler nowPlayingMessageHandler = audioManager.getNowPlayingMessageHandler();
 			QueueMessageHandler      queueMessageHandler      = audioManager.getQueueMessageHandler();
@@ -116,10 +117,11 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 					/* Clear any existing timers */
 					if (trackTimerTask != null) {
 						trackTimerTask.cancel();
+						timer.purge();
 					}
 
 					/* Timer to update progress bar of song */
-					trackTimerTask = new TimerTask() {
+					timer.scheduleAtFixedRate(new TimerTask() {
 						@Override
 						public void run() {
 							AudioTrack track = audioEvent.player.getPlayingTrack();
@@ -135,9 +137,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter {
 
 							}
 						}
-					};
-
-					timer.scheduleAtFixedRate(trackTimerTask, 0, NOW_PLAYING_TIMER_RATE_MS);
+					}, 0, NOW_PLAYING_TIMER_RATE_MS);
 				}
 			}
 

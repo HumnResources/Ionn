@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands.audiocommands;
 
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
@@ -36,7 +37,7 @@ public class NowPlaying extends Command {
 
 	@Override
 	public void handle(CommandContext ctx) {
-		DBQueryHandler.set(ctx.getGuild().getId(), "media_settings", "textchannel", ctx.getChannel().getId());
+		DBQueryHandler.set(ctx.getGuild().getId(), DBQuery.MEDIA_SETTINGS, DBQuery.TEXTCHANNEL, ctx.getChannel().getId());
 		GuildContext.get(ctx.getGuild().getId())
 				.audioManager()
 				.getNowPlayingMessageHandler()

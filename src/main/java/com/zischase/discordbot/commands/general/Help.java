@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands.general;
 
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
@@ -61,7 +62,7 @@ public class Help extends Command {
 		EmbedBuilder cmdList = new EmbedBuilder();
 		cmdList.setColor(Color.ORANGE);
 		cmdList.setTitle("Commands");
-		String prefix = DBQueryHandler.get(guildID, "prefix");
+		String prefix = DBQueryHandler.get(guildID, DBQuery.PREFIX);
 
 		cmdList.appendDescription(String.format("The current prefix is set to: `%s`\n", prefix));
 

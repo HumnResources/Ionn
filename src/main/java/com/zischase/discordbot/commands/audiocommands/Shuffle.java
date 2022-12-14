@@ -1,6 +1,7 @@
 package com.zischase.discordbot.commands.audiocommands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.commands.Command;
@@ -42,7 +43,7 @@ public class Shuffle extends Command {
 
 	public static void shuffle(String guildID, AudioManager audioManager) {
 		if (!DBQueryHandler.getPremiumStatus(guildID)) {
-			TextChannel textChannel = GuildContext.get(guildID).guild().getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
+			TextChannel textChannel = GuildContext.get(guildID).guild().getTextChannelById(DBQueryHandler.get(guildID, DBQuery.MEDIA_SETTINGS, DBQuery.TEXTCHANNEL));
 			assert textChannel != null;
 			textChannel.sendMessage("This feature is for premium guilds only.").queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
 			return;

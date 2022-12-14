@@ -1,5 +1,6 @@
 package com.zischase.discordbot.commands.audiocommands;
 
+import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
@@ -90,7 +91,7 @@ public class Volume extends Command {
 				.audioManager()
 				.getPlayer()
 				.setVolume(value);
-		DBQueryHandler.set(guildID, "volume", value);
+		DBQueryHandler.set(guildID, DBQuery.VOLUME, value);
 	}
 
 }
