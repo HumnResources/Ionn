@@ -2,6 +2,7 @@ package com.zischase.discordbot.guildcontrol;
 
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
+import com.zischase.discordbot.audioplayer.AudioPlayerState;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.commands.CommandHandler;
 import net.dv8tion.jda.api.entities.Guild;
@@ -17,8 +18,6 @@ public class GuildContext implements IGuildContext {
 	private final        Guild                   guild;
 	private final        AudioManager            audioManager;
 	private final        CommandHandler          commandHandler;
-
-	private boolean hasActiveMedia;
 
 	public GuildContext(Guild guild) {
 		this.guild          = guild;
@@ -44,19 +43,18 @@ public class GuildContext implements IGuildContext {
 
 				audioManager.getTrackLoader().load(textChannel, voiceChannel, activeSongURL);
 
-				new Timer().schedule(new TimerTask() {
-					@Override
-					public void run() {
-						if (currentSongPosition >=0 && audioManager.getPlayer().getPlayingTrack().isSeekable()) {
-							audioManager.getPlayer().getPlayingTrack().setPosition(currentSongPosition);
-						}
-						/* Checks that the list both has items in it and the first item if only one listed is not empty */
-						boolean validQURI = !queueURLs.isEmpty() && !(queueURLs.size() == 1 && queueURLs.get(0).equals(""));
-						if (validQURI){
-							audioManager.getTrackLoader().loadURIList(queueURLs);
-						}
+				while (audioManager.getPlayerState() == AudioPlayerState.LOADING_TRACK) {
+					if (currentSongPosition >=0 && audioManager.getPlayer().getPlayingTrack().isSeekable()) {
+						audioManager.getPlayer().getPlayingTrack().setPosition(currentSongPosition);
 					}
-				}, 1500);
+				}
+
+				/* Checks that the list both has items in it and the first item if only one listed is not empty */
+				boolean validQURI = !queueURLs.isEmpty() && !(queueURLs.size() == 1 && queueURLs.get(0).equals(""));
+				if (validQURI){
+					audioManager.getTrackLoader().loadURIList(queueURLs);
+				}
+
 			});
 		}
 	}

@@ -93,17 +93,7 @@ public class TrackLoader implements AudioLoadResultHandler {
 					.loadItem(uri, new AudioLoadResultHandler() {
 						@Override
 						public void trackLoaded(AudioTrack audioTrack) {
-							CACHE.putIfAbsent(audioTrack.getInfo().uri, audioTrack);
-							if (CACHE.size() > 300) {
-								CACHE.remove(0);
-							}
-							GuildContext.get(guildID)
-									.audioManager()
-									.getScheduler()
-									.queueAudio(audioTrack);
-							TextChannel channel = GuildContext.get(guildID)
-									.guild()
-									.getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
+							load(audioTrack);
 						}
 
 						@Override
@@ -129,6 +119,21 @@ public class TrackLoader implements AudioLoadResultHandler {
 
 	@Override
 	public void trackLoaded(AudioTrack audioTrack) {
+		load(audioTrack);
+
+		if (GuildContext.get(guildID).audioManager().getScheduler().getQueue().isEmpty()) {
+			/* No point in displaying added message if it's the next song */
+			return;
+		}
+
+		TextChannel channel = GuildContext.get(guildID)
+				.guild()
+				.getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
+
+		songAddedConfirmation(channel, audioTrack);
+	}
+
+	private void load(AudioTrack audioTrack) {
 		CACHE.putIfAbsent(audioTrack.getInfo().uri, audioTrack);
 		if (CACHE.size() > 300) {
 			CACHE.remove(0);
@@ -138,16 +143,7 @@ public class TrackLoader implements AudioLoadResultHandler {
 				.audioManager()
 				.getScheduler()
 				.queueAudio(audioTrack);
-		TextChannel channel = GuildContext.get(guildID)
-				.guild()
-				.getTextChannelById(DBQueryHandler.get(guildID, "media_settings", "textchannel"));
 
-		if (GuildContext.get(guildID).audioManager().getScheduler().getQueue().isEmpty()) {
-			/* No point in displaying added message if it's the next song */
-			return;
-		}
-
-		songAddedConfirmation(channel, audioTrack);
 	}
 
 	private void songAddedConfirmation(TextChannel channel, AudioTrack audioTrack) {

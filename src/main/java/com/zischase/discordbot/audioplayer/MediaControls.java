@@ -29,9 +29,9 @@ public class MediaControls {
 	public static final int    HISTORY_POLL_LIMIT        = 10;
 	public static final int    PRINT_TIMEOUT_MS          = 2000;
 	public static final int    REACTION_TIMEOUT_MS       = 1000;
-	public static final int    NOW_PLAYING_TIMER_RATE_MS = 6000;
-	public static final int    PROGRESS_BAR_SIZE         = 16;
-	public static final int    QUEUE_PAGE_SIZE           = 5;
+	public static final int    NOW_PLAYING_TIMER_RATE_MS = 9800;
+	public static final int    PROGRESS_BAR_SIZE         = 12;
+	public static final int    QUEUE_PAGE_SIZE           = 10;
 
 	public static final List<String> NOW_PLAYING_REACTIONS = List.of(REPEAT_ONE, PREV_TRACK, PLAY_PAUSE, NEXT_TRACK);
 	public static final List<String> QUEUE_REACTIONS       = List.of(SHUFFLE, REPEAT_QUEUE, PREV_TRACK, REVERSE, PLAY, NEXT_TRACK);
