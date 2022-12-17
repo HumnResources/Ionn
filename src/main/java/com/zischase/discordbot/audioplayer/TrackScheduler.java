@@ -40,7 +40,7 @@ public class TrackScheduler extends AudioEventAdapter {
 	}
 
 	public AudioTrack getLastTrack() {
-		return lastTrack.makeClone();
+		return lastTrack == null ? null : lastTrack.makeClone();
 	}
 
 	public boolean isRepeatSong() {

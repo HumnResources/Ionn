@@ -4,5 +4,5 @@ public enum AudioPlayerState {
 	STOPPED,
 	PAUSED,
 	PLAYING,
-	LOADING_TRACK;
+	LOADING_TRACK, INACTIVE;
 }

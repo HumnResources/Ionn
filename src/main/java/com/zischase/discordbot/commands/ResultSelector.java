@@ -15,10 +15,8 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.time.Instant;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -31,16 +29,20 @@ public class ResultSelector {
 	private final List<ISearchResult> searchResultList;
 	private       int                 offset       = 0;
 	private final Member initiator;
-	private String messageID;
-	private ListenerAdapter resultListener;
+	private       String          messageID;
+	private final ListenerAdapter resultListener;
+	private final String guildID;
 
 	public ResultSelector(SlashCommandInteractionEvent event, @NotNull List<ISearchResult> searchResultList, TextChannel textChannel, JDA jda, Member initiator) throws InvalidHandlerException {
 		this.searchResultList = searchResultList;
 		this.jda              = jda;
 		this.initiator = initiator;
+		this.guildID = Objects.requireNonNull(event.getGuild()).getId();
+		this.resultListener = addEventListeners();
 
-		buildOptions(event.getHook());
-
+		if (event.getHook().retrieveOriginal().complete() != null) {
+			buildOptions(event.getHook());
+		}
 
 		/*
 		 * Sets timer to remove listener after one 1m30s, you took too long :o
@@ -51,7 +53,7 @@ public class ResultSelector {
 				if (((TextChannel) event.getHook().getInteraction().getGuildChannel()).getHistory().getMessageById(messageID) == null)
 					jda.removeEventListener(resultListener);
 			}
-		}, 90000);
+		}, Date.from(Instant.now().plusMillis(60000)));
 	}
 
 	private void buildOptions(InteractionHook hook) {
@@ -82,6 +84,7 @@ public class ResultSelector {
 				.setActionRow(menu)//, Button.primary("backward", "Prev. Page"), Button.primary("forward", "Next Page"))
 				.queue();
 
+		
 		this.messageID = hook.retrieveOriginal().complete().getId();
 	}
 
@@ -89,7 +92,6 @@ public class ResultSelector {
 	public ISearchResult get() {
 		ISearchResult result = null;
 
-		resultListener = addEventListeners();
 
 		jda.addEventListener(resultListener);
 
@@ -111,7 +113,11 @@ public class ResultSelector {
 			@Override
 			public void onStringSelectInteraction(@org.jetbrains.annotations.NotNull StringSelectInteractionEvent event) {
 
-				if (event.getMember() != initiator || event.getHook().isExpired() || !event.getMessage().getId().equals(messageID)) return;
+				boolean t = !event.getMember().getId().equals(initiator.getId());
+				boolean o = event.getHook().isExpired();
+				boolean p = !event.getMessage().getId().equals(messageID);
+
+				if (!event.getMember().getId().equals(initiator.getId()) || event.getHook().isExpired() || !event.getMessage().getId().equals(messageID)) return;
 
 				if (!event.isAcknowledged()) event.deferEdit().complete();
 
@@ -135,7 +141,7 @@ public class ResultSelector {
 			}
 			@Override
 			public void onButtonInteraction(@org.jetbrains.annotations.NotNull ButtonInteractionEvent event) {
-				if (event.getMember() != initiator) return;
+				if (event.getMember() != initiator && Objects.requireNonNull(event.getGuild()).getId().equals(guildID)) return;
 
 				if (event.getButton().getLabel().equals("forward")) {
 					offset += PAGE_SIZE;

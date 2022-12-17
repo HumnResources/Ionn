@@ -24,7 +24,8 @@ public class GuildContext implements IGuildContext {
 		/* Update global GuildContext references */
 		setGuild(this);
 
-		audioManager.loadAudioState();
+		/* Reconnects and starts audio if restart or crash occurred */
+		audioManager.loadAudioState(true);
 	}
 
 	private static void setGuild(GuildContext guildContext) {

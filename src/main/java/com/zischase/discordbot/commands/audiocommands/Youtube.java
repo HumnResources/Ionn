@@ -132,8 +132,7 @@ public class Youtube extends Command {
 
 		String      guildID     = ctx.getGuild().getId();
 		TextChannel textChannel = ctx.getChannel();
-		VoiceChannel voiceChannel = ctx.getMember().getVoiceState() != null ?
-				ctx.getMember().getVoiceState().getChannel().asVoiceChannel() : null;
+		VoiceChannel voiceChannel = ctx.getGuild().getVoiceChannelById(DBQueryHandler.get(guildID, DBQuery.VOICECHANNEL));
 
 		List<ISearchResult> songList = new ArrayList<>();
 		String              videoUrl = "https://www.youtube.com/watch?v=";
