@@ -10,10 +10,7 @@ import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageType;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
@@ -420,7 +417,14 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 	{
 		Member eventMember = event.getMember();
 		Message msg = event.retrieveMessage().complete();
-		if (eventMember == null || eventMember.getUser().isBot() || event.getReaction().isSelf() || !msg.getAuthor().isBot())
+		
+		if (msg == null)
+		{
+			return;
+		}
+		
+		MessageReaction reactionE = msg.getReaction(event.getEmoji());
+		if (eventMember == null || eventMember.getUser().isBot() || event.getReaction().isSelf() || !msg.getAuthor().isBot() || (reactionE != null && reactionE.getCount() <= 1))
 		{
 			return;
 		}
@@ -432,7 +436,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 		{
 			if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId()))
 			{
-				nowPlayingInteraction(reaction);
+				nowPlayingInteraction(reaction, event.getUser());
 			}
 		});
 	}
@@ -442,7 +446,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 		return this.nowPlayingMessage;
 	}
 	
-	private void nowPlayingInteraction(String reaction)
+	private void nowPlayingInteraction(String reaction, User user)
 	{
 		Message currentNPMessage = audioManager.getNowPlayingMessageHandler().getNowPlayingMessage();
 		switch (reaction)
@@ -459,6 +463,8 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 				audioManager.getPlayer().stopTrack();
 			}
 		}
+		
+		currentNPMessage.removeReaction(Emoji.fromFormatted(reaction), Objects.requireNonNull(user)).queue();
 		printNowPlaying(currentNPMessage.getChannel().asTextChannel());
 	}
 }

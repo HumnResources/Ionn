@@ -4,6 +4,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageReaction;
 import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
@@ -19,6 +20,7 @@ import java.awt.*;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -42,15 +44,29 @@ public class QueueMessageHandler extends ListenerAdapter {
 	public void onGenericMessageReaction(@NotNull GenericMessageReactionEvent event) {
 		Message qMessage = this.queueMessage.get();
 		Message eventMessage = event.retrieveMessage().complete();
-
+		
+		if (qMessage == null)
+		{
+			return;
+		}
+		
+		MessageReaction reaction = eventMessage.getReaction(event.getEmoji());
+		
 		/* Validates message and user entry */
-		if (qMessage == null || qMessage.getIdLong() != eventMessage.getIdLong() || event.getMember() == null || event.getMember().getUser().isBot()) return;
+		if (qMessage.getIdLong() != eventMessage.getIdLong() || event.getMember() == null || event.getMember().getUser().isBot() || (reaction != null && reaction.getCount() <= 1))
+		{
+			return;
+		}
 
-		String reaction = event.getReaction().getEmoji().getName();
+		String reactionName = event.getReaction().getEmoji().getName();
 		TextChannel textChannel = event.getChannel().asTextChannel();
 
-		switch (reaction) {
-			case SHUFFLE -> Shuffle.shuffle(event.getGuild().getId(), manager);
+		switch (reactionName) {
+			case SHUFFLE ->
+			{
+				Shuffle.shuffle(event.getGuild().getId(), manager);
+				printQueuePage(textChannel, getCurrentPageNum());
+			}
 			case REPEAT_QUEUE -> {
 				manager.getScheduler().setRepeatQueue(!manager.getScheduler().isRepeatQueue());
 				printQueuePage(textChannel, getCurrentPageNum());
@@ -60,8 +76,23 @@ public class QueueMessageHandler extends ListenerAdapter {
 			case PLAY -> printQueuePage(textChannel, Math.min(getCurrentPageNum() + 1, getMaxPages()));
 			case NEXT_TRACK -> printQueuePage(textChannel, getMaxPages());
 			case STOP -> manager.getScheduler().clearQueue();
+		
 		}
-
+		
+		qMessage.removeReaction(Emoji.fromFormatted(reactionName), Objects.requireNonNull(event.getUser())).queue();
+		
+//		for (MessageReaction r : eventMessage.getReactions())
+//		{
+//			for (User u : r.retrieveUsers().complete())
+//			{
+//				if (event.getJDA().getSelfUser() == u)
+//				{
+//					continue;
+//				}
+//				eventMessage.removeReaction(event.getEmoji(), u).queue();
+//			}
+//		}
+		
 		/* Sleep thread to add all reactions / prevent overflow in responses */
 		try {
 			Thread.sleep(REACTION_TIMEOUT_MS);
