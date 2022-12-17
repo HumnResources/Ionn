@@ -215,12 +215,18 @@ public class AudioManager
 				OffsetDateTime start = OffsetDateTime.now();
 				int timeoutSec = 10;
 				AudioPlayerState pState = audioManager.getPlayerState();
-				while ((pState == null || pState == AudioPlayerState.LOADING_TRACK) && OffsetDateTime.now().isBefore(start.plusSeconds(timeoutSec))) {
+				while (pState != AudioPlayerState.PLAYING && OffsetDateTime.now().isBefore(start.plusSeconds(timeoutSec))) {
 					pState = audioManager.getPlayerState();
 				}
 				
+				String currentSongURI = audioManager.getScheduler().getLastTrack() == null ? "" :
+						audioManager.getScheduler().getLastTrack().getInfo().uri;
+				
+				/* Inverse - A match indicates the song originally playing first at time of reload is now the old one. */
+				boolean correctSong = !currentSongURI.matches(audioManager.player.getPlayingTrack().getInfo().uri);
+				
 				/* Attempts to seek to last saved location in the song */
-				if (currentSongPosition > 0 && audioManager.getPlayer().getPlayingTrack().isSeekable())
+				if (currentSongPosition > 0 && audioManager.getPlayer().getPlayingTrack().isSeekable() && correctSong)
 				{
 					audioManager.getPlayer().getPlayingTrack().setPosition(currentSongPosition);
 				}
