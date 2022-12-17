@@ -97,8 +97,13 @@ public class Radio extends Command {
 						.toLowerCase()
 						.replaceAll("(?!\\w|\\s)(\\W)", " ")
 						.contains(finalQuery))
-				.limit(100)
 				.collect(Collectors.toList());
+		
+		stations.addAll(STATION_LIST.stream().filter(stn -> stn.getTags()
+				.toLowerCase()
+				.replaceAll("(?!\\w|\\s)(\\W)", " ")
+				.matches(finalQuery))
+				.collect(Collectors.toList()));
 
 		if (stations.isEmpty()) {
 			return;

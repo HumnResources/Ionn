@@ -317,11 +317,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			String         title             = info.title;
 			String         volume            = "%s %s".formatted(MediaControls.VOLUME_HIGH, audioManager.getPlayer().getVolume());
 			String         playerStatusIcons = "%s %s".formatted(paused, repeatSong);
-			
-			String description = ("""
-					%s
-					**%s / %s**
-					%s %s""").formatted(progressPercentage((int) position, (int) duration), timeCurrent, timeTotal, playerStatusIcons, volume);
+			String description = "";
 			
 			if (title == null || title.isEmpty())
 			{
@@ -339,13 +335,20 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			/* Checks to see if it's a live stream */
 			if (track.getDuration() == Long.MAX_VALUE)
 			{
-				embedBuilder.appendDescription(MediaControls.RED_RECORDING_DOT);
+				description = ("""
+						%s - **Live**
+						%s %s %s
+						""").formatted(MediaControls.RED_RECORDING_DOT, RADIO, playerStatusIcons, volume);
 			}
 			else
 			{
-				embedBuilder.appendDescription(description);
+				description = ("""
+					%s
+					**%s / %s**
+					%s %s""").formatted(progressPercentage((int) position, (int) duration), timeCurrent, timeTotal, playerStatusIcons, volume);
 			}
 			
+			embedBuilder.appendDescription(description);
 			embedBuilder.setTitle("**%s**".formatted(title));
 			
 			if (paused.equals(MediaControls.PAUSE))
