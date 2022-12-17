@@ -95,7 +95,7 @@ public class Youtube extends Command {
 											.collect(Collectors.toList());
 
 									try {
-										ISearchResult choice = new ResultSelector(ctx.getEvent(), searchables, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).get();
+										ISearchResult choice = new ResultSelector(ctx.getEvent(), searchables, ctx.getJDA(), ctx.getMember()).get();
 
 										if (choice == null) return;
 
@@ -188,7 +188,7 @@ public class Youtube extends Command {
 			/* Waits for user input - blocking - commands handled asynchronously */
 			ISearchResult searchResult;
 			try {
-				searchResult = new ResultSelector(ctx.getEvent(), songList, ctx.getChannel(), ctx.getJDA(), ctx.getMember()).get();
+				searchResult = new ResultSelector(ctx.getEvent(), songList, ctx.getJDA(), ctx.getMember()).get();
 
 				if (searchResult == null) return false;
 

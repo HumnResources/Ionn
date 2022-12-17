@@ -33,7 +33,7 @@ public class ResultSelector {
 	private final ListenerAdapter resultListener;
 	private final String guildID;
 
-	public ResultSelector(SlashCommandInteractionEvent event, @NotNull List<ISearchResult> searchResultList, TextChannel textChannel, JDA jda, Member initiator) throws InvalidHandlerException {
+	public ResultSelector(SlashCommandInteractionEvent event, @NotNull List<ISearchResult> searchResultList, JDA jda, Member initiator) throws InvalidHandlerException {
 		this.searchResultList = searchResultList;
 		this.jda              = jda;
 		this.initiator = initiator;
@@ -70,7 +70,7 @@ public class ResultSelector {
 			if (i >= searchResultList.size()) break;
 
 			searchResult = searchResultList.get(i);
-			option = SelectOption.of(searchResult.getName().replaceAll("[^a-zA-Z0-9\\s-]", ""), String.valueOf(i));
+			option = SelectOption.of(searchResult.getName().replaceAll("[^a-zA-Z0-9\\s\\-]", ""), String.valueOf(i));
 			options.add(option);
 		}
 
@@ -81,7 +81,7 @@ public class ResultSelector {
 				.build();
 
 		hook.editOriginal("")
-				.setActionRow(menu)//, Button.primary("backward", "Prev. Page"), Button.primary("forward", "Next Page"))
+				.setActionRow(menu)
 				.queue();
 
 		

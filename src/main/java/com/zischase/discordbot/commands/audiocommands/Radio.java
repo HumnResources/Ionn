@@ -111,7 +111,7 @@ public class Radio extends Command {
 
 		ISearchResult result;
 		try {
-			result = new ResultSelector(event, results, textChannel, textChannel.getJDA(), initiator).get();
+			result = new ResultSelector(event, results, textChannel.getJDA(), initiator).get();
 			GuildContext.get(guildID)
 					.audioManager()
 					.getTrackLoader()
