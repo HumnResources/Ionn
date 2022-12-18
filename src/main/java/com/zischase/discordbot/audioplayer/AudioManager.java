@@ -50,7 +50,7 @@ public class AudioManager
 	private final QueueMessageHandler      queueMessageHandler;
 	private final Timer                    timer     = new Timer();
 	private final String                   guild_id;
-	private       TimerTask                timerTask = null;
+	private final TimerTask timerTask = getPlayerStateTimerTask();
 	private AudioPlayerState playerState = AudioPlayerState.STOPPED;
 	
 	public AudioManager(Guild guild)
@@ -64,7 +64,8 @@ public class AudioManager
 		
 		this.player.addListener(scheduler);
 		guild.getAudioManager().setSendingHandler(this.getSendHandler());
-		audioPlayerStateObserver();
+		
+		timer.scheduleAtFixedRate(this.timerTask, 0, OBSERVER_TICK_SPEED_MS);
 	}
 	
 	public AudioPlayer getPlayer()
@@ -77,16 +78,6 @@ public class AudioManager
 		return new AudioPlayerSendHandler(player);
 	}
 	
-	private void audioPlayerStateObserver()
-	{
-		if (this.timerTask == null)
-		{
-			this.timerTask = getPlayerStateTimerTask();
-		}
-		
-		timer.scheduleAtFixedRate(timerTask, 0, OBSERVER_TICK_SPEED_MS);
-	}
-	
 	private TimerTask getPlayerStateTimerTask()
 	{
 		return new TimerTask()
@@ -94,24 +85,44 @@ public class AudioManager
 			@Override
 			public void run()
 			{
-				AudioTrack track    = player.getPlayingTrack();
+				if (player.getPlayingTrack() == null)
+				{
+					return;
+				}
+				
+				AudioTrackState trackState    = player.getPlayingTrack().getState();
 				boolean    isPaused = DBQueryHandler.get(guild_id, DBQuery.PAUSED).equals("t");
 				
-				if (track != null && track.getState() == AudioTrackState.LOADING)
+				switch (trackState)
 				{
-					playerState = AudioPlayerState.LOADING_TRACK;
-				}
-				else if (track == null || track.getState() == AudioTrackState.INACTIVE)
-				{
-					playerState = AudioPlayerState.STOPPED;
-				}
-				else if (track.getState() == AudioTrackState.PLAYING && !isPaused)
-				{
-					playerState = AudioPlayerState.PLAYING;
-				}
-				else if ((track.getState() == AudioTrackState.PLAYING || track.getState() == AudioTrackState.LOADING || track.getState() == AudioTrackState.STOPPING) && isPaused)
-				{
-					playerState = AudioPlayerState.PAUSED;
+					case LOADING -> playerState = AudioPlayerState.LOADING_TRACK;
+					case INACTIVE -> playerState = AudioPlayerState.STOPPED;
+					case PLAYING ->
+					{
+						if (isPaused)
+						{
+							playerState = AudioPlayerState.PAUSED;
+							break;
+						}
+						playerState = AudioPlayerState.PLAYING;
+					}
+					case STOPPING ->
+					{
+						if (isPaused)
+						{
+							playerState = AudioPlayerState.PAUSED;
+							break;
+						}
+						playerState = AudioPlayerState.STOPPED;
+					}
+					case SEEKING -> playerState = AudioPlayerState.PLAYING;
+					case FINISHED ->
+					{
+						if (AudioManager.this.getScheduler().getQueue().isEmpty())
+						{
+							playerState = AudioPlayerState.PLAYING;
+						}
+					}
 				}
 			}
 		};
@@ -144,10 +155,10 @@ public class AudioManager
 			{
 				AudioManager audioManager = GuildContext.get(guild_id).audioManager();
 				
-				audioManager.player.setPaused(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.PAUSED)));
+				audioManager.scheduler.setPaused(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.PAUSED)));
 				audioManager.scheduler.setRepeatSong(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATSONG)));
 				audioManager.scheduler.setRepeatQueue(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATQUEUE)));
-				audioManager.player.setVolume(Integer.parseInt(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.VOLUME)));
+				audioManager.scheduler.setVolume(Integer.parseInt(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.VOLUME)));
 				
 				if (!reload)
 				{
@@ -205,8 +216,8 @@ public class AudioManager
 	
 	public void onShutdown()
 	{
+		timerTask.cancel();
 		timer.cancel();
-		timerTask = null;
 		saveAudioState();
 	}
 	
@@ -235,9 +246,9 @@ public class AudioManager
 		
 		/* Check not required as empty queue adds nothing */
 		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.CURRENTQUEUE, queueURLs);
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.PAUSED, player.isPaused());
+		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.PAUSED, scheduler.isPaused());
 		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATSONG, scheduler.isRepeatSong());
 		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATQUEUE, scheduler.isRepeatQueue());
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.VOLUME, player.getVolume());
+		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.VOLUME, scheduler.getVolume());
 	}
 }

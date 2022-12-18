@@ -8,8 +8,8 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
-import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import com.zischase.discordbot.MessageSendHandler;
+import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
@@ -36,22 +36,22 @@ import static com.zischase.discordbot.audioplayer.MediaControls.*;
 public class NowPlayingMessageHandler extends ListenerAdapter
 {
 	
-	private       Timer        timer = new Timer();
-	private final AudioManager audioManager;
-	private final String           guildID;
-	private final static int       RATE_LIMIT_SEC = 5;
-	private       List<AudioTrack> copyQueue      = new ArrayList<>();
-	private       TimerTask        trackTimerTask    = null;
-	private       Message          nowPlayingMessage = null;
-	private       OffsetDateTime   lastUpdate        = OffsetDateTime.now();
-	QueueMessageHandler      queueMessageHandler;
+	private final static int                 RATE_LIMIT_SEC    = 5;
+	private              TimerTask           trackTimerTask    = null;
+	private              Message             nowPlayingMessage = null;
+	private              Timer               timer             = new Timer();
+	private              List<AudioTrack>    copyQueue         = new ArrayList<>();
+	private              OffsetDateTime      lastUpdate        = OffsetDateTime.now();
+	private              QueueMessageHandler queueMessageHandler;
+	private final        AudioManager        audioManager;
+	private final        String              guildID;
 	
 	public NowPlayingMessageHandler(AudioManager audioManager, Guild guild)
 	{
 		this.guildID      = guild.getId();
 		this.audioManager = audioManager;
 		initializeTrackListener(guild);
-		this.queueMessageHandler      = audioManager.getQueueMessageHandler();
+		this.queueMessageHandler = audioManager.getQueueMessageHandler();
 	}
 	
 	private void initializeTrackListener(Guild guild)
@@ -68,7 +68,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			VoiceChannel             voiceChannel             = guild.getVoiceChannelById(DBQueryHandler.get(id, DBQuery.MEDIA_SETTINGS, DBQuery.VOICECHANNEL));
 			TrackScheduler           scheduler                = audioManager.getScheduler();
 			NowPlayingMessageHandler nowPlayingMessageHandler = audioManager.getNowPlayingMessageHandler();
-			queueMessageHandler      = audioManager.getQueueMessageHandler();
+			queueMessageHandler = audioManager.getQueueMessageHandler();
 			MessageSendHandler messageSendHandler = GuildContext.get(guildID).messageSendHandler();
 			
 			if (textChannel == null || voiceChannel == null)
@@ -199,7 +199,11 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			{
 				AudioTrack track = audioEvent.player.getPlayingTrack();
 				
-				if (track == null || track.getPosition() > track.getDuration() || OffsetDateTime.now().isBefore(lastUpdate.plusSeconds(RATE_LIMIT_SEC)))
+				boolean incorrectState = audioManager.getPlayerState() != AudioPlayerState.PLAYING;
+				boolean rateLimited    = OffsetDateTime.now().isBefore(lastUpdate.plusSeconds(RATE_LIMIT_SEC));
+				boolean isLive         = (audioManager.getPlayer().getPlayingTrack().getDuration() == Long.MAX_VALUE && getNowPlayingMessage() != null);
+				
+				if (track == null || track.getPosition() > track.getDuration() || incorrectState || rateLimited || isLive)
 				{
 					return;
 				}
@@ -262,7 +266,10 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 		}
 		else
 		{
-			textChannel.editMessageById(this.nowPlayingMessage.getId(), MessageEditData.fromCreateData(msg)).queue();
+			GuildContext.get(guildID)
+					.messageSendHandler()
+					.editMessage
+					.invoke(textChannel, this.nowPlayingMessage, MessageEditData.fromCreateData(msg));
 		}
 	}
 	
@@ -458,7 +465,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 				audioManager.getScheduler().prevTrack();
 				queueMessageHandler.printQueue(currentNPMessage.getChannel().asTextChannel());
 			}
-			case PLAY_PAUSE -> audioManager.getPlayer().setPaused(!audioManager.getPlayer().isPaused());
+			case PLAY_PAUSE -> audioManager.getScheduler().setPaused(!audioManager.getScheduler().isPaused());
 			case NEXT_TRACK ->
 			{
 				audioManager.getScheduler().nextTrack();

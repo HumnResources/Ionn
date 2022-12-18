@@ -49,9 +49,9 @@ public class Resume extends Command
 		
 		audioManager.loadAudioState(true);
 		
-		if (audioManager.getPlayer().isPaused())
+		if (audioManager.getScheduler().isPaused())
 		{
-			audioManager.getPlayer().setPaused(false);
+			audioManager.getScheduler().setPaused(false);
 		}
 	}
 }

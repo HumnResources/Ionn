@@ -1,13 +1,13 @@
 package com.zischase.discordbot.commands.audiocommands;
 
-import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.FunctionalResultHandler;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.zischase.discordbot.MessageSendHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.audioplayer.TrackLoader;
+import com.zischase.discordbot.audioplayer.TrackScheduler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.MessageSendHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
@@ -86,10 +86,10 @@ public class Play extends Command
 		{
 			case "-pause" ->
 			{
-				AudioPlayer player = GuildContext.get(guildID)
+				TrackScheduler scheduler = GuildContext.get(guildID)
 						.audioManager()
-						.getPlayer();
-				player.setPaused(!player.isPaused());
+						.getScheduler();
+				scheduler.setPaused(!scheduler.isPaused());
 			}
 			case "-next" ->
 			{

@@ -45,7 +45,7 @@ public class GuildContext implements IGuildContext
 		GUILDS.putIfAbsent(guild.getIdLong(), guildContext);
 		int v = Integer.parseInt(DBQueryHandler.get(guild.getId(), DBQuery.VOLUME));
 		guildContext.audioManager()
-				.getPlayer()
+				.getScheduler()
 				.setVolume(v);
 	}
 	

@@ -98,7 +98,7 @@ public class Volume extends Command
 	{
 		GuildContext.get(guildID)
 				.audioManager()
-				.getPlayer()
+				.getScheduler()
 				.setVolume(value);
 		DBQueryHandler.set(guildID, DBQuery.VOLUME, value);
 	}

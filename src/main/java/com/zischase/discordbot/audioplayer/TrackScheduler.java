@@ -32,6 +32,10 @@ public class TrackScheduler extends AudioEventAdapter
 	private       AudioTrack                lastTrack;
 	private       boolean                   repeatQueue;
 	private       boolean                   repeatSong;
+
+	private int volume;
+	
+	private boolean isPaused;
 	
 	public TrackScheduler(AudioPlayer player, Guild guild)
 	{
@@ -40,6 +44,32 @@ public class TrackScheduler extends AudioEventAdapter
 		this.queue   = new LinkedBlockingQueue<>();
 		repeatQueue  = Boolean.parseBoolean(DBQueryHandler.get(guildID, DBQuery.REPEATQUEUE));
 		repeatSong   = Boolean.parseBoolean(DBQueryHandler.get(guildID, DBQuery.REPEATSONG));
+		isPaused   = Boolean.parseBoolean(DBQueryHandler.get(guildID, DBQuery.PAUSED));
+		volume   = Integer.parseInt(DBQueryHandler.get(guildID, DBQuery.VOLUME));
+	}
+	
+	public int getVolume()
+	{
+		return player.getVolume();
+	}
+	
+	public void setVolume(int volume)
+	{
+		this.volume = volume;
+		this.player.setVolume(volume);
+		DBQueryHandler.set(guildID, DBQuery.VOLUME, volume);
+	}
+	
+	public boolean isPaused()
+	{
+		return player.isPaused();
+	}
+	
+	public void setPaused(boolean paused)
+	{
+		isPaused = paused;
+		player.setPaused(paused);
+		DBQueryHandler.set(guildID, DBQuery.PAUSED, paused);
 	}
 	
 	public AudioTrack getLastTrack()
@@ -212,5 +242,4 @@ public class TrackScheduler extends AudioEventAdapter
 			nextTrack();
 		}
 	}
-	
 }
