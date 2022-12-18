@@ -1,4 +1,4 @@
-package com.zischase.discordbot.commands.general;
+package com.zischase.discordbot;
 
 import kotlin.jvm.functions.Function3;
 import net.dv8tion.jda.api.entities.Message;
@@ -15,7 +15,7 @@ import java.util.function.BiFunction;
 
 public class MessageSendHandler
 {
-	private final Semaphore  semaphore         = new Semaphore(5);
+	private final Semaphore  semaphore         = new Semaphore(7);
 	private static final int SUBMIT_TIMEOUT_MS = 350;
 	private static final int DELETE_TIMEOUT_MS = 5000;
 	

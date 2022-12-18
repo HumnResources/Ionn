@@ -30,7 +30,7 @@ public class MediaControls
 	public static final int    HISTORY_POLL_LIMIT        = 10;
 	public static final int    PRINT_TIMEOUT_MS          = 2000;
 	public static final int    REACTION_TIMEOUT_MS       = 1000;
-	public static final int    NOW_PLAYING_TIMER_RATE_MS = 17300;
+	public static final int    NOW_PLAYING_TIMER_RATE_MS = 1400;
 	public static final int    PROGRESS_BAR_SIZE         = 10;
 	public static final int    QUEUE_PAGE_SIZE           = 10;
 	

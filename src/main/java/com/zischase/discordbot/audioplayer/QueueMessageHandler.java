@@ -2,7 +2,7 @@ package com.zischase.discordbot.audioplayer;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
-import com.zischase.discordbot.commands.general.MessageSendHandler;
+import com.zischase.discordbot.MessageSendHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;

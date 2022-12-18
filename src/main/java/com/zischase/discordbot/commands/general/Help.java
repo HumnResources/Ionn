@@ -2,6 +2,7 @@ package com.zischase.discordbot.commands.general;
 
 import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
+import com.zischase.discordbot.MessageSendHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.commands.CommandHandler;
@@ -39,7 +40,7 @@ public class Help extends Command
 	public void handle(CommandContext ctx)
 	{
 		TextChannel  channel = ctx.getChannel();
-		List<String> args    = ctx.getArgs();
+		List<String>       args               = ctx.getArgs();
 		MessageSendHandler messageSendHandler = GuildContext.get(ctx.getGuild().getId()).messageSendHandler();
 		
 		if (args.isEmpty())

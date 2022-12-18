@@ -4,7 +4,7 @@ import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.commands.CommandHandler;
-import com.zischase.discordbot.commands.general.MessageSendHandler;
+import com.zischase.discordbot.MessageSendHandler;
 import net.dv8tion.jda.api.entities.Guild;
 
 import java.util.HashMap;

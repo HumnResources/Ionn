@@ -9,7 +9,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
-import com.zischase.discordbot.commands.general.MessageSendHandler;
+import com.zischase.discordbot.MessageSendHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
@@ -36,11 +36,11 @@ import static com.zischase.discordbot.audioplayer.MediaControls.*;
 public class NowPlayingMessageHandler extends ListenerAdapter
 {
 	
-	private final Timer        timer = new Timer();
+	private       Timer        timer = new Timer();
 	private final AudioManager audioManager;
-	private final String       guildID;
-	private final int              rateLimitSec      = 2;
-	private       List<AudioTrack> copyQueue         = new ArrayList<>();
+	private final String           guildID;
+	private final static int       RATE_LIMIT_SEC = 5;
+	private       List<AudioTrack> copyQueue      = new ArrayList<>();
 	private       TimerTask        trackTimerTask    = null;
 	private       Message          nowPlayingMessage = null;
 	private       OffsetDateTime   lastUpdate        = OffsetDateTime.now();
@@ -112,7 +112,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 					{
 						scheduler.nextTrack();
 					}
-					if (scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() == null)
+					else if (scheduler.getQueue().isEmpty() && audioManager.getPlayer().getPlayingTrack() == null)
 					{
 						deletePrevious(textChannel);
 						guild.getJDA().removeEventListener(queueMessageHandler, nowPlayingMessageHandler);
@@ -141,8 +141,10 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 					/* Clear any existing timers */
 					if (trackTimerTask != null)
 					{
-						break;
+						timer.cancel();
 					}
+					
+					timer = new Timer();
 					
 					trackTimerTask = getTrackTimerTask(queueMessageHandler, textChannel, audioEvent);
 					
@@ -197,7 +199,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			{
 				AudioTrack track = audioEvent.player.getPlayingTrack();
 				
-				if (track == null || track.getPosition() > track.getDuration() || OffsetDateTime.now().isBefore(lastUpdate.plusSeconds(rateLimitSec)))
+				if (track == null || track.getPosition() > track.getDuration() || OffsetDateTime.now().isBefore(lastUpdate.plusSeconds(RATE_LIMIT_SEC)))
 				{
 					return;
 				}

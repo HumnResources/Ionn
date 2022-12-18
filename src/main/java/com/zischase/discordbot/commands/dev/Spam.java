@@ -3,7 +3,7 @@ package com.zischase.discordbot.commands.dev;
 import com.zischase.discordbot.Config;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.commands.general.MessageSendHandler;
+import com.zischase.discordbot.MessageSendHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import org.jetbrains.annotations.NotNull;
 

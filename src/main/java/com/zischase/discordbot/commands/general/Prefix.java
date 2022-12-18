@@ -2,6 +2,7 @@ package com.zischase.discordbot.commands.general;
 
 import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
+import com.zischase.discordbot.MessageSendHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
@@ -43,9 +44,9 @@ public class Prefix extends Command
 	public void handle(CommandContext ctx)
 	{
 		Guild        guild = ctx.getGuild();
-		List<String> args  = ctx.getArgs();
+		List<String>       args               = ctx.getArgs();
 		MessageSendHandler messageSendHandler = GuildContext.get(ctx.getGuild().getId()).messageSendHandler();
-		String prefix = DBQueryHandler.get(guild.getId(), DBQuery.PREFIX);
+		String             prefix             = DBQueryHandler.get(guild.getId(), DBQuery.PREFIX);
 		
 		if (args.isEmpty())
 		{

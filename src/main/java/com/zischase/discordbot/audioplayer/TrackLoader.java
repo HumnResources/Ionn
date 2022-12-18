@@ -8,7 +8,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sun.istack.Nullable;
 import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
-import com.zischase.discordbot.commands.general.MessageSendHandler;
+import com.zischase.discordbot.MessageSendHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;

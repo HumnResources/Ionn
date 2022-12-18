@@ -4,7 +4,7 @@ import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
-import com.zischase.discordbot.commands.general.MessageSendHandler;
+import com.zischase.discordbot.MessageSendHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
