@@ -2,8 +2,9 @@ package com.zischase.discordbot.audioplayer;
 
 import java.util.List;
 
-public class MediaControls {
-
+public class MediaControls
+{
+	
 	public static final String SHUFFLE                   = "🔀";
 	public static final String REPEAT_QUEUE              = "🔁";
 	public static final String REPEAT_ONE                = "🔃";
@@ -32,18 +33,21 @@ public class MediaControls {
 	public static final int    NOW_PLAYING_TIMER_RATE_MS = 11300;
 	public static final int    PROGRESS_BAR_SIZE         = 10;
 	public static final int    QUEUE_PAGE_SIZE           = 10;
-
+	
 	public static final List<String> NOW_PLAYING_REACTIONS = List.of(REPEAT_ONE, PREV_TRACK, PLAY_PAUSE, NEXT_TRACK);
 	public static final List<String> QUEUE_REACTIONS       = List.of(SHUFFLE, REPEAT_QUEUE, PREV_TRACK, REVERSE, PLAY, NEXT_TRACK);
-
-	MediaControls() {
+	
+	MediaControls()
+	{
 	}
-
-	public static List<String> getNowPlayingReactions() {
+	
+	public static List<String> getNowPlayingReactions()
+	{
 		return List.copyOf(NOW_PLAYING_REACTIONS);
 	}
-
-	public static List<String> getQueueReactions() {
+	
+	public static List<String> getQueueReactions()
+	{
 		return List.copyOf(QUEUE_REACTIONS);
 	}
 }

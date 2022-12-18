@@ -16,162 +16,201 @@ import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class TrackScheduler extends AudioEventAdapter {
-
+public class TrackScheduler extends AudioEventAdapter
+{
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(TrackScheduler.class);
-
-	static {
+	
+	static
+	{
 		LOGGER.info("TrackSchedulers Initialized");
 	}
-
+	
 	private final AudioPlayer               player;
 	private final BlockingQueue<AudioTrack> queue;
 	private final String                    guildID;
 	private       AudioTrack                lastTrack;
 	private       boolean                   repeatQueue;
 	private       boolean                   repeatSong;
-
-	public TrackScheduler(AudioPlayer player, Guild guild) {
+	
+	public TrackScheduler(AudioPlayer player, Guild guild)
+	{
 		this.guildID = guild.getId();
 		this.player  = player;
 		this.queue   = new LinkedBlockingQueue<>();
-		repeatQueue = Boolean.parseBoolean(DBQueryHandler.get(guildID, DBQuery.REPEATQUEUE));
-		repeatSong = Boolean.parseBoolean(DBQueryHandler.get(guildID, DBQuery.REPEATSONG));
+		repeatQueue  = Boolean.parseBoolean(DBQueryHandler.get(guildID, DBQuery.REPEATQUEUE));
+		repeatSong   = Boolean.parseBoolean(DBQueryHandler.get(guildID, DBQuery.REPEATSONG));
 	}
-
-	public AudioTrack getLastTrack() {
+	
+	public AudioTrack getLastTrack()
+	{
 		return lastTrack == null ? null : lastTrack.makeClone();
 	}
-
-	public boolean isRepeatSong() {
+	
+	public boolean isRepeatSong()
+	{
 		return repeatSong;
 	}
-
-	public void setRepeatSong(boolean repeatSong) {
-		if (DBQueryHandler.getPremiumStatus(guildID)) {
+	
+	public void setRepeatSong(boolean repeatSong)
+	{
+		if (DBQueryHandler.getPremiumStatus(guildID))
+		{
 			this.repeatSong = repeatSong;
 			DBQueryHandler.set(guildID, DBQuery.REPEATSONG, repeatSong);
 		}
 	}
-
-	public boolean isRepeatQueue() {
+	
+	public boolean isRepeatQueue()
+	{
 		return repeatQueue;
 	}
-
-	public void setRepeatQueue(boolean repeatQueue) {
-		if (DBQueryHandler.getPremiumStatus(guildID)) {
+	
+	public void setRepeatQueue(boolean repeatQueue)
+	{
+		if (DBQueryHandler.getPremiumStatus(guildID))
+		{
 			this.repeatQueue = repeatQueue;
 			DBQueryHandler.set(guildID, DBQuery.REPEATQUEUE, repeatSong);
 		}
 	}
-
-	public void queueAudio(AudioTrack track) {
-		if (!player.startTrack(track, true)) { // noInterrupt: True == add to queue; Returns true if added
+	
+	public void queueAudio(AudioTrack track)
+	{
+		if (!player.startTrack(track, true))
+		{ // noInterrupt: True == add to queue; Returns true if added
 			this.queue.offer(track);
 		}
 	}
-
-	public void queueList(AudioPlaylist playlist) {
+	
+	public void queueList(AudioPlaylist playlist)
+	{
 		ArrayList<AudioTrack> tracks = (ArrayList<AudioTrack>) playlist.getTracks();
 		queueList(tracks);
 	}
-
-	public void queueList(ArrayList<AudioTrack> tracks) {
-		if (tracks.isEmpty()) {
+	
+	public void queueList(ArrayList<AudioTrack> tracks)
+	{
+		if (tracks.isEmpty())
+		{
 			return;
 		}
 		this.queue.addAll(tracks);
-
-		if (player.getPlayingTrack() == null) {
+		
+		if (player.getPlayingTrack() == null)
+		{
 			this.player.startTrack(queue.poll(), false);
 		}
 	}
-
-	public void clearQueue() {
+	
+	public void clearQueue()
+	{
 		this.queue.clear();
 	}
-
-	public ArrayList<AudioTrack> getQueue() {
+	
+	public ArrayList<AudioTrack> getQueue()
+	{
 		ArrayList<AudioTrack> trackList = new ArrayList<>();
-
-		if (!this.queue.isEmpty()) {
+		
+		if (!this.queue.isEmpty())
+		{
 			trackList.addAll(queue);
 		}
-
+		
 		return trackList;
 	}
-
-	public void prevTrack() {
-		if (lastTrack != null) {
+	
+	public void prevTrack()
+	{
+		if (lastTrack != null)
+		{
 			this.player.startTrack(lastTrack.makeClone(), false);
 		}
-		else {
+		else
+		{
 			this.player.startTrack(player.getPlayingTrack().makeClone(), false);
 		}
 	}
-
+	
 	@Override
-	public void onPlayerPause(AudioPlayer player) {
+	public void onPlayerPause(AudioPlayer player)
+	{
 	}
-
+	
 	@Override
-	public void onPlayerResume(AudioPlayer player) {
+	public void onPlayerResume(AudioPlayer player)
+	{
 	}
-
+	
 	@Override
-	public void onTrackStart(AudioPlayer player, AudioTrack track) {
-
+	public void onTrackStart(AudioPlayer player, AudioTrack track)
+	{
+	
 	}
-
+	
 	@Override
-	public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
+	public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason)
+	{
 		this.lastTrack = track;
-		if (endReason.equals(AudioTrackEndReason.LOAD_FAILED)) {
+		if (endReason.equals(AudioTrackEndReason.LOAD_FAILED))
+		{
 			/* Do Nothing*/
 			LOGGER.info("Loading failed for audio track {}", track.getInfo().title);
 			return;
 		}
-
-		if (endReason.mayStartNext) {
+		
+		if (endReason.mayStartNext)
+		{
 			nextTrack();
 		}
 	}
-
-	public void nextTrack() {
-		if (repeatSong) {
-			if (player.getPlayingTrack() != null) {
+	
+	public void nextTrack()
+	{
+		if (repeatSong)
+		{
+			if (player.getPlayingTrack() != null)
+			{
 				this.lastTrack = player.getPlayingTrack();
 				this.player.startTrack(lastTrack.makeClone(), false);
 				return;
 			}
 		}
-
-		if (repeatQueue) {
-			if (this.player.getPlayingTrack() != null) {
+		
+		if (repeatQueue)
+		{
+			if (this.player.getPlayingTrack() != null)
+			{
 				queue.add(this.player.getPlayingTrack().makeClone());
-			} else if (lastTrack != null) {
+			}
+			else if (lastTrack != null)
+			{
 				queue.add(lastTrack.makeClone());
 			}
 		}
-
+		
 		this.player.startTrack(queue.poll(), false);
 	}
-
+	
 	@Override
-	public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
-		if (lastTrack != null && !lastTrack.getIdentifier().matches(track.getIdentifier())) {
+	public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception)
+	{
+		if (lastTrack != null && !lastTrack.getIdentifier().matches(track.getIdentifier()))
+		{
 			this.lastTrack = track;
 			player.playTrack(track.makeClone());
 		}
 	}
-
+	
 	@Override
-	public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
+	public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs)
+	{
 		player.stopTrack();
-
-		if (!queue.isEmpty()) {
+		
+		if (!queue.isEmpty())
+		{
 			nextTrack();
 		}
 	}
-
+	
 }

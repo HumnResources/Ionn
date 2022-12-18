@@ -7,33 +7,41 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class Join extends Command {
-
-	public Join() {
+public class Join extends Command
+{
+	
+	public Join()
+	{
 		super(false);
 	}
-
+	
 	@Override
-	public @NotNull String shortDescription() {
+	public @NotNull String shortDescription()
+	{
 		return "Summons the bot to the channel";
 	}
-
+	
 	@Override
-	public String helpText() {
+	public String helpText()
+	{
 		return """
 				Joins the users current voice channel.
 				""";
 	}
-
+	
 	@Override
-	public void handle(CommandContext ctx) {
+	public void handle(CommandContext ctx)
+	{
 		List<VoiceChannel> voiceChannels = ctx.getGuild()
 				.getVoiceChannels();
 		VoiceChannel voiceChannel = null;
-
-		if (!voiceChannels.isEmpty()) {
-			for (VoiceChannel c : voiceChannels) {
-				if (c.getMembers().contains(ctx.getMember())) {
+		
+		if (!voiceChannels.isEmpty())
+		{
+			for (VoiceChannel c : voiceChannels)
+			{
+				if (c.getMembers().contains(ctx.getMember()))
+				{
 					c.getGuild()
 							.getJDA()
 							.getDirectAudioController()
@@ -42,7 +50,8 @@ public class Join extends Command {
 				}
 			}
 		}
-		if (voiceChannel == null && ctx.getMember().getUser() != ctx.getJDA().getSelfUser()) {
+		if (voiceChannel == null && ctx.getMember().getUser() != ctx.getJDA().getSelfUser())
+		{
 			ctx.getChannel()
 					.sendMessage("You must be in a voice channel for that !")
 					.queue();

@@ -6,8 +6,8 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sun.istack.Nullable;
-import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.DBQuery;
+import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -26,9 +26,9 @@ import java.util.concurrent.atomic.AtomicReference;
 public class TrackLoader implements AudioLoadResultHandler
 {
 	
-	private static final LinkedMap<String, AudioTrack> CACHE = new LinkedMap<>(50);
+	private static final LinkedMap<String, AudioTrack> CACHE        = new LinkedMap<>(50);
 	private final        String                        guildID;
-	private final AtomicReference<Boolean> attemptRetry = new AtomicReference<>();
+	private final        AtomicReference<Boolean>      attemptRetry = new AtomicReference<>();
 	
 	public TrackLoader(String guildID)
 	{
@@ -157,24 +157,6 @@ public class TrackLoader implements AudioLoadResultHandler
 		});
 	}
 	
-	@Override
-	public void trackLoaded(AudioTrack audioTrack)
-	{
-		load(audioTrack);
-		
-		if (GuildContext.get(guildID).audioManager().getScheduler().getQueue().isEmpty())
-		{
-			/* No point in displaying added message if it's the next song */
-			return;
-		}
-		
-		TextChannel channel = GuildContext.get(guildID)
-				.guild()
-				.getTextChannelById(DBQueryHandler.get(guildID, DBQuery.MEDIA_SETTINGS, DBQuery.TEXTCHANNEL));
-		
-		songAddedConfirmation(channel, audioTrack);
-	}
-	
 	private void load(AudioTrack audioTrack)
 	{
 		boolean oldTrack = GuildContext.get(guildID).audioManager().getScheduler().getLastTrack() != null &&
@@ -195,6 +177,32 @@ public class TrackLoader implements AudioLoadResultHandler
 				.audioManager()
 				.getScheduler()
 				.queueAudio(audioTrack);
+	}
+	
+	public void load(VoiceChannel voiceChannel, TextChannel textChannel, AudioTrack audioTrack)
+	{
+		if (joinChannels(voiceChannel, textChannel))
+		{
+			this.trackLoaded(audioTrack);
+		}
+	}
+	
+	@Override
+	public void trackLoaded(AudioTrack audioTrack)
+	{
+		load(audioTrack);
+		
+		if (GuildContext.get(guildID).audioManager().getScheduler().getQueue().isEmpty())
+		{
+			/* No point in displaying added message if it's the next song */
+			return;
+		}
+		
+		TextChannel channel = GuildContext.get(guildID)
+				.guild()
+				.getTextChannelById(DBQueryHandler.get(guildID, DBQuery.MEDIA_SETTINGS, DBQuery.TEXTCHANNEL));
+		
+		songAddedConfirmation(channel, audioTrack);
 	}
 	
 	private void songAddedConfirmation(TextChannel channel, AudioTrack audioTrack)
@@ -264,13 +272,5 @@ public class TrackLoader implements AudioLoadResultHandler
 		assert channel != null;
 		channel.sendMessage("Loading failed for `" + lastSong.getInfo().title + "`, sorry.").queue(msg -> msg.delete().queueAfter(4, TimeUnit.SECONDS));
 		
-	}
-	
-	public void load(VoiceChannel voiceChannel, TextChannel textChannel, AudioTrack audioTrack)
-	{
-		if (joinChannels(voiceChannel, textChannel))
-		{
-			this.trackLoaded(audioTrack);
-		}
 	}
 }

@@ -14,63 +14,74 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class Volume extends Command {
-
+public class Volume extends Command
+{
+	
 	private final AtomicInteger maxVol = new AtomicInteger(-1);
-
-	public Volume() {
+	
+	public Volume()
+	{
 		super(false);
 	}
-
+	
 	@Override
-	public SlashCommandData getCommandData() {
+	public SlashCommandData getCommandData()
+	{
 		return super.getCommandData().addOptions(new OptionData(OptionType.INTEGER, "num", "New volume level."));
 	}
-
+	
 	@Override
-	public @NotNull String shortDescription() {
+	public @NotNull String shortDescription()
+	{
 		return "Sets or displays the volume level.";
 	}
-
+	
 	@Override
-	public List<String> getAliases() {
+	public List<String> getAliases()
+	{
 		return Arrays.asList("Vol", "V");
 	}
-
+	
 	@Override
-	public String helpText() {
+	public String helpText()
+	{
 		return "Volume [amount] ~ Sets the volume. 0-" + maxVol.get() + " | Leave empty to display current volume.";
 	}
-
+	
 	@Override
-	public void handle(CommandContext ctx) {
+	public void handle(CommandContext ctx)
+	{
 		String       guildID = ctx.getGuild().getId();
 		List<String> args    = ctx.getArgs();
-
-		if (this.maxVol.get() == -1) {
+		
+		if (this.maxVol.get() == -1)
+		{
 			if (ctx.isPremiumGuild())
 				this.maxVol.set(100);
 			else
 				this.maxVol.set(25);
 		}
-
-		if (args.isEmpty()) {
+		
+		if (args.isEmpty())
+		{
 			ctx.getChannel()
 					.sendMessage("Volume is currently at: `" + getVolume(guildID) + "`")
 					.queue();
 			return;
 		}
-
-		if (args.get(0).matches("\\d+")) {
+		
+		if (args.get(0).matches("\\d+"))
+		{
 			int     num      = Integer.parseInt(args.get(0));
 			boolean validNum = (num >= 0 && num <= maxVol.get());
-			if (validNum) {
+			if (validNum)
+			{
 				setVolume(guildID, num);
-
+				
 				ctx.getChannel()
 						.sendMessage("The volume has been set to `" + num + "`")
 						.queue();
-
+				
 				return;
 			}
 		}
@@ -78,20 +89,22 @@ public class Volume extends Command {
 				.sendMessage("Please input a number between 0-" + maxVol.get())
 				.queue();
 	}
-
-	private String getVolume(String guildID) {
+	
+	private String getVolume(String guildID)
+	{
 		return String.valueOf(GuildContext.get(guildID)
 				.audioManager()
 				.getPlayer()
 				.getVolume());
 	}
-
-	private void setVolume(String guildID, int value) {
+	
+	private void setVolume(String guildID, int value)
+	{
 		GuildContext.get(guildID)
 				.audioManager()
 				.getPlayer()
 				.setVolume(value);
 		DBQueryHandler.set(guildID, DBQuery.VOLUME, value);
 	}
-
+	
 }

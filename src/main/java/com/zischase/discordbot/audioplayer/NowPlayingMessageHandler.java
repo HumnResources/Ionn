@@ -38,12 +38,11 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 	private final Timer        timer = new Timer();
 	private final AudioManager audioManager;
 	private final String       guildID;
-	
-	private List<AudioTrack> copyQueue         = new ArrayList<>();
-	private TimerTask        trackTimerTask    = null;
-	private Message          nowPlayingMessage = null;
-	private final int rateLimitSec = 2;
-	private OffsetDateTime lastUpdate = OffsetDateTime.now();
+	private final int              rateLimitSec      = 2;
+	private       List<AudioTrack> copyQueue         = new ArrayList<>();
+	private       TimerTask        trackTimerTask    = null;
+	private       Message          nowPlayingMessage = null;
+	private       OffsetDateTime   lastUpdate        = OffsetDateTime.now();
 	
 	public NowPlayingMessageHandler(AudioManager audioManager, Guild guild)
 	{
@@ -151,35 +150,6 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 		audioManager.getPlayer().addListener(audioEventListener);
 	}
 	
-	private TimerTask getTrackTimerTask(QueueMessageHandler queueMessageHandler, TextChannel textChannel, AudioEvent audioEvent)
-	{
-		return new TimerTask()
-		{
-			@Override
-			public void run()
-			{
-				AudioTrack track = audioEvent.player.getPlayingTrack();
-				
-				if (track == null || track.getPosition() > track.getDuration() || OffsetDateTime.now().isBefore(lastUpdate.plusSeconds(rateLimitSec)))
-				{
-					return;
-				}
-				
-				lastUpdate = OffsetDateTime.now();
-				printNowPlaying(textChannel);
-				audioManager.saveAudioState();
-				
-				if (!listChanged(audioManager.getScheduler().getQueue(), copyQueue))
-				{
-					return;
-				}
-				
-				queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
-				copyQueue = audioManager.getScheduler().getQueue();
-			}
-		};
-	}
-	
 	public void deletePrevious(@NotNull TextChannel textChannel)
 	{
 		List<Message> msgList = textChannel.getHistory()
@@ -212,6 +182,40 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 		}
 	}
 	
+	private TimerTask getTrackTimerTask(QueueMessageHandler queueMessageHandler, TextChannel textChannel, AudioEvent audioEvent)
+	{
+		return new TimerTask()
+		{
+			@Override
+			public void run()
+			{
+				AudioTrack track = audioEvent.player.getPlayingTrack();
+				
+				if (track == null || track.getPosition() > track.getDuration() || OffsetDateTime.now().isBefore(lastUpdate.plusSeconds(rateLimitSec)))
+				{
+					return;
+				}
+				
+				lastUpdate = OffsetDateTime.now();
+				printNowPlaying(textChannel);
+				audioManager.saveAudioState();
+				
+				if (!listChanged(audioManager.getScheduler().getQueue(), copyQueue))
+				{
+					return;
+				}
+				
+				queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
+				copyQueue = audioManager.getScheduler().getQueue();
+			}
+		};
+	}
+	
+	public void printNowPlaying(TextChannel textChannel)
+	{
+		printNowPlaying(textChannel, false);
+	}
+	
 	private boolean listChanged(@NonNull List<AudioTrack> trackListOne, @NonNull List<AudioTrack> trackListTwo)
 	{
 		if (trackListOne.size() != trackListTwo.size())
@@ -228,11 +232,6 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			}
 		}
 		return false;
-	}
-	
-	public void printNowPlaying(TextChannel textChannel)
-	{
-		printNowPlaying(textChannel, false);
 	}
 	
 	public synchronized void printNowPlaying(TextChannel textChannel, boolean forcePrint)
@@ -315,7 +314,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			String         title             = info.title;
 			String         volume            = "%s %s".formatted(MediaControls.VOLUME_HIGH, audioManager.getPlayer().getVolume());
 			String         playerStatusIcons = "%s %s".formatted(paused, repeatSong);
-			String description = "";
+			String         description       = "";
 			
 			if (title == null || title.isEmpty())
 			{
@@ -341,9 +340,9 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			else
 			{
 				description = ("""
-					%s
-					**%s / %s**
-					%s %s""").formatted(progressPercentage((int) position, (int) duration), timeCurrent, timeTotal, playerStatusIcons, volume);
+						%s
+						**%s / %s**
+						%s %s""").formatted(progressPercentage((int) position, (int) duration), timeCurrent, timeTotal, playerStatusIcons, volume);
 			}
 			
 			embedBuilder.appendDescription(description);
@@ -416,8 +415,8 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 	@Override
 	public void onGenericMessageReaction(@NotNull GenericMessageReactionEvent event)
 	{
-		Member eventMember = event.getMember();
-		Message msg = event.retrieveMessage().complete();
+		Member  eventMember = event.getMember();
+		Message msg         = event.retrieveMessage().complete();
 		
 		if (msg == null)
 		{

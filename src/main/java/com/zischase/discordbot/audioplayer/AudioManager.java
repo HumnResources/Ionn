@@ -51,12 +51,6 @@ public class AudioManager
 	private final Timer                    timer     = new Timer();
 	private final String                   guild_id;
 	private       TimerTask                timerTask = null;
-	
-	public AudioPlayerState getPlayerState()
-	{
-		return playerState;
-	}
-	
 	private AudioPlayerState playerState = AudioPlayerState.STOPPED;
 	
 	public AudioManager(Guild guild)
@@ -71,6 +65,16 @@ public class AudioManager
 		this.player.addListener(scheduler);
 		guild.getAudioManager().setSendingHandler(this.getSendHandler());
 		audioPlayerStateObserver();
+	}
+	
+	public AudioPlayer getPlayer()
+	{
+		return player;
+	}
+	
+	public AudioPlayerSendHandler getSendHandler()
+	{
+		return new AudioPlayerSendHandler(player);
 	}
 	
 	private void audioPlayerStateObserver()
@@ -113,29 +117,9 @@ public class AudioManager
 		};
 	}
 	
-	public AudioPlayer getPlayer()
-	{
-		return player;
-	}
-	
-	public AudioPlayerSendHandler getSendHandler()
-	{
-		return new AudioPlayerSendHandler(player);
-	}
-	
-	public TrackLoader getTrackLoader()
-	{
-		return trackLoader;
-	}
-	
 	public AudioPlayerManager getPlayerManager()
 	{
 		return PLAYER_MANAGER;
-	}
-	
-	public TrackScheduler getScheduler()
-	{
-		return scheduler;
 	}
 	
 	public NowPlayingMessageHandler getNowPlayingMessageHandler()
@@ -146,37 +130,6 @@ public class AudioManager
 	public QueueMessageHandler getQueueMessageHandler()
 	{
 		return queueMessageHandler;
-	}
-	
-	public void saveAudioState()
-	{
-		AudioManager audioManager = GuildContext.get(guild_id).audioManager();
-		
-		String queueURLs = audioManager.getScheduler()
-				.getQueue()
-				.stream()
-				.map((track) -> track.getInfo().uri)
-				.collect(Collectors.joining(","));
-		
-		AudioTrack playingTrack = audioManager.getPlayer().getPlayingTrack();
-		
-		if (playingTrack != null)
-		{
-			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONG, playingTrack.getInfo().uri);
-			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONGDURATION, playingTrack.getPosition());
-		}
-		else
-		{
-			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONG, "");
-			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONGDURATION, 0);
-		}
-		
-		/* Check not required as empty queue adds nothing */
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.CURRENTQUEUE, queueURLs);
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.PAUSED, player.isPaused());
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATSONG, scheduler.isRepeatSong());
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATQUEUE, scheduler.isRepeatQueue());
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.VOLUME, player.getVolume());
 	}
 	
 	public void loadAudioState(boolean reload)
@@ -212,10 +165,11 @@ public class AudioManager
 				
 				audioManager.getTrackLoader().loadURIListSequentially(queueURLs);
 				
-				OffsetDateTime start = OffsetDateTime.now();
-				int timeoutSec = 10;
-				AudioPlayerState pState = audioManager.getPlayerState();
-				while (pState != AudioPlayerState.PLAYING && OffsetDateTime.now().isBefore(start.plusSeconds(timeoutSec))) {
+				OffsetDateTime   start      = OffsetDateTime.now();
+				int              timeoutSec = 10;
+				AudioPlayerState pState     = audioManager.getPlayerState();
+				while (pState != AudioPlayerState.PLAYING && OffsetDateTime.now().isBefore(start.plusSeconds(timeoutSec)))
+				{
 					pState = audioManager.getPlayerState();
 				}
 				
@@ -234,11 +188,56 @@ public class AudioManager
 		}
 	}
 	
+	public TrackLoader getTrackLoader()
+	{
+		return trackLoader;
+	}
+	
+	public AudioPlayerState getPlayerState()
+	{
+		return playerState;
+	}
+	
+	public TrackScheduler getScheduler()
+	{
+		return scheduler;
+	}
 	
 	public void onShutdown()
 	{
 		timer.cancel();
 		timerTask = null;
 		saveAudioState();
+	}
+	
+	public void saveAudioState()
+	{
+		AudioManager audioManager = GuildContext.get(guild_id).audioManager();
+		
+		String queueURLs = audioManager.getScheduler()
+				.getQueue()
+				.stream()
+				.map((track) -> track.getInfo().uri)
+				.collect(Collectors.joining(","));
+		
+		AudioTrack playingTrack = audioManager.getPlayer().getPlayingTrack();
+		
+		if (playingTrack != null)
+		{
+			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONG, playingTrack.getInfo().uri);
+			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONGDURATION, playingTrack.getPosition());
+		}
+		else
+		{
+			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONG, "");
+			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONGDURATION, 0);
+		}
+		
+		/* Check not required as empty queue adds nothing */
+		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.CURRENTQUEUE, queueURLs);
+		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.PAUSED, player.isPaused());
+		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATSONG, scheduler.isRepeatSong());
+		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATQUEUE, scheduler.isRepeatQueue());
+		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.VOLUME, player.getVolume());
 	}
 }

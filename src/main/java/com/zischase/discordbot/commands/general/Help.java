@@ -14,72 +14,88 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.util.List;
 
-public class Help extends Command {
-
-	public Help() {
+public class Help extends Command
+{
+	
+	public Help()
+	{
 		super(false);
 	}
-
+	
 	@Override
-	public @NotNull String shortDescription() {
+	public @NotNull String shortDescription()
+	{
 		return "Displays list of commands.";
 	}
-
+	
 	@Override
-	public String helpText() {
+	public String helpText()
+	{
 		return null;
 	}
-
+	
 	@Override
-	public void handle(CommandContext ctx) {
+	public void handle(CommandContext ctx)
+	{
 		TextChannel  channel = ctx.getChannel();
 		List<String> args    = ctx.getArgs();
-
-		if (args.isEmpty()) {
+		
+		if (args.isEmpty())
+		{
 			channel.sendMessageEmbeds(printCommandList(ctx.getGuild().getId()))
 					.queue();
-		} else if (args.get(0).matches("(?i)(audio|media|music)")) {
+		}
+		else if (args.get(0).matches("(?i)(audio|media|music)"))
+		{
 			EmbedBuilder embedBuilder = new EmbedBuilder();
 			embedBuilder.appendDescription(getAudioHelp());
 			embedBuilder.setColor(Color.magenta);
-
+			
 			channel.sendMessageEmbeds(embedBuilder.build()).queue();
-		} else {
+		}
+		else
+		{
 			String  cmdSearch = args.get(0);
 			Command command   = GuildContext.get(ctx.getGuild().getId()).commandHandler().getCommand(cmdSearch);
-
-			if (command == null) {
+			
+			if (command == null)
+			{
 				channel.sendMessage("Command " + cmdSearch + " not found.")
 						.queue();
-			} else {
+			}
+			else
+			{
 				channel.sendMessage(command.helpText())
 						.queue();
 			}
 		}
 	}
-
-	private MessageEmbed printCommandList(String guildID) {
+	
+	private MessageEmbed printCommandList(String guildID)
+	{
 		EmbedBuilder cmdList = new EmbedBuilder();
 		cmdList.setColor(Color.ORANGE);
 		cmdList.setTitle("Commands");
 		String prefix = DBQueryHandler.get(guildID, DBQuery.PREFIX);
-
+		
 		cmdList.appendDescription(String.format("The current prefix is set to: `%s`\n", prefix));
-
+		
 		GuildContext.get(guildID)
 				.commandHandler();
 		CommandHandler.getCommandList().forEach(command ->
 		{
-			if (!command.isPremium() || GuildContext.get(guildID).isPremium()) {
+			if (!command.isPremium() || GuildContext.get(guildID).isPremium())
+			{
 				cmdList.appendDescription(String.format("`%s%s`\n", prefix, command.getName()));
 			}
 		});
 		cmdList.appendDescription("\nUse `[Audio | Media | Music]` for more help.");
-
+		
 		return cmdList.build();
 	}
-
-	private String getAudioHelp() {
+	
+	private String getAudioHelp()
+	{
 		return """     		
 						  !! Use the prefix with the command !!
 						  
@@ -118,5 +134,5 @@ public class Help extends Command {
 					*Premium Features.
 				""";
 	}
-
+	
 }

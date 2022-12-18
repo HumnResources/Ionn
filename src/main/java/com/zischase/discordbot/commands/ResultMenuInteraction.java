@@ -20,120 +20,141 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class ResultMenuInteraction implements SelectMenuInteraction<String, SelectMenu> {
+public class ResultMenuInteraction implements SelectMenuInteraction<String, SelectMenu>
+{
 	@NotNull
 	@Override
-	public String getComponentId() {
+	public String getComponentId()
+	{
 		return null;
 	}
-
+	
 	@NotNull
 	@Override
-	public SelectMenu getComponent() {
+	public Message getMessage()
+	{
 		return null;
 	}
-
-	@NotNull
+	
 	@Override
-	public Message getMessage() {
-		return null;
-	}
-
-	@Override
-	public long getMessageIdLong() {
+	public long getMessageIdLong()
+	{
 		return 0;
 	}
-
+	
 	@NotNull
 	@Override
-	public Component.Type getComponentType() {
+	public Component.Type getComponentType()
+	{
 		return null;
 	}
-
+	
+	@NotNull
 	@Override
-	public int getTypeRaw() {
+	public MessageChannelUnion getChannel()
+	{
+		return null;
+	}
+	
+	@NotNull
+	@Override
+	public SelectMenu getComponent()
+	{
+		return null;
+	}
+	
+	@NotNull
+	@Override
+	public List<String> getValues()
+	{
+		return null;
+	}
+	
+	@Override
+	public int getTypeRaw()
+	{
 		return 0;
 	}
-
+	
 	@NotNull
 	@Override
-	public String getToken() {
+	public String getToken()
+	{
 		return null;
 	}
-
+	
 	@Nullable
 	@Override
-	public Guild getGuild() {
+	public Guild getGuild()
+	{
 		return null;
 	}
-
+	
 	@NotNull
 	@Override
-	public User getUser() {
+	public User getUser()
+	{
 		return null;
 	}
-
+	
 	@Nullable
 	@Override
-	public Member getMember() {
+	public Member getMember()
+	{
 		return null;
 	}
-
+	
 	@Override
-	public boolean isAcknowledged() {
+	public boolean isAcknowledged()
+	{
 		return false;
 	}
-
+	
 	@NotNull
 	@Override
-	public MessageChannelUnion getChannel() {
+	public DiscordLocale getUserLocale()
+	{
 		return null;
 	}
-
+	
 	@NotNull
 	@Override
-	public DiscordLocale getUserLocale() {
+	public JDA getJDA()
+	{
 		return null;
 	}
-
+	
 	@NotNull
 	@Override
-	public JDA getJDA() {
+	public MessageEditCallbackAction deferEdit()
+	{
 		return null;
 	}
-
+	
 	@NotNull
 	@Override
-	public List<String> getValues() {
+	public ModalCallbackAction replyModal(@NotNull Modal modal)
+	{
 		return null;
 	}
-
+	
 	@NotNull
 	@Override
-	public MessageEditCallbackAction deferEdit() {
+	public ReplyCallbackAction deferReply()
+	{
 		return null;
 	}
-
+	
 	@NotNull
 	@Override
-	public ModalCallbackAction replyModal(@NotNull Modal modal) {
+	public InteractionHook getHook()
+	{
 		return null;
 	}
-
-	@NotNull
+	
 	@Override
-	public ReplyCallbackAction deferReply() {
-		return null;
-	}
-
-	@NotNull
-	@Override
-	public InteractionHook getHook() {
-		return null;
-	}
-
-	@Override
-	public long getIdLong() {
+	public long getIdLong()
+	{
 		return 0;
 	}
 }

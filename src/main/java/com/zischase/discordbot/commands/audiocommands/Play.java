@@ -22,20 +22,23 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class Play extends Command {
-
+public class Play extends Command
+{
+	
 	private static final int SEARCH_TIMEOUT_SEC = 10;
-
-	public Play() {
+	
+	public Play()
+	{
 		super(false);
 	}
-
+	
 	@Override
-	public SlashCommandData getCommandData() {
+	public SlashCommandData getCommandData()
+	{
 		OptionData name   = new OptionData(OptionType.STRING, "name", "Plays song by name", true);
 		OptionData link   = new OptionData(OptionType.STRING, "link", "Plays audio by url", true);
 		OptionData search = new OptionData(OptionType.STRING, "search", "Youtube search query", true);
-
+		
 		return super.getCommandData().addSubcommands(
 				new SubcommandData("song", "search song name").addOptions(name),
 				new SubcommandData("url", "Link to audio track").addOptions(link),
@@ -44,91 +47,108 @@ public class Play extends Command {
 				new SubcommandData("pause", "Play or pause current track")
 		);
 	}
-
+	
 	@Override
-	public @NotNull String shortDescription() {
+	public @NotNull String shortDescription()
+	{
 		return "Plays a requested song.";
 	}
-
+	
 	@Override
-	public List<String> getAliases() {
+	public List<String> getAliases()
+	{
 		return List.of("P");
 	}
-
+	
 	@Override
-	public String helpText() {
+	public String helpText()
+	{
 		return "`Play/Pause : Play or pause the player.`\n" + "`Play song <name of song>: Searches YT and adds first song.`\n" + "`Play url <link>: Adds the specified song/playlist to queue.`\n" + "`Play next <url | name> : Adds the specified song/playlist to next in queue`" + "`Aliases : " + String
 				.join(" ", getAliases()) + "`";
 	}
-
+	
 	@Override
-	public void handle(CommandContext ctx) {
-
+	public void handle(CommandContext ctx)
+	{
+		
 		List<String> args    = ctx.getArgs();
 		String       guildID = ctx.getGuild().getId();
 		TrackLoader trackLoader = GuildContext.get(guildID)
 				.audioManager()
 				.getTrackLoader();
-
+		
 		VoiceChannel voiceChannel = ctx.getVoiceChannel();
-
+		
 		// Get arg or set default if no args input - Ignored if user inputs a search param
-		String arg = !args.isEmpty() ? args.get(0) : "-pause";
+		String arg    = !args.isEmpty() ? args.get(0) : "-pause";
 		String search = String.join(" ", args.subList(1, args.size()));
-		switch (arg) {
-			case "-pause" -> {
+		switch (arg)
+		{
+			case "-pause" ->
+			{
 				AudioPlayer player = GuildContext.get(guildID)
 						.audioManager()
 						.getPlayer();
 				player.setPaused(!player.isPaused());
 			}
-			case "-next" -> {
+			case "-next" ->
+			{
 				playNext(search, ctx.getChannel());
 				ctx.getChannel().sendMessage("Playing `%s` next!".formatted(search)).queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS), null);
 			}
 			case "-url" -> trackLoader.load(ctx.getChannel(), voiceChannel, search);
-			case "-ytplaylist" -> {
+			case "-ytplaylist" ->
+			{
 				trackLoader.loadYTSearchResults(ctx.getChannel(), voiceChannel, search);
 				ctx.getChannel()
 						.sendMessage("%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsMention(), search))
 						.queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
 			}
-			case "-song" -> {
+			case "-song" ->
+			{
 				search = search.replaceFirst("-song", "");
 				trackLoader.load(ctx.getChannel(), voiceChannel, search);
 			}
-			default -> {
+			default ->
+			{
 				search = String.join(" ", args);
 				trackLoader.load(ctx.getChannel(), voiceChannel, search);
 			}
 		}
 	}
-
-	private void playNext(String song, TextChannel textChannel) {
-
+	
+	private void playNext(String song, TextChannel textChannel)
+	{
+		
 		String                guildID      = textChannel.getGuild().getId();
 		AudioManager          audioManager = GuildContext.get(guildID).audioManager();
 		ArrayList<AudioTrack> currentQueue = audioManager.getScheduler().getQueue();
 		AudioTrack            nextTrack    = null;
 		String                trackName;
-
-		for (AudioTrack track : currentQueue) {
+		
+		for (AudioTrack track : currentQueue)
+		{
 			trackName = track.getInfo().title.toLowerCase();
 			if (song.matches("\\d+") && currentQueue.indexOf(track) == Integer.parseInt(song) - 1) // Subtract '1' for '0' based counting.
 			{
 				nextTrack = track;
 				break;
-			} else if (trackName.contains(song.trim().toLowerCase())) {
+			}
+			else if (trackName.contains(song.trim().toLowerCase()))
+			{
 				nextTrack = track;
 				break;
 			}
 		}
-
+		
 		boolean songFound = nextTrack != null && currentQueue.contains(nextTrack);
-		if (songFound) {
+		if (songFound)
+		{
 			currentQueue.remove(nextTrack);
 			currentQueue.add(0, nextTrack);
-		} else {
+		}
+		else
+		{
 			AtomicReference<AudioTrack> track = new AtomicReference<>(null);
 			audioManager.getPlayerManager()
 					.loadItem("ytsearch: " + song, new FunctionalResultHandler(
@@ -137,14 +157,16 @@ public class Play extends Command {
 							null,
 							null)
 					);
-
+			
 			OffsetDateTime start = OffsetDateTime.now();
-			while (track.get() == null) {
-				if (OffsetDateTime.now().isAfter(start.plusSeconds(SEARCH_TIMEOUT_SEC))) {
+			while (track.get() == null)
+			{
+				if (OffsetDateTime.now().isAfter(start.plusSeconds(SEARCH_TIMEOUT_SEC)))
+				{
 					return;
 				}
 			}
-
+			
 			currentQueue = audioManager.getScheduler().getQueue();
 			currentQueue.add(0, track.get());
 		}

@@ -1,8 +1,9 @@
 package com.zischase.discordbot.audioplayer;
 
-public enum AudioPlayerState {
+public enum AudioPlayerState
+{
 	STOPPED,
 	PAUSED,
 	PLAYING,
-	LOADING_TRACK, INACTIVE;
+	LOADING_TRACK, INACTIVE
 }

@@ -11,14 +11,17 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class Repeat extends Command {
-
-	public Repeat() {
+public class Repeat extends Command
+{
+	
+	public Repeat()
+	{
 		super(true);
 	}
-
+	
 	@Override
-	public SlashCommandData getCommandData() {
+	public SlashCommandData getCommandData()
+	{
 		return super.getCommandData().addOptions(
 				new OptionData(OptionType.STRING, "queue", "Sets repeat on or off for current queue").addChoices(
 						new Choice("on", "-q on"),
@@ -30,14 +33,16 @@ public class Repeat extends Command {
 				)
 		);
 	}
-
+	
 	@Override
-	public @NotNull String shortDescription() {
+	public @NotNull String shortDescription()
+	{
 		return "Sets repeat on/off for the current queue or song.";
 	}
-
+	
 	@Override
-	public String helpText() {
+	public String helpText()
+	{
 		return """
 				%s
 								
@@ -47,9 +52,10 @@ public class Repeat extends Command {
 					`repeat -q [on|off]` # Sets repeat for current queue.
 				""";
 	}
-
+	
 	@Override
-	public void handle(CommandContext ctx) {
+	public void handle(CommandContext ctx)
+	{
 		boolean repeatQueue = GuildContext.get(ctx.getGuild().getId())
 				.audioManager()
 				.getScheduler()
@@ -58,23 +64,33 @@ public class Repeat extends Command {
 				.audioManager()
 				.getScheduler()
 				.isRepeatSong();
-
+		
 		List<String> args = ctx.getArgs();
-		if (!args.isEmpty()) {
-			if (args.get(0).equals("-s")) {
-				if (args.get(1).equalsIgnoreCase("on")) {
-					repeatSong = true;
-				} else if (args.get(1).equalsIgnoreCase("off")) {
+		if (!args.isEmpty())
+		{
+			if (args.get(0).equals("-s"))
+			{
+				if (args.get(1).equalsIgnoreCase("on"))
+				{
 					repeatSong = true;
 				}
-			} else if (args.get(0).equals("-q")) {
-				if (args.get(1).equalsIgnoreCase("on")) {
+				else if (args.get(1).equalsIgnoreCase("off"))
+				{
+					repeatSong = true;
+				}
+			}
+			else if (args.get(0).equals("-q"))
+			{
+				if (args.get(1).equalsIgnoreCase("on"))
+				{
 					repeatQueue = true;
-				} else if (args.get(1).equalsIgnoreCase("off")) {
+				}
+				else if (args.get(1).equalsIgnoreCase("off"))
+				{
 					repeatQueue = true;
 				}
 			}
-
+			
 			GuildContext.get(ctx.getGuild().getId())
 					.audioManager()
 					.getScheduler()
@@ -84,7 +100,7 @@ public class Repeat extends Command {
 					.getScheduler()
 					.setRepeatSong(repeatSong);
 		}
-
+		
 		String message = """
 				Repeat Queue: `%s`
 				Repeat Song : `%s`
@@ -93,5 +109,5 @@ public class Repeat extends Command {
 				.sendMessage(message)
 				.queue();
 	}
-
+	
 }

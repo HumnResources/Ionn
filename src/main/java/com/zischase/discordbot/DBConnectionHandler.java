@@ -9,31 +9,38 @@ import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
-public final class DBConnectionHandler {
-
+public final class DBConnectionHandler
+{
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(DBConnectionHandler.class);
 	private static final String URL;
 	private static final String USER;
 	private static final String PASS;
-
-	static {
+	
+	static
+	{
 		URI uri = null;
-		try {
+		try
+		{
 			uri = new URI(Config.get("DATABASE_URL"));
-		} catch (URISyntaxException e) {
+		} catch (URISyntaxException e)
+		{
 			e.printStackTrace();
 		}
-
-		if (uri != null && uri.getHost() != null) {
+		
+		if (uri != null && uri.getHost() != null)
+		{
 			USER = uri.getUserInfo().split(":")[0];
 			PASS = uri.getUserInfo().split(":")[1];
 			URL  = "jdbc:postgresql://" + uri.getHost() + ':' + uri.getPort() + uri.getPath();
-		} else {
+		}
+		else
+		{
 			USER = Config.get("DEV_DB_USER");
 			PASS = Config.get("DEV_DB_PASSWORD");
 			URL  = Config.get("DEV_DATABASE_URL");
 		}
-
+		
 		Jdbi.create(DBConnectionHandler::connect).useHandle(handle ->
 				handle.execute("""
 						CREATE TABLE IF NOT EXISTS guilds(
@@ -66,27 +73,32 @@ public final class DBConnectionHandler {
 						        ON UPDATE CASCADE
 						        ON DELETE CASCADE);
 						"""));
-
+		
 		LOGGER.info("DataBase Connection Established");
 	}
-
-	private DBConnectionHandler() {
+	
+	private DBConnectionHandler()
+	{
 	}
-
-	public static Connection getConnection() {
+	
+	public static Connection getConnection()
+	{
 		return connect();
 	}
-
-	private static Connection connect() {
-		try {
+	
+	private static Connection connect()
+	{
+		try
+		{
 			Class.forName("org.postgresql.Driver");
 			return DriverManager.getConnection(URL, USER, PASS);
-		} catch (Exception e) {
+		} catch (Exception e)
+		{
 			LOGGER.warn("Error Connecting to DataBase !!");
 			e.printStackTrace();
 			System.exit(1);
 		}
 		return null;
 	}
-
+	
 }

@@ -16,16 +16,19 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Queue extends Command {
-
-	public Queue() {
+public class Queue extends Command
+{
+	
+	public Queue()
+	{
 		super(false);
 	}
-
+	
 	@Override
-	public SlashCommandData getCommandData() {
+	public SlashCommandData getCommandData()
+	{
 		OptionData index = new OptionData(OptionType.STRING, "index", "Use queue command to get index numbers", true);
-
+		
 		return super.getCommandData().addSubcommands(
 				new SubcommandData("show", "Displays the current queue"),
 				new SubcommandData("clear", "Clears the current queue").addOptions(index.setRequired(false).setDescription("Delete specific song using index")),
@@ -33,21 +36,24 @@ public class Queue extends Command {
 				new SubcommandData("jump", "Shifts the queue to the index number - See queue").addOptions(index),
 				new SubcommandData("page", "Goes to page number").addOptions(index.setRequired(true))
 		);
-
+		
 	}
-
+	
 	@Override
-	public @NotNull String shortDescription() {
+	public @NotNull String shortDescription()
+	{
 		return "Adds audio to the current queue.";
 	}
-
+	
 	@Override
-	public List<String> getAliases() {
+	public List<String> getAliases()
+	{
 		return List.of("Q", "Qu");
 	}
-
+	
 	@Override
-	public String helpText() {
+	public String helpText()
+	{
 		return """
 							%s
 				    
@@ -58,52 +64,63 @@ public class Queue extends Command {
 				`Aliases : %s`
 				""".formatted(shortDescription(), String.join(" ", getAliases()));
 	}
-
+	
 	@Override
-	public void handle(CommandContext ctx) {
+	public void handle(CommandContext ctx)
+	{
 		List<String> args = ctx.getArgs();
 		TrackScheduler scheduler = GuildContext.get(ctx.getGuild().getId())
 				.audioManager()
 				.getScheduler();
-
+		
 		ArrayList<AudioTrack> queue = scheduler.getQueue();
-
-		if (args.isEmpty()) {
+		
+		if (args.isEmpty())
+		{
 			return;
 		}
-
-		if (args.size() == 1 && args.get(0).contains("-clear")) {
+		
+		if (args.size() == 1 && args.get(0).contains("-clear"))
+		{
 			EmbedBuilder embed = new EmbedBuilder();
 			embed.setColor(Color.BLUE);
 			scheduler.clearQueue();
-		} else if (args.size() == 2 && args.get(1).matches("(?i)(\\d+)")) {
+		}
+		else if (args.size() == 2 && args.get(1).matches("(?i)(\\d+)"))
+		{
 			int    index = Integer.parseInt(args.get(1));
 			String arg   = args.get(0);
-
-			if (index < 0 || index > queue.size()) {
+			
+			if (index < 0 || index > queue.size())
+			{
 				return;
 			}
 			index = index - 1; // Subtract 1 for '0' based numeration.
-
-			switch (arg) {
-				case "-next" -> {
+			
+			switch (arg)
+			{
+				case "-next" ->
+				{
 					queue.add(0, queue.get(index));
 					queue.remove(index + 1); // Adding one to account for -> shift of list
 					scheduler.clearQueue();
 					scheduler.queueList(queue);
 				}
-				case "-jump" -> {
+				case "-jump" ->
+				{
 					queue.addAll(queue.subList(0, index));
 					ArrayList<AudioTrack> newQueue = new ArrayList<>(queue.subList(index, queue.size()));
 					scheduler.clearQueue();
 					scheduler.queueList(newQueue);
 				}
-				case "-clear" -> {
+				case "-clear" ->
+				{
 					queue.remove(index);
 					scheduler.clearQueue();
 					scheduler.queueList(queue);
 				}
-				case "-page" -> {
+				case "-page" ->
+				{
 					GuildContext.get(ctx.getGuild().getId())
 							.audioManager()
 							.getQueueMessageHandler()
@@ -112,7 +129,7 @@ public class Queue extends Command {
 				}
 			}
 		}
-
+		
 		GuildContext.get(ctx.getGuild().getId())
 				.audioManager()
 				.getQueueMessageHandler()
@@ -121,7 +138,7 @@ public class Queue extends Command {
 				.audioManager()
 				.getNowPlayingMessageHandler()
 				.printNowPlaying(ctx.getChannel());
-
+		
 	}
-
+	
 }

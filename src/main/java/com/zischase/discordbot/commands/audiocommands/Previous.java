@@ -7,20 +7,24 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class Previous extends Command {
-
-
-	public Previous() {
+public class Previous extends Command
+{
+	
+	
+	public Previous()
+	{
 		super(false);
 	}
-
+	
 	@Override
-	public List<String> getAliases() {
+	public List<String> getAliases()
+	{
 		return List.of("Prev", "pr");
 	}
-
+	
 	@Override
-	public String helpText() {
+	public String helpText()
+	{
 		return """
 				%s
 								
@@ -28,20 +32,22 @@ public class Previous extends Command {
 					prev/pr
 				""".formatted(shortDescription());
 	}
-
+	
 	@Override
-	public @NotNull String shortDescription() {
+	public @NotNull String shortDescription()
+	{
 		return "Plays previous song.";
 	}
-
+	
 	@Override
-	public void handle(CommandContext ctx) {
-
+	public void handle(CommandContext ctx)
+	{
+		
 		GuildContext.get(ctx.getGuild().getId())
 				.audioManager()
 				.getScheduler()
 				.prevTrack();
-
+		
 	}
-
+	
 }

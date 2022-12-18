@@ -1,6 +1,7 @@
 package com.zischase.discordbot;
 
-public enum DBQuery {
+public enum DBQuery
+{
 	CURRENTQUEUE,
 	PAUSED,
 	REPEATSONG,

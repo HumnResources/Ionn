@@ -6,37 +6,42 @@ import com.zischase.discordbot.commands.CommandContext;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import org.jetbrains.annotations.NotNull;
 
-public class Stop extends Command {
-
-	public Stop() {
+public class Stop extends Command
+{
+	
+	public Stop()
+	{
 		super(false);
 	}
-
+	
 	@Override
-	public @NotNull String shortDescription() {
+	public @NotNull String shortDescription()
+	{
 		return "Stops song, cancels audio queue and leaves channel.";
 	}
-
+	
 	@Override
-	public String helpText() {
+	public String helpText()
+	{
 		return "Stop ~ Ends currently playing audio and leave's the channel.";
 	}
-
+	
 	@Override
-	public void handle(CommandContext ctx) {
+	public void handle(CommandContext ctx)
+	{
 		AudioManager audioManager = GuildContext.get(ctx.getGuild().getId())
 				.audioManager();
-
+		
 		audioManager.getScheduler()
 				.clearQueue();
-
+		
 		audioManager.getPlayer()
 				.stopTrack();
-
-
+		
+		
 		ctx.getJDA()
 				.getDirectAudioController()
 				.disconnect(ctx.getGuild());
 	}
-
+	
 }

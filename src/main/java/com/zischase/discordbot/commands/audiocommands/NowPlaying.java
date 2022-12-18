@@ -9,24 +9,29 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class NowPlaying extends Command {
-
-	public NowPlaying() {
+public class NowPlaying extends Command
+{
+	
+	public NowPlaying()
+	{
 		super(false);
 	}
-
+	
 	@Override
-	public @NotNull String shortDescription() {
+	public @NotNull String shortDescription()
+	{
 		return "Displays the currently playing song.";
 	}
-
+	
 	@Override
-	public List<String> getAliases() {
+	public List<String> getAliases()
+	{
 		return List.of("np", "Playing", "currentsong", "nowplaying");
 	}
-
+	
 	@Override
-	public String helpText() {
+	public String helpText()
+	{
 		return """
 				Displays the currently playing song.
 								
@@ -34,14 +39,15 @@ public class NowPlaying extends Command {
 					np/nowplaying/playing/currentsong
 				""";
 	}
-
+	
 	@Override
-	public void handle(CommandContext ctx) {
+	public void handle(CommandContext ctx)
+	{
 		DBQueryHandler.set(ctx.getGuild().getId(), DBQuery.MEDIA_SETTINGS, DBQuery.TEXTCHANNEL, ctx.getChannel().getId());
 		GuildContext.get(ctx.getGuild().getId())
 				.audioManager()
 				.getNowPlayingMessageHandler()
 				.printNowPlaying(ctx.getChannel(), true);
 	}
-
+	
 }

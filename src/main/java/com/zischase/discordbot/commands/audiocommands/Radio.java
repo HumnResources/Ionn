@@ -22,23 +22,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 
-public class Radio extends Command {
-
-	private static final Logger        LOGGER        = LoggerFactory.getLogger(Radio.class);
-	private static final RadioBrowser  RADIO_BROWSER = new RadioBrowser(5000, "Beta");
+public class Radio extends Command
+{
+	
+	private static final Logger        LOGGER             = LoggerFactory.getLogger(Radio.class);
+	private static final RadioBrowser  RADIO_BROWSER      = new RadioBrowser(5000, "Beta");
 	private static final List<Station> STATION_LIST;
-	private static final int MAX_RADIO_STATIONS = 100000;
-
-	static {
+	private static final int           MAX_RADIO_STATIONS = 100000;
+	
+	static
+	{
 		AtomicInteger i = new AtomicInteger();
 		LOGGER.info("Loading Radio Stations");
 		STATION_LIST = RADIO_BROWSER.listStations(Paging.at(0, MAX_RADIO_STATIONS));
-		STATION_LIST.removeIf(station -> {
+		STATION_LIST.removeIf(station ->
+		{
 			boolean nullState = station.getState() == null || station.getState().matches("null");
 			boolean noBitRate = station.getBitrate() <= 0;
 			boolean noURL     = station.getUrl().isEmpty();
 			boolean noCodec   = station.getCodec().isEmpty();
-			if (nullState || noBitRate || noURL || noCodec) {
+			if (nullState || noBitRate || noURL || noCodec)
+			{
 				i.getAndIncrement();
 				return true;
 			}
@@ -46,52 +50,59 @@ public class Radio extends Command {
 		});
 		LOGGER.info("Stations Loaded - {} Stations Removed", i);
 	}
-
-	public Radio() {
+	
+	public Radio()
+	{
 		super(false);
 	}
-
+	
 	@Override
-	public SlashCommandData getCommandData() {
+	public SlashCommandData getCommandData()
+	{
 		return super.getCommandData().addOption(OptionType.STRING, "query", "Displays a list from search result", true);
 	}
-
+	
 	@Override
-	public @NotNull String shortDescription() {
+	public @NotNull String shortDescription()
+	{
 		return "Plays a selected radio station. Input number to choose";
 	}
-
+	
 	@Override
-	public List<String> getAliases() {
+	public List<String> getAliases()
+	{
 		return List.of("R");
 	}
-
+	
 	@Override
-	public String helpText() {
+	public String helpText()
+	{
 		return String.format("""
 				Radio
 				Radio [search term]
 				Aliases: %s
 				""", getAliases());
 	}
-
+	
 	@Override
-	public void handle(CommandContext ctx) {
+	public void handle(CommandContext ctx)
+	{
 		List<String> args         = ctx.getArgs();
 		String       guildID      = ctx.getGuild().getId();
 		TextChannel  textChannel  = ctx.getChannel();
 		VoiceChannel voiceChannel = ctx.getVoiceChannel();
-
+		
 		String query = String.join(" ", args).toLowerCase();
 		searchByString(ctx.getEvent(), guildID, textChannel, voiceChannel, query, ctx.getMember());
 	}
-
-
-	private void searchByString(SlashCommandInteractionEvent event, String guildID, TextChannel textChannel, VoiceChannel voiceChannel, String query, Member initiator) {
+	
+	
+	private void searchByString(SlashCommandInteractionEvent event, String guildID, TextChannel textChannel, VoiceChannel voiceChannel, String query, Member initiator)
+	{
 		// RegEx for negative lookahead searching for only non word characters.
 		String finalQuery = query.replaceAll("(?!\\w|\\s)(\\W)", "")
 				.toLowerCase();
-
+		
 		List<Station> stations = STATION_LIST.stream()
 				.filter(stn -> stn.getName()
 						.toLowerCase()
@@ -100,28 +111,32 @@ public class Radio extends Command {
 				.collect(Collectors.toList());
 		
 		stations.addAll(STATION_LIST.stream().filter(stn -> stn.getTags()
-				.toLowerCase()
-				.replaceAll("(?!\\w|\\s)(\\W)", " ")
-				.matches(finalQuery))
+						.toLowerCase()
+						.replaceAll("(?!\\w|\\s)(\\W)", " ")
+						.matches(finalQuery))
 				.collect(Collectors.toList()));
-
-		if (stations.isEmpty()) {
+		
+		if (stations.isEmpty())
+		{
 			return;
 		}
-
+		
 		List<ISearchResult> results = new ArrayList<>();
-		for (Station s : stations) {
+		for (Station s : stations)
+		{
 			results.add(new SearchInfo(s));
 		}
-
+		
 		ISearchResult result;
-		try {
+		try
+		{
 			result = new ResultSelector(event, results, textChannel.getJDA(), initiator).get();
 			GuildContext.get(guildID)
 					.audioManager()
 					.getTrackLoader()
 					.load(textChannel, voiceChannel, result.getUrl());
-		} catch (InvalidHandlerException e) {
+		} catch (InvalidHandlerException e)
+		{
 			e.printStackTrace();
 		}
 	}

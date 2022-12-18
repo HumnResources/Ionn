@@ -15,13 +15,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-public final class CommandHandler {
-
+public final class CommandHandler
+{
+	
 	private static final Logger                   LOGGER              = LoggerFactory.getLogger(CommandHandler.class);
 	private static final HashMap<String, Command> COMMANDS            = new HashMap<>();
 	private static final long                     COMMAND_TIMEOUT_SEC = 5;
-
-	static {
+	
+	static
+	{
 		addCommand(new Help());
 		addCommand(new Play());
 		addCommand(new Volume());
@@ -37,67 +39,83 @@ public final class CommandHandler {
 		addCommand(new Join());
 		addCommand(new Shuffle());
 		addCommand(new Repeat());
-
+		
 		/* Takes a hot minute. */
 		CompletableFuture.runAsync(() -> addCommand(new Radio()));
 //		CompletableFuture.runAsync(() -> addCommand(new Lyrics()));
-
-		if (COMMANDS.size() <= 0) {
+		
+		if (COMMANDS.size() <= 0)
+		{
 			LOGGER.warn("Commands not added !!");
 			System.exit(1);
 		}
 	}
-
+	
 	private final AtomicReference<Command> lastCommand         = new AtomicReference<>(null);
 	private       OffsetDateTime           lastCommandExecTime = OffsetDateTime.now();
-
-	public static List<Command> getCommandList() {
+	
+	public static List<Command> getCommandList()
+	{
 		return List.copyOf(COMMANDS.values());
 	}
-
-	private static void addCommand(Command command) {
-		if (COMMANDS.putIfAbsent(command.getName().toLowerCase(), command) == null) {
+	
+	private static void addCommand(Command command)
+	{
+		if (COMMANDS.putIfAbsent(command.getName().toLowerCase(), command) == null)
+		{
 			LOGGER.info("{} - Added", command.getName());
-		} else {
+		}
+		else
+		{
 			LOGGER.warn("{} Already Present! - Replacing", command.getName());
 		}
 	}
-
-	public void invoke(CommandContext ctx) {
+	
+	public void invoke(CommandContext ctx)
+	{
 		Command cmd;
-		if (ctx.getEvent() != null) {
-			 cmd = getCommand(ctx.getEvent().getName());
+		if (ctx.getEvent() != null)
+		{
+			cmd = getCommand(ctx.getEvent().getName());
 		}
-		else {
+		else
+		{
 			cmd = CommandHandler.getCommand(ctx.getArgs().get(0));
 		}
-
+		
 		if (cmd == null) return;
-
-		if (cmd.isPremium() && !ctx.isPremiumGuild()) {
+		
+		if (cmd.isPremium() && !ctx.isPremiumGuild())
+		{
 			ctx.getChannel().sendMessage("Sorry, this feature is for premium guilds only :c").queue();
-		} else {
+		}
+		else
+		{
 			LOGGER.info("{} - {}:{}", ctx.getGuild().getName(), ctx.getMember().getUser().getName(), ctx.getMessage().getContent());
-
+			
 			if ((lastCommand.get() != null && cmd.getName().equalsIgnoreCase(lastCommand.get().getName()) &&
 					OffsetDateTime.now().isBefore(lastCommandExecTime.plusSeconds(COMMAND_TIMEOUT_SEC))
-			)) {
+			))
+			{
 				lastCommand.set(cmd);
 				ctx.getChannel().sendMessage("Command on cooldown").queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
 				LOGGER.warn("Timeout! - {}:{}:{}", ctx.getGuild().getName(), ctx.getMember().getUser().getName(), cmd.getName());
 				return;
 			}
-
+			
 			lastCommandExecTime = OffsetDateTime.now();
 			lastCommand.set(cmd);
 			cmd.handle(ctx);
 		}
 	}
-
+	
 	@Nullable
-	public static Command getCommand(String search) {
-		for (Command c : COMMANDS.values()) {
-			if (search.equalsIgnoreCase(c.getName()) || c.getAliases().contains(search)) {
+	public static Command getCommand(String search)
+	{
+		for (Command c : COMMANDS.values())
+		{
+			if (search.equalsIgnoreCase(c.getName()) || c.getAliases().contains(search))
+			{
 				return c;
 			}
 		}
