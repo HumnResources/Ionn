@@ -105,9 +105,11 @@ public class Repeat extends Command
 				Repeat Queue: `%s`
 				Repeat Song : `%s`
 				""".formatted(repeatQueue, repeatSong);
-		ctx.getChannel()
-				.sendMessage(message)
-				.queue();
+		
+		GuildContext.get(ctx.getGuild().getId())
+				.messageSendHandler()
+				.sendAndDeleteMessageChars
+				.accept(ctx.getChannel(), message);
 	}
 	
 }

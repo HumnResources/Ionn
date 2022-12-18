@@ -8,7 +8,6 @@ import java.util.List;
 
 public abstract class Command
 {
-	
 	private final boolean premiumCommand;
 	
 	public Command(boolean premiumCommand)

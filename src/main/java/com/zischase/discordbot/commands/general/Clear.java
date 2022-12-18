@@ -2,13 +2,13 @@ package com.zischase.discordbot.commands.general;
 
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageType;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class Clear extends Command
 {
@@ -85,11 +85,10 @@ public class Clear extends Command
 			delete    = numOfMsgs;
 		}
 		
-		ctx.getChannel()
-				.sendMessage("Messages cleared !")
-				.complete()
-				.delete()
-				.queueAfter(2000, TimeUnit.MILLISECONDS);
+		GuildContext.get(ctx.getGuild().getId())
+				.messageSendHandler()
+				.sendAndDeleteMessageChars
+				.accept(ctx.getChannel(), "Messages cleared !");
 	}
 	
 	

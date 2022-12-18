@@ -4,6 +4,7 @@ import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
+import com.zischase.discordbot.commands.general.MessageSendHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -53,6 +54,7 @@ public class Volume extends Command
 	{
 		String       guildID = ctx.getGuild().getId();
 		List<String> args    = ctx.getArgs();
+		MessageSendHandler messageSendHandler = GuildContext.get(guildID).messageSendHandler();
 		
 		if (this.maxVol.get() == -1)
 		{
@@ -64,9 +66,7 @@ public class Volume extends Command
 		
 		if (args.isEmpty())
 		{
-			ctx.getChannel()
-					.sendMessage("Volume is currently at: `" + getVolume(guildID) + "`")
-					.queue();
+			messageSendHandler.sendAndDeleteMessageChars.accept(ctx.getChannel(), "Volume is currently at: `" + getVolume(guildID) + "`");
 			return;
 		}
 		
@@ -78,16 +78,12 @@ public class Volume extends Command
 			{
 				setVolume(guildID, num);
 				
-				ctx.getChannel()
-						.sendMessage("The volume has been set to `" + num + "`")
-						.queue();
-				
+				messageSendHandler.sendAndDeleteMessageChars.accept(ctx.getChannel(), "The volume has been set to `" + num + "`");
 				return;
 			}
 		}
-		ctx.getChannel()
-				.sendMessage("Please input a number between 0-" + maxVol.get())
-				.queue();
+		
+		messageSendHandler.sendAndDeleteMessageChars.accept(ctx.getChannel(), "Please input a number between 0-" + maxVol.get());
 	}
 	
 	private String getVolume(String guildID)

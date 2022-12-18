@@ -7,6 +7,7 @@ import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.audioplayer.TrackLoader;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
+import com.zischase.discordbot.commands.general.MessageSendHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
@@ -19,7 +20,6 @@ import org.jetbrains.annotations.NotNull;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Play extends Command
@@ -70,7 +70,7 @@ public class Play extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
-		
+		MessageSendHandler messageSendHandler = GuildContext.get(ctx.getGuild().getId()).messageSendHandler();
 		List<String> args    = ctx.getArgs();
 		String       guildID = ctx.getGuild().getId();
 		TrackLoader trackLoader = GuildContext.get(guildID)
@@ -94,15 +94,15 @@ public class Play extends Command
 			case "-next" ->
 			{
 				playNext(search, ctx.getChannel());
-				ctx.getChannel().sendMessage("Playing `%s` next!".formatted(search)).queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS), null);
+				
+				messageSendHandler.sendAndDeleteMessageChars.accept(ctx.getChannel(), "Playing `%s` next!".formatted(search));
 			}
 			case "-url" -> trackLoader.load(ctx.getChannel(), voiceChannel, search);
 			case "-ytplaylist" ->
 			{
 				trackLoader.loadYTSearchResults(ctx.getChannel(), voiceChannel, search);
-				ctx.getChannel()
-						.sendMessage("%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsMention(), search))
-						.queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
+				
+				messageSendHandler.sendAndDeleteMessageChars.accept(ctx.getChannel(), "%s Added list of songs from search `%s`.".formatted(ctx.getMember().getUser().getAsMention(), search));
 			}
 			case "-song" ->
 			{

@@ -9,6 +9,7 @@ import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -39,11 +40,11 @@ public class Help extends Command
 	{
 		TextChannel  channel = ctx.getChannel();
 		List<String> args    = ctx.getArgs();
+		MessageSendHandler messageSendHandler = GuildContext.get(ctx.getGuild().getId()).messageSendHandler();
 		
 		if (args.isEmpty())
 		{
-			channel.sendMessageEmbeds(printCommandList(ctx.getGuild().getId()))
-					.queue();
+			messageSendHandler.sendMessage.accept(channel, MessageCreateData.fromEmbeds(printCommandList(ctx.getGuild().getId())));
 		}
 		else if (args.get(0).matches("(?i)(audio|media|music)"))
 		{
@@ -51,22 +52,20 @@ public class Help extends Command
 			embedBuilder.appendDescription(getAudioHelp());
 			embedBuilder.setColor(Color.magenta);
 			
-			channel.sendMessageEmbeds(embedBuilder.build()).queue();
+			messageSendHandler.sendMessage.accept(channel, MessageCreateData.fromEmbeds(embedBuilder.build()));
 		}
 		else
 		{
 			String  cmdSearch = args.get(0);
-			Command command   = GuildContext.get(ctx.getGuild().getId()).commandHandler().getCommand(cmdSearch);
+			Command command   = CommandHandler.getCommand(cmdSearch);
 			
 			if (command == null)
 			{
-				channel.sendMessage("Command " + cmdSearch + " not found.")
-						.queue();
+				messageSendHandler.sendAndDeleteMessageChars.accept(channel, "Command " + cmdSearch + " not found.");
 			}
 			else
 			{
-				channel.sendMessage(command.helpText())
-						.queue();
+				messageSendHandler.sendAndDeleteMessageChars.accept(channel, command.helpText());
 			}
 		}
 	}

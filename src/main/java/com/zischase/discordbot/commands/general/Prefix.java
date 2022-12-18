@@ -4,6 +4,7 @@ import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -43,22 +44,18 @@ public class Prefix extends Command
 	{
 		Guild        guild = ctx.getGuild();
 		List<String> args  = ctx.getArgs();
-		
+		MessageSendHandler messageSendHandler = GuildContext.get(ctx.getGuild().getId()).messageSendHandler();
 		String prefix = DBQueryHandler.get(guild.getId(), DBQuery.PREFIX);
 		
 		if (args.isEmpty())
 		{
-			ctx.getChannel()
-					.sendMessage("The current prefix is `" + prefix + "`")
-					.queue();
+			messageSendHandler.sendAndDeleteMessageChars.accept(ctx.getChannel(), "The current prefix is `" + prefix + "`");
 			return;
 		}
 		
 		DBQueryHandler.set(guild.getId(), DBQuery.PREFIX, args.get(0));
 		prefix = DBQueryHandler.get(guild.getId(), DBQuery.PREFIX);
 		
-		ctx.getChannel()
-				.sendMessage("The new prefix has been set to `" + prefix + "`")
-				.queue();
+		messageSendHandler.sendAndDeleteMessageChars.accept(ctx.getChannel(), "The new prefix has been set to `" + prefix + "`");
 	}
 }

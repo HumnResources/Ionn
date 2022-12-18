@@ -2,6 +2,8 @@ package com.zischase.discordbot.audioplayer;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
+import com.zischase.discordbot.commands.general.MessageSendHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageReaction;
@@ -114,36 +116,24 @@ public class QueueMessageHandler extends ListenerAdapter
 		{
 			return;
 		}
-		
-		Message message = getQueueMsg(textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete());
+		List<Message> messages = textChannel.getHistory().retrievePast(HISTORY_POLL_LIMIT).complete();
+		Message message = getQueueMsg(messages);
 		buildQueue(manager.getScheduler().getQueue());
 		setPageNum(pageNum - 1);
 		
+		MessageSendHandler messageSendHandler = GuildContext.get(textChannel.getGuild().getId()).messageSendHandler();
+		
 		if (message == null)
 		{
-			textChannel.sendMessage(queuePages.get(this.queuePageNum.get())).queue(msg ->
-			{
-				this.queueMessage.set(msg);
-				if (!manager.getScheduler().getQueue().isEmpty()) addReactions(msg);
-			});
+			messageSendHandler.sendAndRetrieveMessage.apply(textChannel, queuePages.get(0));
 		}
 		else
 		{
-			textChannel.editMessageById(message.getId(), MessageEditData.fromCreateData(queuePages.get(this.queuePageNum.get())))
-					.queue(msg ->
-					{
-						this.queueMessage.set(msg);
-						if (!manager.getScheduler().getQueue().isEmpty()) addReactions(msg);
-					});
+			messageSendHandler.editAndRetrieveMessage.invoke(textChannel, message, MessageEditData.fromCreateData(queuePages.get(this.queuePageNum.get())));
 		}
 		
-		try
-		{
-			Thread.sleep(PRINT_TIMEOUT_MS);
-		} catch (InterruptedException e)
-		{
-			e.printStackTrace();
-		}
+		this.queueMessage.set(message);
+		addReactions(message);
 	}
 	
 	public int getCurrentPageNum()
@@ -191,7 +181,7 @@ public class QueueMessageHandler extends ListenerAdapter
 		int          size      = queue.size();
 		int          pageCount = 1;
 		String       repeat    = manager.getScheduler().isRepeatQueue() ? "- ".concat(REPEAT_QUEUE) : "";
-		
+		MessageCreateBuilder messageCreateBuilder = new MessageCreateBuilder();
 		queuePages.clear();
 		
 		
@@ -220,8 +210,9 @@ public class QueueMessageHandler extends ListenerAdapter
 			{
 				eb.setFooter("Page: %d/%d - Tracks: %d - Runtime: %s %s".formatted(pageCount, getMaxPages(), size, runtimeFormatted, repeat));
 				pageCount++;
-				queuePages.add(new MessageCreateBuilder().addContent(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
+				queuePages.add(messageCreateBuilder.addContent(QUEUE_MSG_NAME).setEmbeds(eb.build()).build());
 				eb.clear();
+				messageCreateBuilder.clear();
 			}
 		}
 	}

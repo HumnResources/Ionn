@@ -4,6 +4,7 @@ import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.audioplayer.AudioManager;
 import com.zischase.discordbot.commands.CommandHandler;
+import com.zischase.discordbot.commands.general.MessageSendHandler;
 import net.dv8tion.jda.api.entities.Guild;
 
 import java.util.HashMap;
@@ -17,11 +18,19 @@ public class GuildContext implements IGuildContext
 	private final        AudioManager            audioManager;
 	private final        CommandHandler          commandHandler;
 	
+	public MessageSendHandler messageSendHandler()
+	{
+		return messageSendHandler;
+	}
+	
+	private final MessageSendHandler messageSendHandler;
+	
 	public GuildContext(Guild guild)
 	{
 		this.guild          = guild;
 		this.audioManager   = new AudioManager(guild);
 		this.commandHandler = new CommandHandler();
+		this.messageSendHandler = new MessageSendHandler();
 		
 		/* Update global GuildContext references */
 		setGuild(this);

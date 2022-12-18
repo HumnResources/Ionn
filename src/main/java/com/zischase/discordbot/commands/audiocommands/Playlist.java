@@ -5,6 +5,7 @@ import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
+import com.zischase.discordbot.commands.general.MessageSendHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -13,6 +14,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -27,6 +29,7 @@ public class Playlist extends Command
 	private final Map<String, String> playlists;
 	
 	private boolean playlistsInitialized = false;
+	private MessageSendHandler messageSendHandler;
 	
 	public Playlist()
 	{
@@ -77,6 +80,8 @@ public class Playlist extends Command
 	public void handle(CommandContext ctx)
 	{
 		VoiceChannel voiceChannel = ctx.getVoiceChannel();
+		TextChannel textChannel = ctx.getChannel();
+		messageSendHandler = GuildContext.get(ctx.getGuild().getId()).messageSendHandler();
 		
 		if (!playlistsInitialized)
 		{
@@ -110,9 +115,7 @@ public class Playlist extends Command
 		
 		if (playlistName.startsWith("-"))
 		{
-			ctx.getChannel()
-					.sendMessage("Sorry, names cannot start with '-'.")
-					.queue();
+			messageSendHandler.sendAndDeleteMessageChars.accept(textChannel, "Sorry, names cannot start with '-'.");
 			return;
 		}
 		
@@ -120,17 +123,12 @@ public class Playlist extends Command
 		{
 			if (!playlistName.isEmpty() && !playlists.containsKey(playlistName.toLowerCase()))
 			{
-				ctx.getChannel()
-						.sendMessage("Sorry, playlist not found.")
-						.queue();
+				messageSendHandler.sendAndDeleteMessageChars.accept(textChannel, "Sorry, playlist not found.");
 				return;
 			}
 			else
 			{
-				ctx.getChannel()
-						.sendMessage("Loading playlist `" + playlistName + "`")
-						.queue();
-				
+				messageSendHandler.sendAndDeleteMessageChars.accept(textChannel, "Loading playlist `" + playlistName + "`");
 				GuildContext.get(ctx.getGuild().getId())
 						.audioManager()
 						.getTrackLoader()
@@ -184,8 +182,7 @@ public class Playlist extends Command
 	{
 		if (this.playlists.isEmpty())
 		{
-			textChannel.sendMessage("Sorry, no available playlists! :c")
-					.queue();
+			messageSendHandler.sendAndDeleteMessageChars.accept(textChannel, "Sorry, no available playlists! :c");
 			return;
 		}
 		
@@ -198,8 +195,7 @@ public class Playlist extends Command
 			embed.appendDescription(key + System.lineSeparator());
 		}
 		
-		textChannel.sendMessageEmbeds(embed.build())
-				.queue();
+		messageSendHandler.sendAndDeleteMessage.accept(textChannel, MessageCreateData.fromEmbeds(embed.build()));
 	}
 	
 	private String getPlaylistURL(String guildID, String name)

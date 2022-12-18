@@ -3,6 +3,8 @@ package com.zischase.discordbot.commands.dev;
 import com.zischase.discordbot.Config;
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
+import com.zischase.discordbot.commands.general.MessageSendHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import org.jetbrains.annotations.NotNull;
 
 public class Spam extends Command
@@ -28,6 +30,7 @@ public class Spam extends Command
 	@Override
 	public void handle(CommandContext ctx)
 	{
+		MessageSendHandler messageSendHandler = GuildContext.get(ctx.getGuild().getId()).messageSendHandler();
 		if (ctx.getMember().getId().equals(Config.get("OWNER_ID")))
 		{
 			if (ctx.getArgs().size() >= 1 && ctx.getArgs().get(0).matches("\\d+"))
@@ -35,7 +38,7 @@ public class Spam extends Command
 				int num = Integer.parseInt(ctx.getArgs().get(0));
 				for (int i = 0; i < num; i++)
 				{
-					ctx.getChannel().sendMessage(i + " - Spam ! !").queue();
+					messageSendHandler.sendAndDeleteMessageChars.accept(ctx.getChannel(), "Playing `%s` next!".formatted(i + " - Spam ! !"));
 				}
 			}
 		}

@@ -2,6 +2,7 @@ package com.zischase.discordbot.commands.audiocommands;
 
 import com.zischase.discordbot.commands.Command;
 import com.zischase.discordbot.commands.CommandContext;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import org.jetbrains.annotations.NotNull;
 
@@ -52,9 +53,10 @@ public class Join extends Command
 		}
 		if (voiceChannel == null && ctx.getMember().getUser() != ctx.getJDA().getSelfUser())
 		{
-			ctx.getChannel()
-					.sendMessage("You must be in a voice channel for that !")
-					.queue();
+			GuildContext.get(ctx.getGuild().getId())
+					.messageSendHandler()
+					.sendAndDeleteMessageChars
+					.accept(ctx.getChannel(), "You must be in a voice channel for that !");
 		}
 	}
 }

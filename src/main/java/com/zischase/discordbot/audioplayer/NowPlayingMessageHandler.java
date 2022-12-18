@@ -9,6 +9,8 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.commands.audiocommands.Shuffle;
+import com.zischase.discordbot.commands.general.MessageSendHandler;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -27,7 +29,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.zischase.discordbot.audioplayer.MediaControls.*;
@@ -66,6 +67,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			TrackScheduler           scheduler                = audioManager.getScheduler();
 			NowPlayingMessageHandler nowPlayingMessageHandler = audioManager.getNowPlayingMessageHandler();
 			QueueMessageHandler      queueMessageHandler      = audioManager.getQueueMessageHandler();
+			MessageSendHandler messageSendHandler = GuildContext.get(guildID).messageSendHandler();
 			
 			if (textChannel == null || voiceChannel == null)
 			{
@@ -86,7 +88,8 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			{
 				case "TrackStuckEvent" ->
 				{
-					textChannel.sendMessage("Audio track stuck! Ending track and continuing").queue((msg) -> msg.delete().queueAfter(4, TimeUnit.SECONDS));
+					messageSendHandler.sendAndDeleteMessageChars.accept(textChannel, "Audio track stuck! Ending track and continuing");
+					
 					if (!scheduler.getQueue().isEmpty())
 					{
 						scheduler.nextTrack();
@@ -100,7 +103,8 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 				}
 				case "TrackExceptionEvent" ->
 				{
-					textChannel.sendMessage("Error loading the audio for track `" + audioEvent.player.getPlayingTrack().getInfo().title + "`.").queue((msg) -> msg.delete().queueAfter(4, TimeUnit.SECONDS));
+					messageSendHandler.sendAndDeleteMessageChars.accept(textChannel, "Error loading the audio for track `" + audioEvent.player.getPlayingTrack().getInfo().title + "`.");
+					
 					((TrackExceptionEvent) audioEvent).exception.printStackTrace();
 					if (!scheduler.getQueue().isEmpty())
 					{
@@ -247,23 +251,14 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			QueueMessageHandler queueMessageHandler = audioManager.getQueueMessageHandler();
 			queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
 			
-			textChannel.sendMessage(msg).queue(message ->
-			{
-				addReactions(message);
-				this.nowPlayingMessage = message;
-			});
+			Message message = GuildContext.get(guildID).messageSendHandler().sendAndRetrieveMessage.apply(textChannel, msg);
+			
+			addReactions(message);
+			this.nowPlayingMessage = message;
 		}
 		else
 		{
 			textChannel.editMessageById(this.nowPlayingMessage.getId(), MessageEditData.fromCreateData(msg)).queue();
-		}
-		
-		try
-		{
-			Thread.sleep(PRINT_TIMEOUT_MS);
-		} catch (InterruptedException e)
-		{
-			e.printStackTrace();
 		}
 	}
 	

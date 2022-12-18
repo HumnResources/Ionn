@@ -200,8 +200,10 @@
 //	}
 //
 //	private void jSoupScrape(String search, TextChannel textChannel) {
+//		MessageSendHandler messageSendHandler = GuildContext.get(textChannel.getGuild().getId()).messageSendHandler();
 //		if (ACTIVE_PROXIES.get().size() == 0) {
 //			textChannel.sendMessage("No servers available for routing. Please wait a few minutes and try again.").submit();
+
 //			checkProxies(true);
 //			return;
 //		}

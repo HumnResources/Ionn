@@ -4,7 +4,9 @@ import com.sun.istack.Nullable;
 import com.zischase.discordbot.commands.audiocommands.*;
 import com.zischase.discordbot.commands.general.Clear;
 import com.zischase.discordbot.commands.general.Help;
+import com.zischase.discordbot.commands.general.MessageSendHandler;
 import com.zischase.discordbot.commands.general.Prefix;
+import com.zischase.discordbot.guildcontrol.GuildContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +14,6 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class CommandHandler
@@ -39,6 +40,7 @@ public final class CommandHandler
 		addCommand(new Join());
 		addCommand(new Shuffle());
 		addCommand(new Repeat());
+		addCommand(new Resume());
 		
 		/* Takes a hot minute. */
 		CompletableFuture.runAsync(() -> addCommand(new Radio()));
@@ -73,6 +75,7 @@ public final class CommandHandler
 	
 	public void invoke(CommandContext ctx)
 	{
+		MessageSendHandler messageSendHandler = GuildContext.get(ctx.getGuild().getId()).messageSendHandler();
 		Command cmd;
 		if (ctx.getEvent() != null)
 		{
@@ -87,26 +90,25 @@ public final class CommandHandler
 		
 		if (cmd.isPremium() && !ctx.isPremiumGuild())
 		{
-			ctx.getChannel().sendMessage("Sorry, this feature is for premium guilds only :c").queue();
+			messageSendHandler.sendAndDeleteMessageChars.accept(ctx.getChannel(), "Sorry, this feature is for premium guilds only :c");
+			return;
 		}
-		else
+		
+		LOGGER.info("{} - {}:{}", ctx.getGuild().getName(), ctx.getMember().getUser().getName(), ctx.getMessage().getContent());
+		
+		if ((lastCommand.get() != null && cmd.getName().equalsIgnoreCase(lastCommand.get().getName()) &&
+				OffsetDateTime.now().isBefore(lastCommandExecTime.plusSeconds(COMMAND_TIMEOUT_SEC))
+		))
 		{
-			LOGGER.info("{} - {}:{}", ctx.getGuild().getName(), ctx.getMember().getUser().getName(), ctx.getMessage().getContent());
-			
-			if ((lastCommand.get() != null && cmd.getName().equalsIgnoreCase(lastCommand.get().getName()) &&
-					OffsetDateTime.now().isBefore(lastCommandExecTime.plusSeconds(COMMAND_TIMEOUT_SEC))
-			))
-			{
-				lastCommand.set(cmd);
-				ctx.getChannel().sendMessage("Command on cooldown").queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
-				LOGGER.warn("Timeout! - {}:{}:{}", ctx.getGuild().getName(), ctx.getMember().getUser().getName(), cmd.getName());
-				return;
-			}
-			
-			lastCommandExecTime = OffsetDateTime.now();
 			lastCommand.set(cmd);
-			cmd.handle(ctx);
+			messageSendHandler.sendAndDeleteMessageChars.accept(ctx.getChannel(), "Command on cooldown");
+			LOGGER.warn("Timeout! - {}:{}:{}", ctx.getGuild().getName(), ctx.getMember().getUser().getName(), cmd.getName());
+			return;
 		}
+		
+		lastCommandExecTime = OffsetDateTime.now();
+		lastCommand.set(cmd);
+		cmd.handle(ctx);
 	}
 	
 	@Nullable

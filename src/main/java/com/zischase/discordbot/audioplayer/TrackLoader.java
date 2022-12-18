@@ -8,6 +8,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sun.istack.Nullable;
 import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
+import com.zischase.discordbot.commands.general.MessageSendHandler;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -20,7 +21,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class TrackLoader implements AudioLoadResultHandler
@@ -29,10 +29,19 @@ public class TrackLoader implements AudioLoadResultHandler
 	private static final LinkedMap<String, AudioTrack> CACHE        = new LinkedMap<>(50);
 	private final        String                        guildID;
 	private final        AtomicReference<Boolean>      attemptRetry = new AtomicReference<>();
+	private MessageSendHandler messageSendHandler;
 	
 	public TrackLoader(String guildID)
 	{
 		this.guildID = guildID;
+		
+		/* Once its fully loaded it will update the message delivery method */
+		CompletableFuture.runAsync(() -> {
+			while (GuildContext.get(guildID) == null)
+			{
+				messageSendHandler = GuildContext.get(guildID).messageSendHandler();
+			}
+		});
 	}
 	
 	public void loadYTSearchResults(TextChannel textChannel, @Nullable VoiceChannel voiceChannel, String uri)
@@ -223,7 +232,7 @@ public class TrackLoader implements AudioLoadResultHandler
 			s = "Added: `%s` to queue.".formatted(audioTrack.getIdentifier());
 		}
 		
-		channel.sendMessage(s).queue(success -> success.delete().queueAfter(4, TimeUnit.SECONDS));
+		messageSendHandler.sendAndDeleteMessageChars.accept(channel, s);
 	}
 	
 	@Override
@@ -242,8 +251,7 @@ public class TrackLoader implements AudioLoadResultHandler
 				.guild()
 				.getTextChannelById(DBQueryHandler.get(guildID, DBQuery.MEDIA_SETTINGS, DBQuery.TEXTCHANNEL));
 		
-		assert channel != null;
-		channel.sendMessage("Darn, no matches found !").queue();
+		messageSendHandler.sendAndDeleteMessageChars.accept(channel, "Darn, no matches found !");
 	}
 	
 	@Override
@@ -269,8 +277,7 @@ public class TrackLoader implements AudioLoadResultHandler
 			
 			this.load(channel, voiceChannel, lastSong.getInfo().uri);
 		}
-		assert channel != null;
-		channel.sendMessage("Loading failed for `" + lastSong.getInfo().title + "`, sorry.").queue(msg -> msg.delete().queueAfter(4, TimeUnit.SECONDS));
 		
+		messageSendHandler.sendAndDeleteMessageChars.accept(channel, "Loading failed for `" + lastSong.getInfo().title + "`, sorry.");
 	}
 }
