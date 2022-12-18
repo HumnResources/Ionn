@@ -89,6 +89,7 @@ public class AudioManager
 				{
 					return;
 				}
+				saveAudioState();
 				
 				AudioTrackState trackState    = player.getPlayingTrack().getState();
 				boolean    isPaused = DBQueryHandler.get(guild_id, DBQuery.PAUSED).equals("t");
@@ -159,6 +160,8 @@ public class AudioManager
 				audioManager.scheduler.setRepeatSong(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATSONG)));
 				audioManager.scheduler.setRepeatQueue(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATQUEUE)));
 				audioManager.scheduler.setVolume(Integer.parseInt(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.VOLUME)));
+//				audioManager.scheduler.setVolume(Integer.parseInt(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.TEXTCHANNEL)));
+//				audioManager.scheduler.setTextChannel(Integer.parseInt(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.VOICECHANNEL)));
 				
 				if (!reload)
 				{
@@ -235,20 +238,32 @@ public class AudioManager
 		
 		if (playingTrack != null)
 		{
-			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONG, playingTrack.getInfo().uri);
-			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONGDURATION, playingTrack.getPosition());
+			DBQueryHandler.set(guild_id, DBQuery.ACTIVESONG, playingTrack.getInfo().uri);
+			DBQueryHandler.set(guild_id, DBQuery.ACTIVESONGDURATION, playingTrack.getPosition());
 		}
 		else
 		{
-			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONG, "");
-			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.ACTIVESONGDURATION, 0);
+			DBQueryHandler.set(guild_id, DBQuery.ACTIVESONG, "");
+			DBQueryHandler.set(guild_id, DBQuery.ACTIVESONGDURATION, 0);
+		}
+	
+		net.dv8tion.jda.api.managers.AudioManager discordAudioManager = GuildContext.get(guild_id).guild().getAudioManager();
+		if (discordAudioManager.isConnected() && discordAudioManager.getConnectedChannel() != null) {
+			DBQueryHandler.set(guild_id, DBQuery.VOICECHANNEL, discordAudioManager.getConnectedChannel().getId());
 		}
 		
 		/* Check not required as empty queue adds nothing */
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.CURRENTQUEUE, queueURLs);
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.PAUSED, scheduler.isPaused());
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATSONG, scheduler.isRepeatSong());
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATQUEUE, scheduler.isRepeatQueue());
-		DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.VOLUME, scheduler.getVolume());
+		DBQueryHandler.set(guild_id, DBQuery.CURRENTQUEUE, queueURLs);
+		DBQueryHandler.set(guild_id, DBQuery.PAUSED, scheduler.isPaused());
+		DBQueryHandler.set(guild_id, DBQuery.REPEATSONG, scheduler.isRepeatSong());
+		DBQueryHandler.set(guild_id, DBQuery.REPEATQUEUE, scheduler.isRepeatQueue());
+		DBQueryHandler.set(guild_id, DBQuery.VOLUME, scheduler.getVolume());
+		
+		if (audioManager.getNowPlayingMessageHandler().getNowPlayingMessage() != null)
+		{
+			DBQueryHandler.set(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.TEXTCHANNEL, audioManager.getNowPlayingMessageHandler().getNowPlayingMessage().getChannel().getId());
+		}
+		
 	}
+	
 }

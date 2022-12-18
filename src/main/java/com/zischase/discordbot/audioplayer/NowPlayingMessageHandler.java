@@ -29,6 +29,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static com.zischase.discordbot.audioplayer.MediaControls.*;
@@ -45,6 +46,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 	private              QueueMessageHandler queueMessageHandler;
 	private final        AudioManager        audioManager;
 	private final        String              guildID;
+	private final AtomicReference<Integer> nRetries = new AtomicReference<>(1);
 	
 	public NowPlayingMessageHandler(AudioManager audioManager, Guild guild)
 	{
@@ -92,6 +94,11 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 				{
 					messageSendHandler.sendAndDeleteMessageChars.accept(textChannel, "Audio track stuck! Ending track and continuing");
 					
+					if (retrySong(textChannel, scheduler.getLastTrack().getInfo().title))
+					{
+						return;
+					}
+					
 					if (!scheduler.getQueue().isEmpty())
 					{
 						scheduler.nextTrack();
@@ -106,6 +113,11 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 				case "TrackExceptionEvent" ->
 				{
 					messageSendHandler.sendAndDeleteMessageChars.accept(textChannel, "Error loading the audio for track `" + audioEvent.player.getPlayingTrack().getInfo().title + "`.");
+					
+					if (retrySong(textChannel, scheduler.getLastTrack().getInfo().title))
+					{
+						return;
+					}
 					
 					((TrackExceptionEvent) audioEvent).exception.printStackTrace();
 					if (!scheduler.getQueue().isEmpty())
@@ -131,6 +143,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 				case "TrackStartEvent" ->
 				{
 					boolean inChannel = voiceChannel.getMembers().contains(guild.getSelfMember());
+					nRetries.set(1);
 					
 					/* Make sure someone can listen */
 					if (!inChannel)
@@ -156,6 +169,23 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 		
 		/* Add the audio event watcher to the current guild's audio manager */
 		audioManager.getPlayer().addListener(audioEventListener);
+	}
+	
+	private boolean retrySong(TextChannel textChannel, String songName)
+	{
+		if (nRetries.get() != 1)
+		{
+			return false;
+		}
+		
+		nRetries.set(0);
+		audioManager.saveAudioState();
+		long position = Long.parseLong(DBQueryHandler.get(guildID, DBQuery.ACTIVESONGDURATION));
+		audioManager.getTrackLoader().loadNext(textChannel, songName);
+		audioManager.getScheduler().nextTrack();
+		audioManager.getPlayer().getPlayingTrack().setPosition(position);
+		
+		return true;
 	}
 	
 	public void deletePrevious(@NotNull TextChannel textChannel)
@@ -198,12 +228,16 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			public void run()
 			{
 				AudioTrack track = audioEvent.player.getPlayingTrack();
+				if (track == null)
+				{
+					return;
+				}
 				
 				boolean incorrectState = audioManager.getPlayerState() != AudioPlayerState.PLAYING;
 				boolean rateLimited    = OffsetDateTime.now().isBefore(lastUpdate.plusSeconds(RATE_LIMIT_SEC));
 				boolean isLive         = (audioManager.getPlayer().getPlayingTrack().getDuration() == Long.MAX_VALUE && getNowPlayingMessage() != null);
 				
-				if (track == null || track.getPosition() > track.getDuration() || incorrectState || rateLimited || isLive)
+				if (track.getPosition() > track.getDuration() || incorrectState || rateLimited || isLive)
 				{
 					return;
 				}

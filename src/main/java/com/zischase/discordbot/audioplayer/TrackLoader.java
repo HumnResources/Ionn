@@ -18,6 +18,7 @@ import org.apache.commons.collections4.map.LinkedMap;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -81,7 +82,61 @@ public class TrackLoader implements AudioLoadResultHandler
 		
 		return true;
 	}
-	
+	public void loadNext(TextChannel textChannel, String songName)
+	{
+		String                guildID      = textChannel.getGuild().getId();
+		AudioManager          audioManager = GuildContext.get(guildID).audioManager();
+		ArrayList<AudioTrack> currentQueue = audioManager.getScheduler().getQueue();
+		AudioTrack            nextTrack    = null;
+		String                trackName;
+		
+		for (AudioTrack track : currentQueue)
+		{
+			trackName = track.getInfo().title.toLowerCase();
+			if (songName.matches("\\d+") && currentQueue.indexOf(track) == Integer.parseInt(songName) - 1) // Subtract '1' for '0' based counting.
+			{
+				nextTrack = track;
+				break;
+			}
+			else if (trackName.contains(songName.trim().toLowerCase()))
+			{
+				nextTrack = track;
+				break;
+			}
+		}
+		
+		boolean songFound = nextTrack != null && currentQueue.contains(nextTrack);
+		if (songFound)
+		{
+			currentQueue.remove(nextTrack);
+			currentQueue.add(0, nextTrack);
+		}
+		else
+		{
+			AtomicReference<AudioTrack> track = new AtomicReference<>(null);
+			audioManager.getPlayerManager()
+					.loadItem("ytsearch: " + songName, new FunctionalResultHandler(
+							track::set,
+							playlist -> track.set(playlist.getTracks().get(0)),
+							null,
+							null)
+					);
+			
+			OffsetDateTime start = OffsetDateTime.now();
+			while (track.get() == null)
+			{
+				if (OffsetDateTime.now().isAfter(start.plusSeconds(5)))
+				{
+					return;
+				}
+			}
+			
+			currentQueue = audioManager.getScheduler().getQueue();
+			currentQueue.add(0, track.get());
+		}
+		audioManager.getScheduler().clearQueue();
+		audioManager.getScheduler().queueList(currentQueue);
+	}
 	public void load(TextChannel textChannel, @Nullable VoiceChannel voiceChannel, String uri)
 	{
 		if (joinChannels(voiceChannel, textChannel))
