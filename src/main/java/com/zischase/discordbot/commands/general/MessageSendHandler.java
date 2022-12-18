@@ -15,14 +15,10 @@ import java.util.function.BiFunction;
 
 public class MessageSendHandler
 {
-	private final Semaphore  semaphore         = new Semaphore(20);
+	private final Semaphore  semaphore         = new Semaphore(5);
 	private static final int SUBMIT_TIMEOUT_MS = 350;
 	private static final int DELETE_TIMEOUT_MS = 5000;
-
-	public MessageSendHandler()
-	{
-	}
-
+	
 	public BiFunction<TextChannel, MessageCreateData, Message> sendAndRetrieveMessage = this::sendAndRetrieveMessage;
 	public BiConsumer<TextChannel, MessageCreateData> sendAndDeleteMessage = this::sendAndDeleteMessage;
 	public BiConsumer<TextChannel, CharSequence> sendAndDeleteMessageChars = this::sendAndDeleteMessageChars;
