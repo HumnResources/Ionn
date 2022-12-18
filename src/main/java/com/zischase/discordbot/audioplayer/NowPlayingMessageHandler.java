@@ -27,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.zischase.discordbot.audioplayer.MediaControls.*;
@@ -86,7 +87,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			{
 				case "TrackStuckEvent" ->
 				{
-					textChannel.sendMessage("Audio track stuck! Ending track and continuing").queue();
+					textChannel.sendMessage("Audio track stuck! Ending track and continuing").queue((msg) -> msg.delete().queueAfter(4, TimeUnit.SECONDS));
 					if (!scheduler.getQueue().isEmpty())
 					{
 						scheduler.nextTrack();
@@ -100,7 +101,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 				}
 				case "TrackExceptionEvent" ->
 				{
-					textChannel.sendMessage("Error loading the audio for track `" + audioEvent.player.getPlayingTrack().getInfo().title + "`.").queue();
+					textChannel.sendMessage("Error loading the audio for track `" + audioEvent.player.getPlayingTrack().getInfo().title + "`.").queue((msg) -> msg.delete().queueAfter(4, TimeUnit.SECONDS));
 					((TrackExceptionEvent) audioEvent).exception.printStackTrace();
 					if (!scheduler.getQueue().isEmpty())
 					{
