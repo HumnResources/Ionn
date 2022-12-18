@@ -7,7 +7,6 @@ import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
 import java.time.Instant;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -86,20 +85,18 @@ public class MessageSendHandler
 	
 	private synchronized void awaitThread()
 	{
-		/* Backup release for thread in case - slightly higher time to allow thread chance to solve */
-		CompletableFuture.runAsync(() -> {
-			Instant start = Instant.now();
-			while (start.isBefore(Instant.now().plusMillis(SUBMIT_TIMEOUT_MS)))
+		Instant start = Instant.now();
+		Instant now = start;
+		
+		while (start.isBefore(now.plusMillis(SUBMIT_TIMEOUT_MS)))
+		{
+			now = Instant.now();
+			if (now.isAfter(start.plusMillis(SUBMIT_TIMEOUT_MS)))
 			{
-				/* This condition means the thread was successful at waiting and no longer needs additional timeout.
-				 return to avoid releasing a newly acquired thread */
-				if (semaphore.availablePermits() != 1)
-				{
-					return;
-				}
+				semaphore.release();
+				break;
 			}
-			semaphore.release();
-		});
+		}
 		
 		try
 		{
