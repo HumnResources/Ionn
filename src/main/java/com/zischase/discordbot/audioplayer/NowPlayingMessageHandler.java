@@ -44,12 +44,14 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 	private       TimerTask        trackTimerTask    = null;
 	private       Message          nowPlayingMessage = null;
 	private       OffsetDateTime   lastUpdate        = OffsetDateTime.now();
+	QueueMessageHandler      queueMessageHandler;
 	
 	public NowPlayingMessageHandler(AudioManager audioManager, Guild guild)
 	{
 		this.guildID      = guild.getId();
 		this.audioManager = audioManager;
 		initializeTrackListener(guild);
+		this.queueMessageHandler      = audioManager.getQueueMessageHandler();
 	}
 	
 	private void initializeTrackListener(Guild guild)
@@ -66,7 +68,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			VoiceChannel             voiceChannel             = guild.getVoiceChannelById(DBQueryHandler.get(id, DBQuery.MEDIA_SETTINGS, DBQuery.VOICECHANNEL));
 			TrackScheduler           scheduler                = audioManager.getScheduler();
 			NowPlayingMessageHandler nowPlayingMessageHandler = audioManager.getNowPlayingMessageHandler();
-			QueueMessageHandler      queueMessageHandler      = audioManager.getQueueMessageHandler();
+			queueMessageHandler      = audioManager.getQueueMessageHandler();
 			MessageSendHandler messageSendHandler = GuildContext.get(guildID).messageSendHandler();
 			
 			if (textChannel == null || voiceChannel == null)
@@ -449,11 +451,20 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			case SHUFFLE -> Shuffle.shuffle(guildID, audioManager);
 			case REPEAT_QUEUE -> audioManager.getScheduler().setRepeatQueue(!audioManager.getScheduler().isRepeatQueue());
 			case REPEAT_ONE -> audioManager.getScheduler().setRepeatSong(!audioManager.getScheduler().isRepeatSong());
-			case PREV_TRACK -> audioManager.getScheduler().prevTrack();
+			case PREV_TRACK ->
+			{
+				audioManager.getScheduler().prevTrack();
+				queueMessageHandler.printQueue(currentNPMessage.getChannel().asTextChannel());
+			}
 			case PLAY_PAUSE -> audioManager.getPlayer().setPaused(!audioManager.getPlayer().isPaused());
-			case NEXT_TRACK -> audioManager.getScheduler().nextTrack();
+			case NEXT_TRACK ->
+			{
+				audioManager.getScheduler().nextTrack();
+				queueMessageHandler.printQueue(currentNPMessage.getChannel().asTextChannel());
+			}
 			case STOP ->
 			{
+				audioManager.saveAudioState();
 				audioManager.getScheduler().clearQueue();
 				audioManager.getPlayer().stopTrack();
 			}
