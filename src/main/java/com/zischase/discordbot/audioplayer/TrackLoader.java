@@ -44,6 +44,10 @@ public class TrackLoader implements AudioLoadResultHandler
 			{
 				messageSendHandler = GuildContext.get(guildID).messageSendHandler();
 			}
+			if (messageSendHandler == null)
+			{
+				messageSendHandler = GuildContext.get(guildID).messageSendHandler();
+			}
 		});
 	}
 	
@@ -273,7 +277,7 @@ public class TrackLoader implements AudioLoadResultHandler
 	
 	private void songAddedConfirmation(TextChannel channel, AudioTrack audioTrack)
 	{
-		if (channel == null || audioTrack.getInfo() == null || messageSendHandler == null)
+		if (channel == null || audioTrack.getInfo() == null)
 		{
 			return;
 		}
