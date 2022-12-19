@@ -89,7 +89,13 @@ public class AudioManager
 				{
 					return;
 				}
+				
 				saveAudioState();
+				
+				if (player.getPlayingTrack() == null)
+				{
+					return;
+				}
 				
 				AudioTrackState trackState    = player.getPlayingTrack().getState();
 				boolean    isPaused = DBQueryHandler.get(guild_id, DBQuery.PAUSED).equals("t");
@@ -156,12 +162,7 @@ public class AudioManager
 			{
 				AudioManager audioManager = GuildContext.get(guild_id).audioManager();
 				
-				audioManager.scheduler.setPaused(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.PAUSED)));
-				audioManager.scheduler.setRepeatSong(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATSONG)));
-				audioManager.scheduler.setRepeatQueue(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATQUEUE)));
 				audioManager.scheduler.setVolume(Integer.parseInt(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.VOLUME)));
-//				audioManager.scheduler.setVolume(Integer.parseInt(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.TEXTCHANNEL)));
-//				audioManager.scheduler.setTextChannel(Integer.parseInt(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.VOICECHANNEL)));
 				
 				if (!reload)
 				{
@@ -198,6 +199,10 @@ public class AudioManager
 				{
 					audioManager.getPlayer().getPlayingTrack().setPosition(currentSongPosition);
 				}
+				
+				audioManager.scheduler.setRepeatSong(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATSONG)));
+				audioManager.scheduler.setRepeatQueue(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.REPEATQUEUE)));
+				audioManager.scheduler.setPaused(Boolean.getBoolean(DBQueryHandler.get(guild_id, DBQuery.MEDIA_SETTINGS, DBQuery.PAUSED)));
 			});
 		}
 	}

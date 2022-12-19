@@ -20,8 +20,8 @@ import java.net.URL;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class TrackLoader implements AudioLoadResultHandler
@@ -30,14 +30,16 @@ public class TrackLoader implements AudioLoadResultHandler
 	private static final LinkedMap<String, AudioTrack> CACHE        = new LinkedMap<>(50);
 	private final        String                        guildID;
 	private final        AtomicReference<Boolean>      attemptRetry = new AtomicReference<>();
-	private MessageSendHandler messageSendHandler;
+	private final        Semaphore                     semaphore    = new Semaphore(1);
+	private              MessageSendHandler            messageSendHandler;
 	
 	public TrackLoader(String guildID)
 	{
 		this.guildID = guildID;
 		
 		/* Once its fully loaded it will update the message delivery method */
-		CompletableFuture.runAsync(() -> {
+		CompletableFuture.runAsync(() ->
+		{
 			while (GuildContext.get(guildID) == null)
 			{
 				messageSendHandler = GuildContext.get(guildID).messageSendHandler();
@@ -82,6 +84,7 @@ public class TrackLoader implements AudioLoadResultHandler
 		
 		return true;
 	}
+	
 	public void loadNext(TextChannel textChannel, String songName)
 	{
 		String                guildID      = textChannel.getGuild().getId();
@@ -137,6 +140,7 @@ public class TrackLoader implements AudioLoadResultHandler
 		audioManager.getScheduler().clearQueue();
 		audioManager.getScheduler().queueList(currentQueue);
 	}
+	
 	public void load(TextChannel textChannel, @Nullable VoiceChannel voiceChannel, String uri)
 	{
 		if (joinChannels(voiceChannel, textChannel))
@@ -174,10 +178,16 @@ public class TrackLoader implements AudioLoadResultHandler
 	{
 		CompletableFuture.runAsync(() ->
 		{
-			final String[] lastURI = new String[1];
-			
 			for (String uri : uriList)
 			{
+				try
+				{
+					semaphore.acquire();
+				} catch (InterruptedException e)
+				{
+					throw new RuntimeException(e);
+				}
+				
 				GuildContext.get(guildID)
 						.audioManager()
 						.getPlayerManager()
@@ -187,36 +197,28 @@ public class TrackLoader implements AudioLoadResultHandler
 							public void trackLoaded(AudioTrack audioTrack)
 							{
 								load(audioTrack);
-								lastURI[0] = audioTrack.getInfo().uri;
+								semaphore.release();
 							}
 							
 							@Override
 							public void playlistLoaded(AudioPlaylist audioPlaylist)
 							{
-							
+								
+								semaphore.release();
 							}
 							
 							@Override
 							public void noMatches()
 							{
-							
+								semaphore.release();
 							}
 							
 							@Override
 							public void loadFailed(FriendlyException e)
 							{
-							
+								semaphore.release();
 							}
 						});
-				
-				int            timeout = 3;
-				OffsetDateTime start   = OffsetDateTime.now();
-				boolean        waiting = OffsetDateTime.now().isBefore(start.plusSeconds(timeout));
-				
-				while ((lastURI[0] == null || Objects.equals(uri, lastURI[0])) && waiting)
-				{
-					waiting = OffsetDateTime.now().isBefore(start.plusSeconds(timeout));
-				}
 			}
 		});
 	}

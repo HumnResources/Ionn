@@ -1,6 +1,7 @@
 package com.zischase.discordbot;
 
 import kotlin.jvm.functions.Function3;
+import kotlin.jvm.functions.Function4;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
@@ -10,107 +11,103 @@ import org.jetbrains.annotations.Nullable;
 import java.time.Instant;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 public class MessageSendHandler
 {
-	private final Semaphore  semaphore         = new Semaphore(7);
-	private static final int SUBMIT_TIMEOUT_MS = 200;
-	private static final int DELETE_TIMEOUT_MS = 5000;
+	private final        Semaphore semaphore         = new Semaphore(2);
+	private static final int       SUBMIT_TIMEOUT_MS = 600;
+	private static final int       DELETE_TIMEOUT_MS = 5000;
 	
-	public BiFunction<TextChannel, MessageCreateData, Message> sendAndRetrieveMessage = this::sendAndRetrieveMessage;
-	public BiConsumer<TextChannel, MessageCreateData> sendAndDeleteMessage = this::sendAndDeleteMessage;
-	public BiConsumer<TextChannel, CharSequence> sendAndDeleteMessageChars = this::sendAndDeleteMessageChars;
-	public BiConsumer<TextChannel, MessageCreateData> sendMessage = this::sendMessage;
-	public Function3<TextChannel, Message, MessageEditData, Void> editMessage = this::editMessage;
-	public Function3<TextChannel, Message, MessageEditData, Message> editAndRetrieveMessage = this::editAndRetrieveMessage;
+	public Function4<TextChannel, Message, Object, Boolean, Object> sendOrEditMessage         = this::sendOrEditMessage;
+	public BiFunction<TextChannel, MessageCreateData, Message>      sendAndRetrieveMessage    = (t, data) -> sendOrEditMessage(t, null, data, false);
+	public BiConsumer<TextChannel, MessageCreateData>               sendAndDeleteMessage      = (t, data) -> sendOrEditMessage(t, null, data, true);
+	public BiConsumer<TextChannel, CharSequence>                    sendAndDeleteMessageChars = (t, data) -> sendOrEditMessage(t, null, data, true);
+	public BiConsumer<TextChannel, MessageCreateData>               sendMessage               = (t, data) -> sendOrEditMessage(t, null, data, false);
+	public Function3<TextChannel, Message, Object, Message>         editAndRetrieveMessage    = (t, m, data) -> sendOrEditMessage(t, m, data, false);
+	public Function3<TextChannel, Message, MessageEditData, Void>   editMessage               = (t, m, data) -> { sendOrEditMessage(t, m, data, false); return null; };
 	
-	@Nullable
-	private synchronized Message editAndRetrieveMessage(TextChannel t, Message m, MessageEditData data)
+	/* @Param{delete} consist of either options listed below */
+	private Message sendOrEditMessage(TextChannel t, @Nullable Message oldMessage, Object data, boolean delete)
 	{
-		AtomicReference<Message> msg = new AtomicReference<>();
-		awaitThread(() ->
+		var ref = new Object()
 		{
-			if (m == null)
+			MessageCreateData createData = null;
+			MessageEditData editData = null;
+			CharSequence charSequence = null;
+			Message msg = null;
+		};
+		Runnable r;
+		
+		switch (data.getClass().getSimpleName())
+		{
+			case "MessageCreateData" -> ref.createData = (MessageCreateData) data;
+			case "MessageEditData" -> ref.editData = (MessageEditData) data;
+			case "charSequence" -> ref.charSequence = (CharSequence) data;
+			default ->
 			{
-				semaphore.release();
-				return;
+				ref.msg = null;
+				return null;
+			}
+		}
+		
+		r = () ->
+		{
+			if (ref.createData != null)
+			{
+				ref.msg = t.sendMessage(ref.createData).complete();
+			}
+			else if (ref.editData != null && oldMessage != null)
+			{
+				ref.msg = t.editMessageById(oldMessage.getId(), ref.editData).complete();
+			}
+			else
+			{
+				ref.charSequence = (CharSequence) data;
+				if (oldMessage != null)
+				{
+					ref.msg = t.editMessageById(oldMessage.getId(), ref.charSequence).complete();
+				}
+				else
+				{
+					ref.msg = t.sendMessage(ref.charSequence).complete();
+				}
 			}
 			
-			msg.set(t.editMessageById(m.getId(), data).complete());
+			deleteMessage(delete, t, ref.msg.getId());
 			semaphore.release();
-		});
-		return msg.get();
+		};
+		
+		awaitThread(r);
+		return ref.msg;
 	}
 	
-	@Nullable
-	private synchronized Message sendAndRetrieveMessage(TextChannel t, MessageCreateData m)
+	private void deleteMessage(boolean delete, TextChannel t, String messageID)
 	{
-		AtomicReference<Message> msg = new AtomicReference<>();
-		awaitThread(() ->
+		if (delete)
 		{
-			msg.set(t.sendMessage(m).complete());
-			semaphore.release();
-		});
-		return msg.get();
+			t.deleteMessageById(messageID).queueAfter(DELETE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+		}
 	}
 	
-	private synchronized Void editMessage(TextChannel t, Message m, MessageEditData data)
-	{
-		awaitThread(() ->
-		{
-			if (m == null)
-			{
-				semaphore.release();
-				return;
-			}
-			
-			t.editMessageById(m.getId(), data).complete();
-			semaphore.release();
-		});
-		return null;
-	}
-	
-	private synchronized void sendMessage(TextChannel t, MessageCreateData m)
-	{
-		awaitThread(() ->
-		{
-			t.sendMessage(m).complete();
-			semaphore.release();
-		});
-	}
-	
-	private synchronized void sendAndDeleteMessageChars(TextChannel t, CharSequence cs)
-	{
-		awaitThread(() ->
-		{
-			Message result = t.sendMessage(cs).complete();
-			result.delete().completeAfter(DELETE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-			semaphore.release();
-		});
-	}
-	private synchronized void sendAndDeleteMessage(TextChannel t, MessageCreateData m)
-	{
-		awaitThread(() ->
-		{
-			Message result = t.sendMessage(m).complete();
-			result.delete().completeAfter(DELETE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-			semaphore.release();
-		});
-	}
-
 	private void awaitThread(Runnable r)
 	{
+		try
+		{
+			semaphore.acquire();
+		} catch (InterruptedException e)
+		{
+			throw new RuntimeException(e);
+		}
+		
 		Instant start = Instant.now();
 		
-		while (!semaphore.tryAcquire() && Instant.now().isBefore(start.plusMillis(SUBMIT_TIMEOUT_MS)))
+		while (Instant.now().isBefore(start.plusMillis(SUBMIT_TIMEOUT_MS)))
 		{
 			if (Instant.now().isAfter(start.plusMillis(DELETE_TIMEOUT_MS)))
 			{
-				semaphore.release();
-				return;
+				break;
 			}
 		}
 		

@@ -25,10 +25,11 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -41,9 +42,9 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 	private              TimerTask           trackTimerTask    = null;
 	private              Message             nowPlayingMessage = null;
 	private              Timer               timer             = new Timer();
-	private              List<AudioTrack>    copyQueue         = new ArrayList<>();
-	private              OffsetDateTime      lastUpdate        = OffsetDateTime.now();
-	private              QueueMessageHandler queueMessageHandler;
+	private List<AudioTrack>    copyQueue  = new ArrayList<>();
+	private Instant             lastUpdate = Instant.now();
+	private QueueMessageHandler queueMessageHandler;
 	private final        AudioManager        audioManager;
 	private final        String              guildID;
 	private final AtomicReference<Integer> nRetries = new AtomicReference<>(1);
@@ -94,7 +95,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 				{
 					messageSendHandler.sendAndDeleteMessageChars.accept(textChannel, "Audio track stuck! Ending track and continuing");
 					
-					if (retrySong(textChannel, scheduler.getLastTrack().getInfo().title))
+					if (retrySong(textChannel, audioManager.getPlayer().getPlayingTrack().getInfo().title))
 					{
 						return;
 					}
@@ -114,7 +115,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 				{
 					messageSendHandler.sendAndDeleteMessageChars.accept(textChannel, "Error loading the audio for track `" + audioEvent.player.getPlayingTrack().getInfo().title + "`.");
 					
-					if (retrySong(textChannel, scheduler.getLastTrack().getInfo().title))
+					if (retrySong(textChannel, audioManager.getPlayer().getPlayingTrack().getInfo().title))
 					{
 						return;
 					}
@@ -219,7 +220,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			e.printStackTrace();
 		}
 	}
-	
+	private final Semaphore semaphore = new Semaphore(1);
 	private TimerTask getTrackTimerTask(QueueMessageHandler queueMessageHandler, TextChannel textChannel, AudioEvent audioEvent)
 	{
 		return new TimerTask()
@@ -227,32 +228,61 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 			@Override
 			public void run()
 			{
+				try
+				{
+					{
+						semaphore.acquire();
+					}
+				} catch (InterruptedException e)
+				{
+					throw new RuntimeException(e);
+				}
+				
 				AudioTrack track = audioEvent.player.getPlayingTrack();
 				if (track == null)
 				{
+					semaphore.release();
 					return;
 				}
 				
 				boolean incorrectState = audioManager.getPlayerState() != AudioPlayerState.PLAYING;
-				boolean rateLimited    = OffsetDateTime.now().isBefore(lastUpdate.plusSeconds(RATE_LIMIT_SEC));
+				boolean rateLimited    = Instant.now().isBefore(lastUpdate.plusSeconds(RATE_LIMIT_SEC));
 				boolean isLive         = (audioManager.getPlayer().getPlayingTrack().getDuration() == Long.MAX_VALUE && getNowPlayingMessage() != null);
+				boolean validMessage = false;
 				
-				if (track.getPosition() > track.getDuration() || incorrectState || rateLimited || isLive)
+				if (getNowPlayingMessage() != null && getNowPlayingMessage().getReferencedMessage() != null)
 				{
+					validMessage = getNowPlayingMessage().getReferencedMessage().getContentRaw().contains(QUEUE_MSG_NAME);
+				}
+				
+				if (track.getPosition() > track.getDuration() || incorrectState || rateLimited || (isLive && !validMessage))
+				{
+					semaphore.release();
 					return;
 				}
 				
-				lastUpdate = OffsetDateTime.now();
+				lastUpdate = Instant.now();
 				printNowPlaying(textChannel);
 				audioManager.saveAudioState();
 				
-				if (!listChanged(audioManager.getScheduler().getQueue(), copyQueue))
+				if (listChanged(audioManager.getScheduler().getQueue(), copyQueue))
 				{
-					return;
+					queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
+					copyQueue = audioManager.getScheduler().getQueue();
 				}
 				
-				queueMessageHandler.printQueuePage(textChannel, queueMessageHandler.getCurrentPageNum());
-				copyQueue = audioManager.getScheduler().getQueue();
+				Instant start = Instant.now();
+				
+				while (Instant.now().isBefore(start.plusMillis(NOW_PLAYING_TIMER_RATE_MS)))
+				{
+					/* We wait */
+					if (Instant.now().isAfter(start.plusMillis(NOW_PLAYING_TIMER_RATE_MS)))
+					{
+						break;
+					}
+				}
+				
+				semaphore.release();
 			}
 		};
 	}
@@ -472,13 +502,10 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 		Message currentNPMessage = audioManager.getNowPlayingMessageHandler().getNowPlayingMessage();
 		String  reaction         = event.getReaction().getEmoji().getName();
 		
-		CompletableFuture.runAsync(() ->
+		if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId()))
 		{
-			if (currentNPMessage != null && msg.getId().equals(currentNPMessage.getId()))
-			{
-				nowPlayingInteraction(reaction, event.getUser());
-			}
-		});
+			nowPlayingInteraction(reaction, event.getUser());
+		}
 	}
 	
 	public Message getNowPlayingMessage()
