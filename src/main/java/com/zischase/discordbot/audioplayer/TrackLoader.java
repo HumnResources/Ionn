@@ -273,7 +273,7 @@ public class TrackLoader implements AudioLoadResultHandler
 	
 	private void songAddedConfirmation(TextChannel channel, AudioTrack audioTrack)
 	{
-		if (channel == null || audioTrack.getInfo() == null)
+		if (channel == null || audioTrack.getInfo() == null || messageSendHandler == null)
 		{
 			return;
 		}
