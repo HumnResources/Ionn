@@ -9,7 +9,6 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.zischase.discordbot.DBQuery;
 import com.zischase.discordbot.DBQueryHandler;
 import com.zischase.discordbot.MessageSendHandler;
-import com.zischase.discordbot.commands.audiocommands.Shuffle;
 import com.zischase.discordbot.guildcontrol.GuildContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
@@ -245,14 +244,19 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 					return;
 				}
 				
-				boolean incorrectState = audioManager.getPlayerState() != AudioPlayerState.PLAYING;
+				boolean incorrectState = audioManager.getPlayerState() != AudioPlayerState.PLAYING && audioManager.getPlayerState() != AudioPlayerState.PAUSED;
 				boolean rateLimited    = Instant.now().isBefore(lastUpdate.plusSeconds(RATE_LIMIT_SEC));
 				boolean isLive         = (audioManager.getPlayer().getPlayingTrack().getDuration() == Long.MAX_VALUE && getNowPlayingMessage() != null);
 				boolean validMessage = false;
 				
-				if (getNowPlayingMessage() != null && getNowPlayingMessage().getReferencedMessage() != null)
+				if (getNowPlayingMessage() != null && getNowPlayingMessage().getEmbeds().get(0) != null)
 				{
-					validMessage = getNowPlayingMessage().getReferencedMessage().getContentRaw().contains(QUEUE_MSG_NAME);
+					MessageEmbed.AuthorInfo authorInfo = getNowPlayingMessage().getEmbeds().get(0).getAuthor();
+					
+					if (authorInfo != null && authorInfo.getName() != null)
+					{
+						validMessage = getNowPlayingMessage().getContentRaw().contains(NOW_PLAYING_MSG_NAME) && authorInfo.getName().matches(audioManager.getPlayer().getPlayingTrack().getInfo().title);
+					}
 				}
 				
 				if (track.getPosition() > track.getDuration() || incorrectState || rateLimited || (isLive && !validMessage))
@@ -518,7 +522,7 @@ public class NowPlayingMessageHandler extends ListenerAdapter
 		Message currentNPMessage = audioManager.getNowPlayingMessageHandler().getNowPlayingMessage();
 		switch (reaction)
 		{
-			case SHUFFLE -> Shuffle.shuffle(guildID, audioManager);
+//			case SHUFFLE -> Shuffle.shuffle(guildID, audioManager);
 			case REPEAT_QUEUE -> audioManager.getScheduler().setRepeatQueue(!audioManager.getScheduler().isRepeatQueue());
 			case REPEAT_ONE -> audioManager.getScheduler().setRepeatSong(!audioManager.getScheduler().isRepeatSong());
 			case PREV_TRACK ->

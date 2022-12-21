@@ -28,9 +28,9 @@ public class GuildContext implements IGuildContext
 	public GuildContext(Guild guild)
 	{
 		this.guild          = guild;
+		this.messageSendHandler = new MessageSendHandler();
 		this.audioManager   = new AudioManager(guild);
 		this.commandHandler = new CommandHandler();
-		this.messageSendHandler = new MessageSendHandler();
 		
 		/* Update global GuildContext references */
 		setGuild(this);

@@ -40,13 +40,13 @@ public class TrackLoader implements AudioLoadResultHandler
 		/* Once its fully loaded it will update the message delivery method */
 		CompletableFuture.runAsync(() ->
 		{
-			while (GuildContext.get(guildID) == null)
+			while (true)
 			{
-				messageSendHandler = GuildContext.get(guildID).messageSendHandler();
-			}
-			if (messageSendHandler == null)
-			{
-				messageSendHandler = GuildContext.get(guildID).messageSendHandler();
+				if (GuildContext.get(guildID) != null)
+				{
+					messageSendHandler = GuildContext.get(guildID).messageSendHandler();
+					break;
+				}
 			}
 		});
 	}
@@ -338,7 +338,9 @@ public class TrackLoader implements AudioLoadResultHandler
 			
 			this.load(channel, voiceChannel, lastSong.getInfo().uri);
 		}
-		
-		messageSendHandler.sendAndDeleteMessageChars.accept(channel, "Loading failed for `" + lastSong.getInfo().title + "`, sorry.");
+		else
+		{
+			messageSendHandler.sendAndDeleteMessageChars.accept(channel, "Loading failed for `" + lastSong.getInfo().title + "`, sorry.");
+		}
 	}
 }
