@@ -44,7 +44,7 @@ public class MessageSendHandler
 		{
 			case "MessageCreateData" -> ref.createData = (MessageCreateData) data;
 			case "MessageEditData" -> ref.editData = (MessageEditData) data;
-			case "charSequence" -> ref.charSequence = (CharSequence) data;
+			case "String" -> ref.charSequence = (CharSequence) data;
 			default ->
 			{
 				ref.msg = null;
